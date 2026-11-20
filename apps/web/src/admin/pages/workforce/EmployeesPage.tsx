@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ExportButton } from '../../components/ExportButton';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Applicant, Employee, EmployeeDetail, LeaveRequest, TemporaryPassword } from '@nestovin/contracts';
 import { api, ApiError, qs } from '../../lib/api';
@@ -51,6 +52,7 @@ export function EmployeesPage() {
         actions={can(me, 'employees', 'create') ? <Button onClick={() => setCreating(true)}>Add employee</Button> : null}
       />
       <Toolbar>
+        <ExportButton path="/v1/admin/exports/employees" module="employees" fileName="employees.csv" />
         <SearchBox value={search} onChange={setSearch} label="Search name, ID or phone" />
         <FilterSelect value={readiness} onChange={setReadiness} label="Readiness" options={[{ value: 'READY', label: 'Ready' }, { value: 'NOT_READY', label: 'Not ready' }]} />
       </Toolbar>

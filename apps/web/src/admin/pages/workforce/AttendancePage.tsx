@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ExportButton } from '../../components/ExportButton';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AttendanceRecord, Correction } from '@nestovin/contracts';
 import { api, qs } from '../../lib/api';
@@ -38,6 +39,7 @@ export function AttendancePage() {
     <>
       <PageHeader title="Attendance" description="Check-ins verified with the resident’s code or QR. Location is supporting evidence only: flagged check-ins need a review." />
       <Toolbar>
+        <ExportButton path={`/v1/admin/exports/attendance?from=${from}&to=${to}${communityId ? `&communityId=${communityId}` : ''}`} module="attendance" fileName="attendance.csv" />
         <CommunityPicker value={communityId} onChange={setCommunityId} options={communities} />
         <input className="input input-compact" type="date" aria-label="From" value={from} onChange={(e) => setFrom(e.target.value)} />
         <input className="input input-compact" type="date" aria-label="To" value={to} onChange={(e) => setTo(e.target.value)} />

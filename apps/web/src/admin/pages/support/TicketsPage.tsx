@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ExportButton } from '../../components/ExportButton';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AdminTicket, TicketCategory, TicketStatus } from '@nestovin/contracts';
 import { api, ApiError, qs } from '../../lib/api';
@@ -58,6 +59,7 @@ export function TicketsPage() {
         }
       />
       <Toolbar>
+        <ExportButton path="/v1/admin/exports/tickets" module="support" fileName="tickets.csv" />
         <select className="input input-compact" aria-label="View" value={view} onChange={(e) => setView(e.target.value)}>
           <option value="open">Open tickets</option>
           <option value="mine">Assigned to me</option>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ExportButton } from '../../components/ExportButton';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AdminBooking, AdminPayment, PaymentException } from '@nestovin/contracts';
 import { api, ApiError, formatRupees, qs, rupeesToPaise } from '../../lib/api';
@@ -39,6 +40,7 @@ export function BookingsPage() {
     <>
       <PageHeader title="Bookings" description="Bookings, their payment state and the subscription period, kept separate." />
       <Toolbar>
+        <ExportButton path={`/v1/admin/exports/bookings${communityId ? `?communityId=${communityId}` : ''}`} module="demand_payments" fileName="bookings.csv" />
         <CommunityPicker value={communityId} onChange={setCommunityId} options={communities} />
         <select className="input input-compact" aria-label="Booking status" value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="">All statuses</option>
@@ -155,6 +157,7 @@ export function PaymentsPage() {
       ) : (
         <>
           <Toolbar>
+            <ExportButton path="/v1/admin/exports/payments" module="demand_payments" fileName="payments.csv" />
             <select className="input input-compact" aria-label="Payment status" value={status} onChange={(e) => setStatus(e.target.value)}>
               <option value="">All statuses</option>
               <option value="PAID">Paid</option>

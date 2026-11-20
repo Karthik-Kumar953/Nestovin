@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ExportButton } from '../../components/ExportButton';
 import { Link, useNavigate, useSearchParams } from '../../lib/router';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import type { City, Cluster, Community } from '@nestovin/contracts';
@@ -73,6 +74,7 @@ export function CommunitiesPage() {
         actions={can(me, 'locations', 'create') ? <Button onClick={() => setCreating(true)}>Add community</Button> : null}
       />
       <Toolbar>
+        <ExportButton path="/v1/admin/exports/communities" module="locations" fileName="communities.csv" />
         <SearchBox value={search} onChange={setSearch} label="Search name or code" />
         <FilterSelect value={cityId} onChange={(v) => setFilter('cityId', v)} label="City" options={cities.data ?? []} />
         <FilterSelect value={clusterId} onChange={(v) => setFilter('clusterId', v)} label="Cluster" options={clusters.data ?? []} />

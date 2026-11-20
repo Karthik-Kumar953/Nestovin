@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ExportButton } from '../../components/ExportButton';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AdminResident, AdminResidentDetail, Membership } from '@nestovin/contracts';
 import { api, ApiError, qs } from '../../lib/api';
@@ -56,6 +57,7 @@ export function ResidentsPage() {
         description="People who signed in to the Resident app, with their registered flat and verification status."
       />
       <Toolbar>
+        <ExportButton path="/v1/admin/exports/residents" module="residents" fileName="residents.csv" />
         <SearchBox value={search} onChange={setSearch} label="Search name or phone" />
         <FilterSelect
           value={status}
