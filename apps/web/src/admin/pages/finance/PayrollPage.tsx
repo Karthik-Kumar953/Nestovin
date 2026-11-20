@@ -17,6 +17,7 @@ const FLAG: Record<string, string> = {
   WORKER_NO_SHOWS_NO_RULE: 'Worker no-shows (no deduction rule yet)',
   LEAVE_NO_RULE: 'Approved leave (no deduction rule yet)',
   PENDING_CORRECTIONS: 'Attendance corrections pending',
+  OVERTIME_NO_RATE: 'Confirmed overtime (add an authorised entry; no rate yet)',
 };
 const COMPONENT: Record<string, string> = {
   BASE_SALARY: 'Base salary',

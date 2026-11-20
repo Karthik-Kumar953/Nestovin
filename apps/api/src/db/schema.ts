@@ -868,7 +868,7 @@ export interface OccurrenceAssignmentsTable {
   occurrence_id: string;
   employee_id: string;
   cluster_id: string | null;
-  source: 'STANDING' | 'MANUAL' | 'REPLACEMENT';
+  source: 'STANDING' | 'MANUAL' | 'REPLACEMENT' | 'OVERTIME';
   replaced_assignment_id: string | null;
   status: Generated<'ACTIVE' | 'REPLACED' | 'CANCELLED'>;
   starts_at: Timestamp | null;
@@ -1073,7 +1073,29 @@ export interface ResidentChangeRequestsTable {
   created_at: Generated<Date>;
 }
 
+export interface OvertimeOffersTable {
+  id: Generated<string>;
+  occurrence_id: string;
+  cluster_id: string | null;
+  note: string | null;
+  status: Generated<'OPEN' | 'FILLED' | 'CANCELLED'>;
+  confirmed_employee_id: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  closed_at: Timestamp | null;
+}
+
+export interface OvertimeOfferResponsesTable {
+  offer_id: string;
+  employee_id: string;
+  cluster_id: string | null;
+  response: Generated<'PENDING' | 'ACCEPTED' | 'REJECTED'>;
+  responded_at: Timestamp | null;
+}
+
 export interface DB {
+  'app.overtime_offers': OvertimeOffersTable;
+  'app.overtime_offer_responses': OvertimeOfferResponsesTable;
   'app.resident_change_requests': ResidentChangeRequestsTable;
   'app.compensation_profiles': CompensationProfilesTable;
   'app.payroll_periods': PayrollPeriodsTable;

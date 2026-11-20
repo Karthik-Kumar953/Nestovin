@@ -58,6 +58,7 @@ const SECTIONS: { title: string; items: NavItem[] }[] = [
       { to: '/workforce/leave', label: 'Leave requests', module: 'employees' },
       { to: '/allocation', label: 'Allocation', module: 'allocation' },
       { to: '/allocation/visits', label: 'Visits', module: 'allocation' },
+      { to: '/allocation/overtime', label: 'Overtime offers', module: 'allocation' },
       { to: '/attendance', label: 'Attendance', module: 'attendance' },
       { to: '/attendance/corrections', label: 'Corrections', module: 'attendance' },
       { to: '/workforce/settings', label: 'HR settings', module: 'employees' },

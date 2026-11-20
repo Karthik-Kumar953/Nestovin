@@ -56,6 +56,8 @@ export const payrollLineSchema = z.object({
     residentNoShows: z.number().int(),
     approvedLeaveDays: z.number().int(),
     pendingCorrections: z.number().int(),
+    /** Completed visits confirmed as overtime (EMP-08); priced by an authorised entry until a rate is approved. */
+    overtimeVisits: z.number().int().optional(),
   }),
   items: z.array(
     z.object({ id: uuidSchema, kind: z.enum(['EARNING', 'DEDUCTION']), component: z.string(), amountPaise: z.number().int(), sourceType: z.string(), note: z.string().nullable() }),

@@ -205,7 +205,7 @@ export class PayrollService {
     const calc = prorate(month, profiles.map((p) => ({ monthlyAmountPaise: Number(p.monthly_amount_paise), from: p.effective_from, to: p.effective_to })), { from: e.joined_on, to: e.exited_on });
 
     // Inputs from approved records only (ADM-14). No formula applies to them yet.
-    const att = await sql<{ completed: string; worker_ns: string; resident_ns: string; corrections: string }>`
+    const att = await sql<{ completed: string; worker_ns: string; resident_ns: string; corrections: string; overtime: string }>`
       select
         (select count(*) from app.service_completions c join app.service_occurrences o on o.id = c.occurrence_id
           where c.employee_id = ${e.id} and o.scheduled_date between ${start}::date and ${end}::date) as completed,
@@ -214,7 +214,10 @@ export class PayrollService {
         (select count(*) from app.no_show_records n join app.service_occurrences o on o.id = n.occurrence_id
           where n.employee_id = ${e.id} and n.kind = 'RESIDENT_ABSENT' and o.scheduled_date between ${start}::date and ${end}::date) as resident_ns,
         (select count(*) from app.attendance_corrections k join app.service_occurrences o on o.id = k.occurrence_id
-          where k.employee_id = ${e.id} and k.status = 'PENDING' and o.scheduled_date between ${start}::date and ${end}::date) as corrections
+          where k.employee_id = ${e.id} and k.status = 'PENDING' and o.scheduled_date between ${start}::date and ${end}::date) as corrections,
+        (select count(*) from app.service_completions c join app.occurrence_assignments a on a.occurrence_id = c.occurrence_id and a.status = 'ACTIVE' and a.source = 'OVERTIME'
+           join app.service_occurrences o on o.id = c.occurrence_id
+          where c.employee_id = ${e.id} and o.scheduled_date between ${start}::date and ${end}::date) as overtime
     `.execute(trx);
     const leave = await sql<{ days: string }>`
       select coalesce(sum(least(end_date, ${end}::date) - greatest(start_date, ${start}::date) + 1), 0) as days
@@ -227,6 +230,7 @@ export class PayrollService {
       residentNoShows: Number(a.resident_ns),
       approvedLeaveDays: Number(leave.rows[0]?.days ?? 0),
       pendingCorrections: Number(a.corrections),
+      overtimeVisits: Number(a.overtime),
     };
     const flags: string[] = [];
     if (calc.segments.length === 0) flags.push('NO_SALARY_SET');
@@ -234,6 +238,7 @@ export class PayrollService {
     if (summary.workerNoShows) flags.push('WORKER_NO_SHOWS_NO_RULE');
     if (summary.approvedLeaveDays) flags.push('LEAVE_NO_RULE');
     if (summary.pendingCorrections) flags.push('PENDING_CORRECTIONS');
+    if (summary.overtimeVisits) flags.push('OVERTIME_NO_RATE');
 
     const line = await trx
       .insertInto('app.payroll_lines')

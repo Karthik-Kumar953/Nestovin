@@ -116,7 +116,7 @@ export class AllocationService {
   }
 
   /** Date-specific checks for one occurrence. */
-  private async occurrenceReasons(trx: Tx, employeeId: string, o: { id: string; scheduled_date: string; starts_at: Date | null; ends_at: Date | null }): Promise<string[]> {
+  async occurrenceReasons(trx: Tx, employeeId: string, o: { id: string; scheduled_date: string; starts_at: Date | null; ends_at: Date | null }): Promise<string[]> {
     const reasons: string[] = [];
     const leave = await trx
       .selectFrom('app.leave_requests')
@@ -364,7 +364,7 @@ export class AllocationService {
     });
   }
 
-  private async employeeBasics(trx: Tx, employeeId: string, serviceId: string, clusterId: string | null) {
+  async employeeBasics(trx: Tx, employeeId: string, serviceId: string, clusterId: string | null) {
     const e = await trx.selectFrom('app.employees').select(['status', 'readiness', 'home_cluster_id']).where('id', '=', employeeId).executeTakeFirst();
     const reasons: string[] = [];
     if (!e) return ['Employee not found'];

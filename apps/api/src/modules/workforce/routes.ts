@@ -24,6 +24,7 @@ import { adminOf } from '../../http/context';
 import { authorize, hashIp, parseParam, parseQuery, rateLimit, validateBody, type Handler } from '../../http/middleware';
 import { forbidden } from '../../lib/errors';
 import { AllocationService } from './allocation';
+import { OvertimeService, confirmOfferSchema, createOfferSchema, respondOfferSchema } from './overtime';
 import { WorkforceAdminService } from './admin-service';
 import { EmployeeService, employeeOf, requireEmployee } from './employee-service';
 
@@ -78,6 +79,14 @@ export function employeeRoutes(deps: AppDeps, ...extra: Router[]): Router {
   });
   r.post('/leave/:id/cancel', async (req, res) => {
     res.json({ items: await svc.cancelLeave(employeeOf(req), id(req.params.id)) });
+  });
+  // EMP-08 overtime offers
+  const overtime = new OvertimeService(deps.db);
+  r.get('/overtime-offers', async (req, res) => {
+    res.json({ items: await overtime.mine(employeeOf(req)) });
+  });
+  r.post('/overtime-offers/:id/respond', validateBody(respondOfferSchema), async (req, res) => {
+    res.json({ items: await overtime.respond(employeeOf(req), id(req.params.id), req.body.response) });
   });
   r.post('/training/:id/complete', async (req, res) => {
     res.json(await svc.completeTraining(employeeOf(req), id(req.params.id)));
@@ -204,6 +213,25 @@ export function workforceAdminRoutes(deps: AppDeps): Router {
   r.get('/visits/:id/candidates', authorize('allocation', 'view'), async (req, res) => {
     res.json(await alloc.occurrenceCandidates(adminOf(req), id(req.params.id)));
   });
+  // EMP-08 overtime: offer -> worker accepts/rejects -> admin confirms
+  const overtime = new OvertimeService(deps.db);
+  r.get('/visits/:id/overtime-candidates', authorize('allocation', 'view'), async (req, res) => {
+    res.json(await overtime.candidates(adminOf(req), id(req.params.id)));
+  });
+  r.post('/visits/:id/overtime-offers', authorize('allocation', 'create'), validateBody(createOfferSchema), async (req, res) => {
+    res.status(201).json(await overtime.offer(adminOf(req), req.requestId, id(req.params.id), req.body));
+  });
+  r.get('/overtime-offers', authorize('allocation', 'view'), async (req, res) => {
+    const q = parseQuery(z.object({ status: z.enum(['OPEN', 'FILLED', 'CANCELLED']).default('OPEN') }), req);
+    res.json({ items: await overtime.list(adminOf(req), q.status) });
+  });
+  r.post('/overtime-offers/:id/confirm', authorize('allocation', 'approve'), validateBody(confirmOfferSchema), async (req, res) => {
+    res.json(await overtime.confirm(adminOf(req), req.requestId, id(req.params.id), req.body.employeeId));
+  });
+  r.post('/overtime-offers/:id/cancel', authorize('allocation', 'edit'), async (req, res) => {
+    res.json(await overtime.cancel(adminOf(req), req.requestId, id(req.params.id)));
+  });
+
   r.post('/visits/:id/assign', authorize('allocation', 'edit'), validateBody(replaceOccurrenceSchema), async (req, res) => {
     res.json(await alloc.assignOccurrence(adminOf(req), req.requestId, id(req.params.id), req.body));
   });

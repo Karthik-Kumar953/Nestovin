@@ -8,6 +8,7 @@ import { can } from '../../lib/permissions';
 import { useMe } from '../../auth/AuthProvider';
 import { Button, DataTable, ErrorBanner, InfoBanner, Modal, PageHeader, Spinner, TextArea, Toolbar } from '../../components/ui';
 import { CommunityPicker, daysLabel, Pill, useSelectedCommunity } from '../demand/shared';
+import { OfferOvertimeDialog } from './OvertimePage';
 
 /** ADM-11: give every paid service a standing worker. No ranking (OPEN): pick from the eligible list. */
 export function AllocationPage() {
@@ -138,6 +139,7 @@ export function VisitsPage() {
     enabled: Boolean(communityId),
   });
   const [replacing, setReplacing] = useState<Occurrence | null>(null);
+  const [offering, setOffering] = useState<Occurrence | null>(null);
   if (loading) return <Spinner />;
   return (
     <>
@@ -166,11 +168,18 @@ export function VisitsPage() {
           {
             header: '',
             className: 'actions',
-            cell: (v) => (can(me, 'allocation', 'edit') && ['SCHEDULED', 'ASSIGNED'].includes(v.status) && v.startsAt ? <Button variant="secondary" onClick={() => setReplacing(v)}>{v.assignment ? 'Replace' : 'Cover'}</Button> : null),
+            cell: (v) =>
+              can(me, 'allocation', 'edit') && ['SCHEDULED', 'ASSIGNED'].includes(v.status) && v.startsAt ? (
+                <div className="row">
+                  <Button variant="secondary" onClick={() => setReplacing(v)}>{v.assignment ? 'Replace' : 'Cover'}</Button>
+                  {!v.assignment && can(me, 'allocation', 'create') ? <Button variant="ghost" onClick={() => setOffering(v)}>Offer overtime</Button> : null}
+                </div>
+              ) : null,
           },
         ]}
       />
       {replacing ? <ReplaceDialog visit={replacing} onClose={() => setReplacing(null)} /> : null}
+      {offering ? <OfferOvertimeDialog occurrenceId={offering.id} title={`${offering.scheduledDate}, ${offering.flat.towerName} ${offering.flat.flatNumber}`} onClose={() => setOffering(null)} /> : null}
     </>
   );
 }
