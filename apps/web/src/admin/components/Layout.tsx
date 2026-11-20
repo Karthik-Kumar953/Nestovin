@@ -82,6 +82,7 @@ const SECTIONS: { title: string; items: NavItem[] }[] = [
     items: [
       { to: '/access/admins', label: 'Admin users', module: 'admin_access' },
       { to: '/access/roles', label: 'Roles', module: 'admin_access' },
+      { to: '/access/audit', label: 'Audit log', module: 'admin_access', superAdminOnly: true },
     ],
   },
 ];

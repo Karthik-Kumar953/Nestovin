@@ -24,6 +24,7 @@ import {
 } from '../../components/ui';
 import { STATUS_OPTIONS } from './CitiesPage';
 import { useClusterOptions } from './CommunitiesPage';
+import { RecordHistory } from '../../components/RecordHistory';
 
 export function CommunityDetailPage() {
   const { id = '' } = useParams();
@@ -130,6 +131,8 @@ export function CommunityDetailPage() {
           ]}
         />
       </section>
+
+      <RecordHistory targetType="community" targetId={c.id} />
 
       {editing ? <EditCommunity community={c} onClose={() => setEditing(false)} /> : null}
       {moving ? <MoveCluster community={c} onClose={() => setMoving(false)} /> : null}

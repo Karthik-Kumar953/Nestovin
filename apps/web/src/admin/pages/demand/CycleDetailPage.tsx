@@ -11,6 +11,7 @@ import { Button, DataTable, ErrorBanner, formatDateTime, InfoBanner, Modal, Page
 import { CycleEditor, usePublishedPlans } from './CyclesPage';
 import { SlotEditor } from './SlotsPage';
 import { daysLabel, fromLocalInput, Pill, REQUEST_STATUS_LABEL, toLocalInput } from './shared';
+import { RecordHistory } from '../../components/RecordHistory';
 
 export function CycleDetailPage() {
   const { id = '' } = useParams();
@@ -141,6 +142,7 @@ export function CycleDetailPage() {
 
       {c.status !== 'DRAFT' && c.status !== 'CANCELLED' ? <SlotSetSection cycle={c} /> : null}
       <RequestsTable cycleId={c.id} />
+      <RecordHistory targetType="demand_cycle" targetId={c.id} />
       {editing ? <CycleEditor communityId={c.communityId} cycle={c} onClose={() => setEditing(false)} /> : null}
       {extending ? <ExtendCycle cycle={c} onClose={() => setExtending(false)} /> : null}
     </>

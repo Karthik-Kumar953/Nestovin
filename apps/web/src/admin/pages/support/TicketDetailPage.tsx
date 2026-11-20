@@ -9,6 +9,7 @@ import { useMe } from '../../auth/AuthProvider';
 import { Link, useParams } from '../../lib/router';
 import { Button, ErrorBanner, formatDateTime, InfoBanner, PageHeader, SelectInput, Spinner, TextArea } from '../../components/ui';
 import { EscalationBadge, PrioritySelect, TICKET_STATUS_LABEL, TicketStatusBadge, useTicketCategories } from './TicketsPage';
+import { RecordHistory } from '../../components/RecordHistory';
 
 export function TicketDetailPage() {
   const { id } = useParams();
@@ -203,6 +204,7 @@ export function TicketDetailPage() {
               </ol>
             </div>
           ) : null}
+          <RecordHistory targetType="support_ticket" targetId={t.id} />
           <div className="card">
             <h2 className="section-title">Resident</h2>
             <p>

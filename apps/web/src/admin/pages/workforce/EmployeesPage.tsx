@@ -26,6 +26,7 @@ import {
 } from '../../components/ui';
 import { DaysInput, daysLabel, Pill } from '../demand/shared';
 import { CompensationPanel } from '../finance/PayrollPage';
+import { RecordHistory } from '../../components/RecordHistory';
 
 export function useClusterOptions() {
   return useQuery({ queryKey: ['cluster-options'], queryFn: () => api<{ items: { id: string; name: string; code: string }[] }>('/v1/admin/cluster-options') });
@@ -265,6 +266,7 @@ export function EmployeeDetailPage() {
             </ul>
           </div>
           {can(me, 'finance_payroll', 'view') ? <CompensationPanel employeeId={e.id} /> : null}
+          <RecordHistory targetType="employee" targetId={e.id} />
           <div className="card">
             <h2 className="section-title">Account</h2>
             <p>Status: <StatusBadge status={e.status} /></p>

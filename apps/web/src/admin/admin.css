@@ -849,3 +849,12 @@ legend {
   margin: 0;
   font-size: 0.875rem;
 }
+
+.code-block {
+  background: var(--nv-neutral-100);
+  border-radius: var(--nv-radius-sm);
+  padding: var(--nv-space-sm);
+  font-size: 0.8125rem;
+  max-height: 320px;
+  overflow: auto;
+}

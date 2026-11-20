@@ -9,6 +9,7 @@ import { useMe } from '../../auth/AuthProvider';
 import { Link, useNavigate, useParams } from '../../lib/router';
 import { Button, DataTable, ErrorBanner, formatDateTime, InfoBanner, Modal, PageHeader, SelectInput, Spinner, TextArea, TextInput } from '../../components/ui';
 import { Pill } from '../demand/shared';
+import { RecordHistory } from '../../components/RecordHistory';
 
 const FLAG: Record<string, string> = {
   NO_SALARY_SET: 'No salary set',
@@ -227,6 +228,7 @@ export function PayrollRunPage() {
           },
         ]}
       />
+      <RecordHistory targetType="payroll_run" targetId={r.id} />
       {returning ? (
         <Modal
           open

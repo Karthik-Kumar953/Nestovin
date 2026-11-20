@@ -22,6 +22,7 @@ import {
   TextArea,
   Toolbar,
 } from '../../components/ui';
+import { RecordHistory } from '../../components/RecordHistory';
 
 export function flatLabel(m: Pick<Membership, 'flatNumber' | 'towerName' | 'communityName'>): string {
   return `${m.communityName} · ${m.towerName} · ${m.flatNumber}`;
@@ -169,6 +170,7 @@ function ResidentDetail({ id, onClose }: { id: string; onClose: () => void }) {
               { header: 'Verified', cell: (m) => formatDateTime(m.verifiedAt) },
             ]}
           />
+          <RecordHistory targetType="resident" targetId={r.id} />
           {can(me, 'residents', 'edit') ? (
             changing ? (
               <div className="stack">

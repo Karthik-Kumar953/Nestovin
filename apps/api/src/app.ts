@@ -18,6 +18,7 @@ import { PaymentService } from './modules/bookings/payments';
 import { employeeRoutes, publicApplicantRoutes, workforceAdminRoutes } from './modules/workforce/routes';
 import { attendanceAdminRoutes, employeeVisitRoutes, residentVisitRoutes } from './modules/attendance/routes';
 import { overviewRoutes } from './modules/overview/routes';
+import { auditRoutes } from './modules/audit/routes';
 import { employeePayslipRoutes, payrollAdminRoutes } from './modules/payroll/routes';
 
 /** Builds the Express app from injected dependencies (no global state; easy to test). */
@@ -96,6 +97,7 @@ export function createApp(deps: AppDeps, payments = new PaymentService(deps.db, 
   admin.use(workforceAdminRoutes(deps));
   admin.use(attendanceAdminRoutes(deps));
   admin.use(overviewRoutes(deps));
+  admin.use(auditRoutes(deps));
   admin.use(payrollAdminRoutes(deps));
   app.use('/v1/admin', admin);
 
