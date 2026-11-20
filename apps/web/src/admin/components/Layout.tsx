@@ -63,6 +63,13 @@ const SECTIONS: { title: string; items: NavItem[] }[] = [
     ],
   },
   {
+    title: 'Finance',
+    items: [
+      { to: '/finance', label: 'Finance overview', module: 'finance_payroll' },
+      { to: '/finance/payroll', label: 'Payroll', module: 'finance_payroll' },
+    ],
+  },
+  {
     title: 'Support',
     items: [
       { to: '/support/tickets', label: 'Tickets', module: 'support' },
@@ -105,7 +112,7 @@ export function Layout({ children }: { children: ReactNode }) {
               <ul>
                 {s.items.map((i) => (
                   <li key={i.to}>
-                    <NavLink to={i.to} end={i.to === '/' || i.to === '/residents' || i.to === '/allocation' || i.to === '/attendance'} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                    <NavLink to={i.to} end={i.to === '/' || i.to === '/residents' || i.to === '/allocation' || i.to === '/attendance' || i.to === '/finance'} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                       {i.label}
                     </NavLink>
                   </li>

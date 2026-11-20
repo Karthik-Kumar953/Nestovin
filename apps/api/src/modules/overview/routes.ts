@@ -85,6 +85,9 @@ export async function overview(db: AppDeps['db'], actor: AdminActor): Promise<Ov
     await add(can(actor, 'attendance', 'view'), 'corrections', 'Attendance corrections waiting', '/attendance/corrections', () =>
       n(trx.selectFrom('app.attendance_corrections').select(count).where('status', '=', 'PENDING')),
     );
+    await add(can(actor, 'finance_payroll', 'approve'), 'payroll_review', 'Payroll waiting for approval', '/finance/payroll', () =>
+      n(trx.selectFrom('app.payroll_runs').select(count).where('status', '=', 'IN_REVIEW')),
+    );
     return items;
   });
 }

@@ -187,7 +187,7 @@ erDiagram
 
 ---
 
-## 7. Residents & household: planned, Phase 3
+## 7. Residents & household: built, Phase 3
 
 | Table | Key columns / constraints | Tier |
 |---|---|---|
@@ -256,7 +256,7 @@ erDiagram
 
 ---
 
-## 11. Workforce: planned, Phase 5
+## 11. Workforce: built, Phase 5
 
 | Table | Key columns / constraints | Tier |
 |---|---|---|
@@ -269,7 +269,7 @@ erDiagram
 | `leave_requests` | employee_id, `leave_type` ([OPEN] list), starts_on, ends_on, partial-day fields, reason, status, reviewed_by | **A** |
 | `work_limits` | `employee_id` nullable (null = default), max_minutes_per_day, max_minutes_per_week, effective dates. Values come from Operations | B |
 
-## 12. Scheduling & allocation: planned, Phase 5 (ADR-005)
+## 12. Scheduling & allocation: built, Phase 5 (ADR-005, ADR-016)
 
 | Table | Key columns / constraints | Tier |
 |---|---|---|
@@ -281,7 +281,7 @@ erDiagram
 
 The database itself guarantees the confirmed-eligibility checks that matter most: no double booking (exclusion), one active assignment per visit, and cluster consistency (trigger: assignment.cluster_id = occurrence.cluster_id = employee.home_cluster_id). Readiness, qualification and leave are checked by the service in the same transaction.
 
-## 13. Attendance & service execution: planned, Phase 6
+## 13. Attendance & service execution: built, Phase 6 (ADR-014, ADR-016)
 
 | Table | Key columns / constraints | Tier |
 |---|---|---|
@@ -294,7 +294,7 @@ The database itself guarantees the confirmed-eligibility checks that matter most
 | `no_show_records` | occurrence_id (unique), employee_id, arrived_at, waited_until (≥ 15 min, confirmed rule), evidence. Deduction [OPEN] | **A** |
 | `feedback` | occurrence_id, resident_id, `rating smallint` (scale [OPEN]), comment; unique (occurrence, resident) | **A** |
 
-## 14. Support & notifications: planned, Phases 3 and 7
+## 14. Support & notifications: built, Phases 3 and 7 (delivery adapters pending)
 
 | Table | Key columns / constraints | Tier |
 |---|---|---|
@@ -310,7 +310,7 @@ The database itself guarantees the confirmed-eligibility checks that matter most
 | `user_notifications` | user_id, title, body, deep_link, read_at (in-app inbox for both apps) | **A** (owner) |
 | `device_tokens` | user_id, app RESIDENT/EMPLOYEE, platform, token (unique), last_seen_at | **A** (owner) |
 
-## 15. Payroll & finance: planned, Phase 8 (ADR-007)
+## 15. Payroll & finance: built, Phase 8 (ADR-007, ADR-014, ADR-017)
 
 | Table | Key columns / constraints | Tier |
 |---|---|---|

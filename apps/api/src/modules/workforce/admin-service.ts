@@ -270,6 +270,9 @@ export class WorkforceAdminService {
             ...(input.phone ? { phone: input.phone } : {}),
             ...(input.homeClusterId ? { home_cluster_id: input.homeClusterId } : {}),
             ...(input.status ? { status: input.status, ...(input.status !== 'ACTIVE' ? { readiness: 'NOT_READY' as const } : {}) } : {}),
+            // Payroll proration needs the exit date (ADR-014).
+            ...(input.status === 'EXITED' && e.status !== 'EXITED' ? { exited_on: new Date().toISOString().slice(0, 10) } : {}),
+            ...(input.status && input.status !== 'EXITED' ? { exited_on: null } : {}),
             ...(input.joinedOn !== undefined ? { joined_on: input.joinedOn } : {}),
           })
           .where('id', '=', id)

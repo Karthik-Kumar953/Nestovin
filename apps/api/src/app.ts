@@ -18,6 +18,7 @@ import { PaymentService } from './modules/bookings/payments';
 import { employeeRoutes, publicApplicantRoutes, workforceAdminRoutes } from './modules/workforce/routes';
 import { attendanceAdminRoutes, employeeVisitRoutes, residentVisitRoutes } from './modules/attendance/routes';
 import { overviewRoutes } from './modules/overview/routes';
+import { employeePayslipRoutes, payrollAdminRoutes } from './modules/payroll/routes';
 
 /** Builds the Express app from injected dependencies (no global state; easy to test). */
 export function createApp(deps: AppDeps, payments = new PaymentService(deps.db, deps.payments, deps.logger)): express.Express {
@@ -74,7 +75,7 @@ export function createApp(deps: AppDeps, payments = new PaymentService(deps.db, 
   app.use('/v1/public', publicApplicantRoutes(deps));
 
   // Worker app: Employee ID session required (requireEmployee inside the router).
-  app.use('/v1/employee', employeeRoutes(deps, employeeVisitRoutes(deps)));
+  app.use('/v1/employee', employeeRoutes(deps, employeeVisitRoutes(deps), employeePayslipRoutes(deps)));
 
   // Resident app endpoints: phone-OTP session required (requireResident inside the router).
   app.use('/v1/resident', residentRoutes(deps, residentBookingRoutes(deps, payments), residentVisitRoutes(deps)));
@@ -92,6 +93,7 @@ export function createApp(deps: AppDeps, payments = new PaymentService(deps.db, 
   admin.use(workforceAdminRoutes(deps));
   admin.use(attendanceAdminRoutes(deps));
   admin.use(overviewRoutes(deps));
+  admin.use(payrollAdminRoutes(deps));
   app.use('/v1/admin', admin);
 
   app.use(notFoundHandler());

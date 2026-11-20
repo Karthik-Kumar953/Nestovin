@@ -11,3 +11,4 @@ export * from './support';
 export * from './bookings';
 export * from './workforce';
 export * from './attendance';
+export * from './payroll';

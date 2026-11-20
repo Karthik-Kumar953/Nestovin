@@ -759,6 +759,7 @@ export interface EmployeesTable extends Stamped {
   login_enabled_at: Timestamp | null;
   must_change_password: Generated<boolean>;
   sessions_valid_after: Timestamp | null;
+  exited_on: DateStr | null;
 }
 
 export interface VerificationItemsTable {
@@ -963,7 +964,105 @@ export interface VisitFeedbackTable {
   created_at: Generated<Date>;
 }
 
+// ---------------------------------------------------------------- Phase 8
+export interface CompensationProfilesTable {
+  id: Generated<string>;
+  employee_id: string;
+  cluster_id: string | null;
+  compensation_type: Generated<'FIXED_MONTHLY'>;
+  monthly_amount_paise: Paise;
+  currency: Generated<string>;
+  effective_from: DateStr;
+  effective_to: DateStr | null;
+  approved_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface PayrollPeriodsTable {
+  id: Generated<string>;
+  month: DateStr;
+  created_at: Generated<Date>;
+}
+
+export type PayrollRunStatus = 'DRAFT' | 'IN_REVIEW' | 'APPROVED' | 'RETURNED';
+export interface PayrollRunsTable {
+  id: Generated<string>;
+  period_id: string;
+  version: number;
+  status: Generated<PayrollRunStatus>;
+  prepared_by: string | null;
+  submitted_at: Timestamp | null;
+  reviewed_by: string | null;
+  reviewed_at: Timestamp | null;
+  return_reason: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface PayrollLinesTable {
+  id: Generated<string>;
+  run_id: string;
+  employee_id: string;
+  cluster_id: string | null;
+  compensation_snapshot: Json;
+  days_in_month: number;
+  payable_days: Generated<number>;
+  attendance_summary: Json;
+  earnings_paise: ColumnType<string, number | string | undefined, number | string>;
+  deductions_paise: ColumnType<string, number | string | undefined, number | string>;
+  net_paise: ColumnType<string, number | string | undefined, number | string>;
+  flags: Generated<string[]>;
+}
+
+export type PayrollComponent = 'BASE_SALARY' | 'ALLOWANCE' | 'INCENTIVE' | 'APPROVED_OVERTIME' | 'ABSENCE_DEDUCTION' | 'OTHER_DEDUCTION' | 'OTHER_EARNING';
+export interface PayrollLineItemsTable {
+  id: Generated<string>;
+  line_id: string;
+  cluster_id: string | null;
+  kind: 'EARNING' | 'DEDUCTION';
+  component: PayrollComponent;
+  amount_paise: Paise;
+  source_type: 'CALCULATED' | 'AUTHORISED_ENTRY';
+  note: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface SalaryPaymentsTable {
+  id: Generated<string>;
+  line_id: string;
+  employee_id: string;
+  cluster_id: string | null;
+  amount_paise: Paise;
+  paid_on: DateStr;
+  method: 'BANK_TRANSFER' | 'UPI' | 'CHEQUE' | 'CASH';
+  reference: string | null;
+  reverses_payment_id: string | null;
+  note: string | null;
+  recorded_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface ExpenseEntriesTable {
+  id: Generated<string>;
+  category: Generated<'SALARY'>;
+  cluster_id: string | null;
+  amount_paise: Paise;
+  entry_date: DateStr;
+  salary_payment_id: string;
+  description: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
 export interface DB {
+  'app.compensation_profiles': CompensationProfilesTable;
+  'app.payroll_periods': PayrollPeriodsTable;
+  'app.payroll_runs': PayrollRunsTable;
+  'app.payroll_lines': PayrollLinesTable;
+  'app.payroll_line_items': PayrollLineItemsTable;
+  'app.salary_payments': SalaryPaymentsTable;
+  'app.expense_entries': ExpenseEntriesTable;
   'app.business_holidays': BusinessHolidaysTable;
   'app.ticket_escalations': TicketEscalationsTable;
   'app.attendance_challenges': AttendanceChallengesTable;
