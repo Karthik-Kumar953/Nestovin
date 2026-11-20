@@ -30,7 +30,7 @@ export function startJobs(deps: { db: Database; logger: Logger; payments: Paymen
     try {
       if (!(await claimLease(deps.db, Math.floor(intervalMs / 1000) - 5))) return;
       const result = await deps.payments.maintenance();
-      if (result.reconciled || result.expiredOrders || result.closedCycles || result.expiredBalances) {
+      if (Object.values(result).some((n) => n > 0)) {
         deps.logger.info(result, 'maintenance tick');
       }
       const visits = await deps.allocation.maintain();

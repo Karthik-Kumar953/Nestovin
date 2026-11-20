@@ -425,7 +425,7 @@ export class PaymentService {
    * never called back"), expire stale orders, close finished cycles and expire
    * unpaid demand-led balances (ADR-013: initial amount retained).
    */
-  async maintenance(now = new Date()): Promise<{ reconciled: number; expiredOrders: number; closedCycles: number; expiredBalances: number }> {
+  async maintenance(now = new Date()): Promise<{ reconciled: number; expiredOrders: number; closedCycles: number; expiredBalances: number; endedSubscriptions: number; lapsedBookings: number }> {
     let reconciled = 0;
     if (this.provider) {
       const open = await withTx(this.db, SYSTEM_CLAIMS, (trx) =>
@@ -498,7 +498,39 @@ export class PaymentService {
           .execute();
         await auditSystem(trx, 'system', null, { action: 'demand_request.expired', targetType: 'demand_request', targetId: r.id, reason: 'Balance deadline passed' });
       }
-      return { reconciled, expiredOrders: Number(expiredOrders.numUpdatedRows), closedCycles: closing.length, expiredBalances: overdue.length };
+      // Subscriptions end after their period; their standing workers are released.
+      const today = now.toISOString().slice(0, 10);
+      const ended = await trx
+        .updateTable('app.subscriptions')
+        .set({ status: 'ENDED' })
+        .where('status', 'in', ['PENDING_ACTIVATION', 'ACTIVE'])
+        .where('period_end', '<', today)
+        .returning(['id', 'period_end'])
+        .execute();
+      for (const sub of ended) {
+        await trx
+          .updateTable('app.standing_assignments')
+          .set({ status: 'ENDED', effective_to: sub.period_end, end_reason: 'Subscription ended' })
+          .where('status', '=', 'ACTIVE')
+          .where('subscription_component_id', 'in', (eb) => eb.selectFrom('app.subscription_components').select('id').where('subscription_id', '=', sub.id))
+          .execute();
+      }
+      // Unpaid continuous bookings lapse once their start date has passed (no capacity was held).
+      const lapsed = await trx
+        .updateTable('app.bookings')
+        .set({ status: 'EXPIRED', ended_at: now, end_reason: 'Not paid before the start date' })
+        .where('mode', '=', 'CONTINUOUS')
+        .where('status', '=', 'PENDING_PAYMENT')
+        .where('start_date', '<', today)
+        .executeTakeFirst();
+      return {
+        reconciled,
+        expiredOrders: Number(expiredOrders.numUpdatedRows),
+        closedCycles: closing.length,
+        expiredBalances: overdue.length,
+        endedSubscriptions: ended.length,
+        lapsedBookings: Number(lapsed.numUpdatedRows),
+      };
     });
   }
 }
