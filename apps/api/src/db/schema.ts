@@ -449,6 +449,28 @@ export interface SupportTicketsTable extends Stamped {
   due_at: Timestamp | null;
   resolved_at: Timestamp | null;
   closed_at: Timestamp | null;
+  escalation_level: Generated<'NONE' | 'CLUSTER_ADMIN' | 'SUPER_ADMIN'>;
+  escalated_at: Timestamp | null;
+  next_escalation_at: Timestamp | null;
+}
+
+export interface BusinessHolidaysTable {
+  holiday_date: DateStr;
+  name: string;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface TicketEscalationsTable {
+  id: Generated<string>;
+  ticket_id: string;
+  cluster_id: string | null;
+  level: 'CLUSTER_ADMIN' | 'SUPER_ADMIN';
+  trigger: 'OVERDUE' | 'URGENT' | 'MANUAL';
+  reason: string | null;
+  escalated_by: string | null;
+  notified: Generated<number>;
+  created_at: Generated<Date>;
 }
 
 export interface TicketUpdatesTable {
@@ -942,6 +964,8 @@ export interface VisitFeedbackTable {
 }
 
 export interface DB {
+  'app.business_holidays': BusinessHolidaysTable;
+  'app.ticket_escalations': TicketEscalationsTable;
   'app.attendance_challenges': AttendanceChallengesTable;
   'app.attendance_events': AttendanceEventsTable;
   'app.service_completions': ServiceCompletionsTable;

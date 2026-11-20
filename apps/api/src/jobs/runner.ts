@@ -3,6 +3,7 @@ import type { Database } from '../db/database';
 import type { Logger } from '../lib/logger';
 import type { PaymentService } from '../modules/bookings/payments';
 import type { AllocationService } from '../modules/workforce/allocation';
+import { escalateOverdue } from '../modules/support/escalation';
 
 /**
  * Minimal in-process scheduler for periodic maintenance (payment reconciliation,
@@ -34,6 +35,8 @@ export function startJobs(deps: { db: Database; logger: Logger; payments: Paymen
       }
       const visits = await deps.allocation.maintain();
       if (visits.generated || visits.assigned) deps.logger.info(visits, 'visits generated');
+      const escalated = await escalateOverdue(deps.db, deps.logger);
+      if (escalated) deps.logger.info({ escalated }, 'tickets escalated');
     } catch (err) {
       deps.logger.error({ err }, 'maintenance tick failed');
     } finally {

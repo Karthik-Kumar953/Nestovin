@@ -8,7 +8,7 @@ import { can } from '../../lib/permissions';
 import { useMe } from '../../auth/AuthProvider';
 import { Link, useParams } from '../../lib/router';
 import { Button, ErrorBanner, formatDateTime, InfoBanner, PageHeader, SelectInput, Spinner, TextArea } from '../../components/ui';
-import { PrioritySelect, TICKET_STATUS_LABEL, TicketStatusBadge, useTicketCategories } from './TicketsPage';
+import { EscalationBadge, PrioritySelect, TICKET_STATUS_LABEL, TicketStatusBadge, useTicketCategories } from './TicketsPage';
 
 export function TicketDetailPage() {
   const { id } = useParams();
@@ -39,6 +39,16 @@ export function TicketDetailPage() {
     },
   });
   const postErr = post.error instanceof ApiError ? post.error : null;
+  const [escalating, setEscalating] = useState(false);
+  const [escReason, setEscReason] = useState('');
+  const escalate = useMutation({
+    mutationFn: () => api<AdminTicketDetail>(`/v1/admin/tickets/${id}/escalate`, { method: 'POST', body: { reason: escReason } }),
+    onSuccess: async (t) => {
+      setEscalating(false);
+      setEscReason('');
+      await onSaved(t);
+    },
+  });
 
   if (ticket.isLoading) return <Spinner />;
   if (ticket.error || !ticket.data) return <ErrorBanner error={ticket.error ?? new Error('Ticket not found')} />;
@@ -104,8 +114,27 @@ export function TicketDetailPage() {
           <div className="card stack">
             <h2 className="section-title">Ticket</h2>
             <div>
-              <TicketStatusBadge status={t.status} /> {t.urgent ? <span className="badge badge-error">Urgent</span> : null}
+              <TicketStatusBadge status={t.status} /> {t.urgent ? <span className="badge badge-error">Urgent</span> : null} <EscalationBadge level={t.escalationLevel} />
             </div>
+            {t.dueAt && !closed && t.status !== 'RESOLVED' ? (
+              <p className={t.overdue ? 'badge badge-error' : 'muted'}>{t.overdue ? 'Overdue since ' : 'Escalates if unresolved by '}{formatDateTime(t.dueAt)}</p>
+            ) : null}
+            {edit && !closed && t.status !== 'RESOLVED' && t.escalationLevel !== 'SUPER_ADMIN' ? (
+              escalating ? (
+                <div className="stack">
+                  <TextArea label="Escalation reason" required value={escReason} onChange={(e) => setEscReason(e.target.value)} hint="Support keeps tracking the ticket after escalation." />
+                  <ErrorBanner error={escalate.error} />
+                  <div className="row">
+                    <Button variant="danger" disabled={escReason.trim().length < 3} busy={escalate.isPending} onClick={() => escalate.mutate()}>
+                      Escalate to {t.escalationLevel === 'NONE' ? 'Cluster Admin' : 'Super Admin'}
+                    </Button>
+                    <Button variant="ghost" onClick={() => setEscalating(false)}>Cancel</Button>
+                  </div>
+                </div>
+              ) : (
+                <Button variant="secondary" onClick={() => setEscalating(true)}>Escalate</Button>
+              )
+            ) : null}
             <ErrorBanner error={patch.error} />
             {edit && !closed ? (
               <>
@@ -161,6 +190,19 @@ export function TicketDetailPage() {
             )}
             {closed ? <InfoBanner>This ticket is closed. The resident can raise a new ticket if needed.</InfoBanner> : null}
           </div>
+          {t.escalations.length ? (
+            <div className="card">
+              <h2 className="section-title">Escalation history</h2>
+              <ol className="timeline">
+                {t.escalations.map((e) => (
+                  <li key={e.at} className="timeline-item">
+                    <div className="muted">{formatDateTime(e.at)} · {e.trigger.toLowerCase()} · {e.notified} notified</div>
+                    <p>To {e.level === 'CLUSTER_ADMIN' ? 'Cluster Admin' : 'Super Admin'}{e.reason ? `: ${e.reason}` : ''}</p>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          ) : null}
           <div className="card">
             <h2 className="section-title">Resident</h2>
             <p>

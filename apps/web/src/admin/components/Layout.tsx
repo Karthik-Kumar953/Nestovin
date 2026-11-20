@@ -67,6 +67,7 @@ const SECTIONS: { title: string; items: NavItem[] }[] = [
     items: [
       { to: '/support/tickets', label: 'Tickets', module: 'support' },
       { to: '/support/enquiries', label: 'Website enquiries', module: 'support' },
+      { to: '/support/holidays', label: 'Holiday calendar', module: 'support' },
     ],
   },
   {

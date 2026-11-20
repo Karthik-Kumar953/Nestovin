@@ -21,6 +21,7 @@ import { decodeCursor, toPage } from '../../lib/pagination';
 import { auditAdmin, auditResident } from '../audit/audit';
 import { residentClaims, type ResidentActor } from '../residents/auth';
 import { activeMembership } from '../residents/queries';
+import { escalate, initialDeadline } from './escalation';
 
 const iso = (d: Date | string | null) => (d === null ? null : new Date(d).toISOString());
 
@@ -133,6 +134,8 @@ export class SupportService {
       const cat = await trx.selectFrom('app.ticket_categories').select('status').where('id', '=', input.categoryId).executeTakeFirst();
       if (!cat || cat.status !== 'ACTIVE') throw notFound('Category');
       const m = await activeMembership(trx, actor.id);
+      // ADR-014 working-day deadline for the first escalation.
+      const deadline = await initialDeadline(trx, new Date());
       const row = await trx
         .insertInto('app.support_tickets')
         .values({
@@ -144,6 +147,8 @@ export class SupportService {
           category_id: input.categoryId,
           subject: input.subject,
           description: input.description,
+          next_escalation_at: deadline,
+          due_at: deadline,
         })
         .returning('id')
         .executeTakeFirstOrThrow();
@@ -190,13 +195,16 @@ export class SupportService {
       flat: r.flat_number ? { flatNumber: r.flat_number, towerName: r.tower_name ?? '', communityName: r.community_name ?? '' } : null,
       ownerAdminId: r.owner_admin_id,
       ownerName: r.owner_name,
+      escalationLevel: r.escalation_level,
+      dueAt: r.due_at ? new Date(r.due_at).toISOString() : null,
+      overdue: Boolean(r.next_escalation_at && new Date(r.next_escalation_at) < new Date() && !['RESOLVED', 'CLOSED'].includes(r.status)),
       version: r.version,
     };
   }
 
   async adminList(
     actor: AdminActor,
-    p: { limit: number; cursor?: string | undefined; status?: string | undefined; categoryId?: string | undefined; mine?: boolean; open?: boolean },
+    p: { limit: number; cursor?: string | undefined; status?: string | undefined; categoryId?: string | undefined; mine?: boolean; open?: boolean; escalated?: boolean },
   ) {
     return withTx(this.db, toDbClaims(actor), async (trx) => {
       const cursor = decodeCursor(p.cursor);
@@ -205,6 +213,7 @@ export class SupportService {
       if (p.open) q = q.where('t.status', 'not in', ['RESOLVED', 'CLOSED']);
       if (p.categoryId) q = q.where('t.category_id', '=', p.categoryId);
       if (p.mine) q = q.where('t.owner_admin_id', '=', actor.id);
+      if (p.escalated) q = q.where('t.escalation_level', '!=', 'NONE').where('t.status', 'not in', ['RESOLVED', 'CLOSED']);
       if (cursor) {
         q = q.where((eb) =>
           eb.or([eb('t.created_at', '<', new Date(cursor.v)), eb.and([eb('t.created_at', '=', new Date(cursor.v)), eb('t.id', '<', cursor.id)])]),
@@ -228,6 +237,13 @@ export class SupportService {
       description: t.description,
       updates: await this.updates(trx, id),
       allowedStatuses: [...TICKET_TRANSITIONS[t.status]],
+      escalations: (await trx.selectFrom('app.ticket_escalations').selectAll().where('ticket_id', '=', id).orderBy('created_at').execute()).map((e) => ({
+        level: e.level,
+        trigger: e.trigger,
+        reason: e.reason,
+        notified: e.notified,
+        at: new Date(e.created_at).toISOString(),
+      })),
     };
   }
 
@@ -267,6 +283,17 @@ export class SupportService {
         .where('id', '=', id)
         .execute();
 
+      // Deadline tracking stops when resolved/closed and restarts on reopening.
+      if (['RESOLVED', 'CLOSED'].includes(status)) {
+        await trx.updateTable('app.support_tickets').set({ next_escalation_at: null }).where('id', '=', id).execute();
+      } else if (before.status === 'RESOLVED' && before.escalation_level !== 'SUPER_ADMIN') {
+        const d = await initialDeadline(trx, new Date());
+        await trx.updateTable('app.support_tickets').set({ next_escalation_at: d, due_at: d }).where('id', '=', id).execute();
+      }
+      // Urgent path (ADR-014): straight to the Cluster Admin.
+      if (input.urgent && !before.urgent && before.escalation_level === 'NONE' && !['RESOLVED', 'CLOSED'].includes(status)) {
+        await escalate(trx, before, { to: 'CLUSTER_ADMIN', trigger: 'URGENT', reason: 'Marked urgent', by: actor.id });
+      }
       if (status !== before.status) {
         await trx
           .insertInto('app.ticket_updates')
@@ -280,6 +307,19 @@ export class SupportService {
         before: { status: before.status, priority: before.priority, urgent: before.urgent, owner: before.owner_admin_id, category: before.category_id },
         after: { status, ...input },
       });
+      return this.loadAdminDetail(trx, id);
+    });
+  }
+
+  /** Manual escalation by Support with a reason (ADM-13). Support keeps ownership. */
+  async adminEscalate(actor: AdminActor, requestId: string, id: string, reason: string): Promise<AdminTicketDetail> {
+    return withTx(this.db, toDbClaims(actor), async (trx) => {
+      const t = await trx.selectFrom('app.support_tickets').selectAll().where('id', '=', id).forUpdate().executeTakeFirst();
+      if (!t) throw notFound('Ticket');
+      if (['RESOLVED', 'CLOSED'].includes(t.status)) throw businessRule('A resolved or closed ticket cannot be escalated');
+      if (t.escalation_level === 'SUPER_ADMIN') throw businessRule('This ticket is already with the Super Admin');
+      const level = await escalate(trx, t, { trigger: 'MANUAL', reason, by: actor.id });
+      await auditAdmin(trx, actor, requestId, { action: 'ticket.escalated', targetType: 'support_ticket', targetId: id, reason, after: { level } });
       return this.loadAdminDetail(trx, id);
     });
   }
@@ -300,6 +340,35 @@ export class SupportService {
       });
       return this.loadAdminDetail(trx, id);
     });
+  }
+
+  // ------------------------------------------------------------- holidays
+
+  async holidays() {
+    const rows = await withTx(this.db, { userId: null, actorKind: 'system', isSuperAdmin: false, clusterIds: [] }, (trx) =>
+      trx.selectFrom('app.business_holidays').select(['holiday_date', 'name']).where('holiday_date', '>=', sql<string>`current_date - 30`).orderBy('holiday_date').execute(),
+    );
+    return rows.map((r) => ({ date: r.holiday_date, name: r.name }));
+  }
+
+  async addHoliday(actor: AdminActor, requestId: string, input: { date: string; name: string }) {
+    await withTx(this.db, toDbClaims(actor), async (trx) => {
+      await trx
+        .insertInto('app.business_holidays')
+        .values({ holiday_date: input.date, name: input.name, created_by: actor.id })
+        .onConflict((oc) => oc.column('holiday_date').doNothing())
+        .execute();
+      await auditAdmin(trx, actor, requestId, { action: 'holiday.added', targetType: 'business_holiday', targetId: null, after: input });
+    });
+    return this.holidays();
+  }
+
+  async removeHoliday(actor: AdminActor, requestId: string, date: string) {
+    await withTx(this.db, toDbClaims(actor), async (trx) => {
+      await trx.deleteFrom('app.business_holidays').where('holiday_date', '=', date).execute();
+      await auditAdmin(trx, actor, requestId, { action: 'holiday.removed', targetType: 'business_holiday', targetId: null, before: { date } });
+    });
+    return this.holidays();
   }
 
   // ------------------------------------------------------------- enquiries

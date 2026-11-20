@@ -24,6 +24,11 @@ export function TicketStatusBadge({ status }: { status: TicketStatus }) {
   return <span className={`badge badge-${tone}`}>{TICKET_STATUS_LABEL[status]}</span>;
 }
 
+export function EscalationBadge({ level }: { level: 'NONE' | 'CLUSTER_ADMIN' | 'SUPER_ADMIN' }) {
+  if (level === 'NONE') return null;
+  return <span className="badge badge-warning">{level === 'CLUSTER_ADMIN' ? 'With Cluster Admin' : 'With Super Admin'}</span>;
+}
+
 export function useTicketCategories() {
   return useQuery({ queryKey: ['ticket-categories'], queryFn: () => api<{ items: TicketCategory[] }>('/v1/admin/ticket-categories') });
 }
@@ -35,7 +40,7 @@ export function TicketsPage() {
   const [categoryId, setCategoryId] = useState('');
   const categories = useTicketCategories();
   const filters =
-    view === 'open' ? { open: 'true' } : view === 'mine' ? { mine: 'true', open: 'true' } : view === 'all' ? {} : { status: view };
+    view === 'open' ? { open: 'true' } : view === 'mine' ? { mine: 'true', open: 'true' } : view === 'escalated' ? { escalated: 'true' } : view === 'all' ? {} : { status: view };
   const list = usePagedList<AdminTicket>(['tickets'], `/v1/admin/tickets${qs({ ...filters, categoryId, limit: 50 })}`);
   const [managing, setManaging] = useState(false);
 
@@ -56,6 +61,7 @@ export function TicketsPage() {
         <select className="input input-compact" aria-label="View" value={view} onChange={(e) => setView(e.target.value)}>
           <option value="open">Open tickets</option>
           <option value="mine">Assigned to me</option>
+          <option value="escalated">Escalated</option>
           <option value="RESOLVED">Resolved</option>
           <option value="CLOSED">Closed</option>
           <option value="all">All tickets</option>
@@ -104,7 +110,16 @@ export function TicketsPage() {
               </>
             ),
           },
-          { header: 'Status', cell: (t) => <TicketStatusBadge status={t.status} /> },
+          {
+            header: 'Status',
+            cell: (t) => (
+              <>
+                <TicketStatusBadge status={t.status} />
+                {t.escalationLevel !== 'NONE' ? <div><EscalationBadge level={t.escalationLevel} /></div> : null}
+                {t.overdue ? <div><span className="badge badge-error">Overdue</span></div> : t.dueAt && !['RESOLVED', 'CLOSED'].includes(t.status) ? <div className="muted">Due {formatDateTime(t.dueAt)}</div> : null}
+              </>
+            ),
+          },
           { header: 'Owner', cell: (t) => t.ownerName ?? <span className="muted">Unassigned</span> },
           { header: 'Raised', cell: (t) => formatDateTime(t.createdAt) },
         ]}

@@ -3,6 +3,8 @@ import { z } from 'zod';
 import {
   adminTicketUpdateSchema,
   enquiryStatusSchema,
+  escalateTicketSchema,
+  holidaySchema,
   paginationQuerySchema,
   patchEnquirySchema,
   patchTicketSchema,
@@ -13,6 +15,7 @@ import {
 import type { AppDeps } from '../../http/context';
 import { adminOf } from '../../http/context';
 import { authorize, parseParam, parseQuery, validateBody } from '../../http/middleware';
+import { forbidden } from '../../lib/errors';
 import { SupportService } from './service';
 
 const id = (v: unknown, name = 'id') => parseParam(uuidSchema, v, name);
@@ -23,6 +26,7 @@ const ticketQuery = paginationQuerySchema.extend({
   categoryId: uuidSchema.optional(),
   mine: flag,
   open: flag,
+  escalated: flag,
 });
 const enquiryQuery = paginationQuerySchema.extend({ status: enquiryStatusSchema.optional() });
 
@@ -43,7 +47,7 @@ export function supportAdminRoutes(deps: AppDeps): Router {
 
   r.get('/tickets', authorize('support', 'view'), async (req, res) => {
     const q = parseQuery(ticketQuery, req);
-    res.json(await svc.adminList(adminOf(req), { ...q, mine: q.mine ?? false, open: q.open ?? false }));
+    res.json(await svc.adminList(adminOf(req), { ...q, mine: q.mine ?? false, open: q.open ?? false, escalated: q.escalated ?? false }));
   });
   r.get('/tickets/:id', authorize('support', 'view'), async (req, res) => {
     res.json(await svc.adminDetail(adminOf(req), id(req.params.id)));
@@ -51,6 +55,24 @@ export function supportAdminRoutes(deps: AppDeps): Router {
   r.patch('/tickets/:id', authorize('support', 'edit'), validateBody(patchTicketSchema), async (req, res) => {
     res.json(await svc.adminPatch(adminOf(req), req.requestId, id(req.params.id), req.body));
   });
+  r.post('/tickets/:id/escalate', authorize('support', 'edit'), validateBody(escalateTicketSchema), async (req, res) => {
+    res.json(await svc.adminEscalate(adminOf(req), req.requestId, id(req.params.id), req.body.reason));
+  });
+
+  // Working-day calendar (ADR-014): the Super Admin maintains holidays.
+  r.get('/holidays', authorize('support', 'view'), async (_req, res) => {
+    res.json({ items: await svc.holidays() });
+  });
+  r.post('/holidays', validateBody(holidaySchema), async (req, res) => {
+    if (!adminOf(req).isSuperAdmin) throw forbidden('Only the Super Admin maintains the holiday calendar');
+    res.status(201).json({ items: await svc.addHoliday(adminOf(req), req.requestId, req.body) });
+  });
+  r.delete('/holidays/:date', async (req, res) => {
+    if (!adminOf(req).isSuperAdmin) throw forbidden('Only the Super Admin maintains the holiday calendar');
+    const date = parseParam(z.iso.date(), req.params.date, 'date');
+    res.json({ items: await svc.removeHoliday(adminOf(req), req.requestId, date) });
+  });
+
   r.post('/tickets/:id/updates', authorize('support', 'edit'), validateBody(adminTicketUpdateSchema), async (req, res) => {
     res.status(201).json(await svc.adminAddUpdate(adminOf(req), req.requestId, id(req.params.id), req.body));
   });

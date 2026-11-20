@@ -67,6 +67,10 @@ export const adminTicketSchema = ticketSummarySchema.extend({
   flat: z.object({ flatNumber: z.string(), towerName: z.string(), communityName: z.string() }).nullable(),
   ownerAdminId: uuidSchema.nullable(),
   ownerName: z.string().nullable(),
+  escalationLevel: z.enum(['NONE', 'CLUSTER_ADMIN', 'SUPER_ADMIN']),
+  /** Next escalation deadline (working days, ADR-014). */
+  dueAt: z.string().nullable(),
+  overdue: z.boolean(),
   version: versionSchema,
 });
 export type AdminTicket = z.infer<typeof adminTicketSchema>;
@@ -75,7 +79,11 @@ export const adminTicketDetailSchema = adminTicketSchema.extend({
   description: z.string(),
   updates: z.array(ticketUpdateSchema),
   allowedStatuses: z.array(ticketStatusSchema),
+  escalations: z.array(z.object({ level: z.string(), trigger: z.string(), reason: z.string().nullable(), notified: z.number().int(), at: z.string() })),
 });
+export const escalateTicketSchema = z.object({ reason: z.string().trim().min(3).max(500) });
+export const holidaySchema = z.object({ date: z.iso.date(), name: z.string().trim().min(2).max(80) });
+export type Holiday = z.infer<typeof holidaySchema>;
 export type AdminTicketDetail = z.infer<typeof adminTicketDetailSchema>;
 
 export const createTicketSchema = z.object({
