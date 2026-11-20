@@ -38,6 +38,7 @@ const SECTIONS: { title: string; items: NavItem[] }[] = [
       { to: '/residents', label: 'Residents', module: 'residents' },
       { to: '/residents/verifications', label: 'Residence verification', module: 'residents' },
       { to: '/residents/family-requests', label: 'Family requests', module: 'family_requests' },
+      { to: '/residents/change-requests', label: 'Change requests', module: 'residents' },
     ],
   },
   {

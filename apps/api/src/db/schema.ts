@@ -1056,7 +1056,25 @@ export interface ExpenseEntriesTable {
   created_at: Generated<Date>;
 }
 
+export interface ResidentChangeRequestsTable {
+  id: Generated<string>;
+  resident_id: string;
+  membership_id: string;
+  flat_id: string;
+  community_id: string;
+  cluster_id: string | null;
+  kind: 'OCCUPANCY_CHANGE' | 'MOVE_OUT';
+  requested: Json;
+  reason: string | null;
+  status: Generated<'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED'>;
+  reviewed_by: string | null;
+  reviewed_at: Timestamp | null;
+  review_note: string | null;
+  created_at: Generated<Date>;
+}
+
 export interface DB {
+  'app.resident_change_requests': ResidentChangeRequestsTable;
   'app.compensation_profiles': CompensationProfilesTable;
   'app.payroll_periods': PayrollPeriodsTable;
   'app.payroll_runs': PayrollRunsTable;

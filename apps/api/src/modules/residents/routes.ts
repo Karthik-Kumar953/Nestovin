@@ -20,6 +20,7 @@ import { SupportService } from '../support/service';
 import { requireResident } from './auth';
 import { ResidentService } from './resident-service';
 import { ResidentAdminService } from './admin-service';
+import { ChangeRequestService, createChangeRequestSchema, decideChangeRequestSchema } from './change-requests';
 
 const id = (v: unknown, name = 'id') => parseParam(uuidSchema, v, name);
 
@@ -80,6 +81,18 @@ export function residentRoutes(deps: AppDeps, ...extra: Router[]): Router {
   });
   r.delete('/household/members/:id', async (req, res) => {
     res.json(await svc.removeFamilyMember(residentOf(req), req.requestId, id(req.params.id)));
+  });
+
+  // RES-14: controlled changes to verified residence data
+  const changes = new ChangeRequestService(deps.db);
+  r.get('/change-requests', async (req, res) => {
+    res.json({ items: await changes.mine(residentOf(req)) });
+  });
+  r.post('/change-requests', validateBody(createChangeRequestSchema), async (req, res) => {
+    res.status(201).json({ items: await changes.create(residentOf(req), req.requestId, req.body) });
+  });
+  r.post('/change-requests/:id/cancel', async (req, res) => {
+    res.json({ items: await changes.cancel(residentOf(req), req.requestId, id(req.params.id)) });
   });
 
   r.get('/catalogue', async (req, res) => {
@@ -152,6 +165,15 @@ export function residentAdminRoutes(deps: AppDeps): Router {
   });
   r.post('/documents/:id/url', authorize('residents', 'view'), async (req, res) => {
     res.json(await svc.documentUrl(adminOf(req), req.requestId, id(req.params.id)));
+  });
+
+  const changes = new ChangeRequestService(deps.db);
+  r.get('/change-requests', authorize('residents', 'view'), async (req, res) => {
+    const q = parseQuery(z.object({ status: z.enum(['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED']).default('PENDING') }), req);
+    res.json({ items: await changes.list(adminOf(req), q.status) });
+  });
+  r.post('/change-requests/:id/decide', authorize('residents', 'approve'), validateBody(decideChangeRequestSchema), async (req, res) => {
+    res.json(await changes.decide(adminOf(req), req.requestId, id(req.params.id), req.body));
   });
 
   r.get('/family-requests', authorize('family_requests', 'view'), async (req, res) => {
