@@ -1,0 +1,81 @@
+import { z } from 'zod';
+
+/** Optional variable where an empty value (e.g. `SUPABASE_JWT_SECRET=`) means "not set". */
+const optional = <T extends z.ZodType>(schema: T) =>
+  z.preprocess((v) => (typeof v === 'string' && v.trim() === '' ? undefined : v), schema.optional());
+
+/**
+ * Environment is validated once at boot. The process refuses to start with a
+ * missing or unsafe configuration. Secrets are only ever read from the
+ * environment (never committed; see .env.example).
+ */
+const envSchema = z
+  .object({
+    NODE_ENV: z.enum(['development', 'test', 'staging', 'production']).default('development'),
+    PORT: z.coerce.number().int().min(1).max(65535).default(4000),
+    LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+
+    /** Connection string for the restricted `app_api` role (through the pooler). */
+    DATABASE_URL: z.url(),
+    /**
+     * Path to the Supabase database CA certificate (Dashboard -> Database -> SSL).
+     * With it, TLS is fully verified. Required outside development/test.
+     */
+    DATABASE_SSL_CA_PATH: optional(z.string().min(1)),
+
+    /** Supabase project URL, used for JWKS (token verification) and the auth admin adapter. */
+    SUPABASE_URL: z.url(),
+    /** Legacy HS256 JWT secret (local Supabase CLI). Optional when the project uses asymmetric keys (JWKS). */
+    SUPABASE_JWT_SECRET: optional(z.string().min(32)),
+    /** Service-role key. Used ONLY by the auth-admin adapter (invite/ban users). Never sent to clients. */
+    SUPABASE_SERVICE_ROLE_KEY: z.string().min(20),
+
+    /** Comma-separated browser origins allowed by CORS (the Next.js web app serving / and /admin). */
+    CORS_ORIGINS: z
+      .string()
+      .default('http://localhost:3000')
+      .transform((v) =>
+        v
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean),
+      ),
+
+    /** Admins must have completed TOTP MFA (AAL2). Only disable for automated local tests. */
+    ADMIN_REQUIRE_MFA: z
+      .enum(['true', 'false'])
+      .default('true')
+      .transform((v) => v === 'true'),
+
+    /** Salt for hashing client IPs before storage (privacy). */
+    IP_HASH_SALT: z.string().min(16),
+
+    /** Where website enquiries are routed (email). Optional until the Support destination is approved. */
+    SUPPORT_ENQUIRY_EMAIL: optional(z.email()),
+
+    /** Admin portal base URL (the /admin mount of the web app), used in invite emails. */
+    ADMIN_PORTAL_URL: z.url().default('http://localhost:3000/admin'),
+  })
+  .superRefine((env, ctx) => {
+    const strict = env.NODE_ENV === 'production' || env.NODE_ENV === 'staging';
+    if (strict && !env.ADMIN_REQUIRE_MFA) {
+      ctx.addIssue({ code: 'custom', path: ['ADMIN_REQUIRE_MFA'], message: 'MFA cannot be disabled outside development/test' });
+    }
+    if (strict && !env.DATABASE_SSL_CA_PATH) {
+      ctx.addIssue({ code: 'custom', path: ['DATABASE_SSL_CA_PATH'], message: 'A database CA certificate is required outside development/test' });
+    }
+    if (strict && env.CORS_ORIGINS.some((o) => o.startsWith('http://'))) {
+      ctx.addIssue({ code: 'custom', path: ['CORS_ORIGINS'], message: 'Only https origins are allowed outside development/test' });
+    }
+  });
+
+export type Env = z.infer<typeof envSchema>;
+
+export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
+  const parsed = envSchema.safeParse(source);
+  if (!parsed.success) {
+    const issues = parsed.error.issues.map((i) => `  - ${i.path.join('.')}: ${i.message}`).join('\n');
+    throw new Error(`Invalid environment configuration:\n${issues}`);
+  }
+  return parsed.data;
+}

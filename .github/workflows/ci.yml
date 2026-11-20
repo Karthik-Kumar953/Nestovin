@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Enable pnpm (corepack)
+        run: corepack enable
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Start local Supabase (Postgres, Auth, pooler)
+        run: pnpm exec supabase start -x studio,imgproxy,edge-runtime,logflare,vector,realtime,storage-api
+
+      - name: Prepare database roles
+        working-directory: apps/api
+        env:
+          DATABASE_ADMIN_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+          APP_API_LOCAL_PASSWORD: ci-only-app-api-password
+          NODE_ENV: test
+        run: pnpm db:setup-local
+
+      - name: Integration tests (RLS PoC, DB guards, scope)
+        working-directory: apps/api
+        env:
+          DATABASE_ADMIN_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+          DATABASE_URL: postgresql://app_api.nestovin:ci-only-app-api-password@127.0.0.1:54329/postgres
+        run: pnpm test:integration
+
+      - name: Secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

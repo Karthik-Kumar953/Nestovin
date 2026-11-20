@@ -1,0 +1,30 @@
+node_modules/
+dist/
+build/
+coverage/
+.turbo/
+.vite/
+.next/
+out/
+*.log
+.DS_Store
+Thumbs.db
+
+# env and secrets: never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# supabase local
+supabase/.branches/
+supabase/.temp/
+
+# editors
+.vscode/*
+!.vscode/extensions.json
+.idea/
+certs/
+.dev-superadmin.txt
+*.tsbuildinfo

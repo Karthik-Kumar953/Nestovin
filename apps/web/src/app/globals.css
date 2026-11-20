@@ -1,0 +1,29 @@
+/* Site-wide base. Brand fonts come from next/font (variables set on <html>). */
+:root {
+  --nv-font-heading: var(--font-manrope), system-ui, sans-serif;
+  --nv-font-body: var(--font-inter), system-ui, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--nv-background);
+  color: var(--nv-text-primary);
+  font-family: var(--nv-font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 3px solid var(--nv-focus-ring);
+  outline-offset: 2px;
+}
