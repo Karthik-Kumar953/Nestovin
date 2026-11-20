@@ -15,3 +15,5 @@ Short records of decisions that shape the code. Status values: **Accepted** (own
 | [009](009-per-community-catalogue.md) | Per-community catalogue and price matrix | Accepted |
 | [010](010-tooling-baseline.md) | Tooling baseline (pnpm workspaces, TypeScript 6.0, Kysely, Express 5) | Provisional |
 | [011](011-community-migration.md) | Community migration (Excel): structure only, all-or-nothing, category column | Accepted |
+| [012](012-residents-workforce-languages.md) | Residence proof, family access, worker login, English-only V1 | Accepted |
+| [013](013-commercial-rules.md) | Renewal at 100%, unpaid balance kept, refund approval, admin-set slot capacity | Accepted |
