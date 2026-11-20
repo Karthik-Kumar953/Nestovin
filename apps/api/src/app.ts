@@ -13,9 +13,11 @@ import { catalogueRoutes } from './modules/catalogue/routes';
 import { migrationRoutes } from './modules/migration/routes';
 import { residentAdminRoutes, residentRoutes } from './modules/residents/routes';
 import { supportAdminRoutes } from './modules/support/routes';
+import { bookingAdminRoutes, razorpayWebhookRoutes, residentBookingRoutes } from './modules/bookings/routes';
+import { PaymentService } from './modules/bookings/payments';
 
 /** Builds the Express app from injected dependencies (no global state; easy to test). */
-export function createApp(deps: AppDeps): express.Express {
+export function createApp(deps: AppDeps, payments = new PaymentService(deps.db, deps.payments, deps.logger)): express.Express {
   const app = express();
 
   app.disable('x-powered-by');
@@ -47,6 +49,8 @@ export function createApp(deps: AppDeps): express.Express {
       maxAge: 600,
     }),
   );
+  // Webhooks need the raw body for signature verification: mounted before the JSON parser.
+  app.use('/v1/webhooks', razorpayWebhookRoutes(payments));
   app.use(express.json({ limit: '100kb' }));
   app.use((_req, res, next) => {
     res.setHeader('Cache-Control', 'no-store');
@@ -66,7 +70,7 @@ export function createApp(deps: AppDeps): express.Express {
   app.use('/v1/public', publicEnquiryRoutes(deps));
 
   // Resident app endpoints: phone-OTP session required (requireResident inside the router).
-  app.use('/v1/resident', residentRoutes(deps));
+  app.use('/v1/resident', residentRoutes(deps, residentBookingRoutes(deps, payments)));
 
   // Admin endpoints: every route below requires an authenticated, MFA-verified, active admin.
   const admin = express.Router();
@@ -77,6 +81,7 @@ export function createApp(deps: AppDeps): express.Express {
   admin.use(migrationRoutes(deps));
   admin.use(residentAdminRoutes(deps));
   admin.use(supportAdminRoutes(deps));
+  admin.use(bookingAdminRoutes(deps));
   app.use('/v1/admin', admin);
 
   app.use(notFoundHandler());

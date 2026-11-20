@@ -460,7 +460,269 @@ export interface TicketUpdatesTable {
   created_at: Generated<Date>;
 }
 
+// ---------------------------------------------------------------- Phase 4
+/** bigint paise come back from pg as strings (INT8 parser). */
+type Paise = ColumnType<string, number | string, number | string>;
+/** DATE columns are kept as 'YYYY-MM-DD' strings. */
+type DateStr = ColumnType<string, string, string>;
+type Json = ColumnType<unknown, string, string>;
+
+export interface AppSettingsTable {
+  key: string;
+  value: Json;
+  updated_at: Generated<Date>;
+  updated_by: string | null;
+}
+
+export interface SlotSetsTable extends Stamped {
+  id: Generated<string>;
+  cycle_id: string;
+  status: Generated<'DRAFT' | 'PUBLISHED' | 'WITHDRAWN'>;
+  commencement_date: DateStr;
+  balance_due_at: Timestamp;
+  published_by: string | null;
+  published_at: Timestamp | null;
+}
+
+export interface SlotsTable extends Stamped {
+  id: Generated<string>;
+  community_id: string;
+  mode: 'CONTINUOUS' | 'DEMAND_LED';
+  slot_set_id: string | null;
+  service_id: string | null;
+  label: string;
+  start_time: string;
+  duration_minutes: number;
+  days_of_week: Generated<number>;
+  capacity: number;
+  status: Generated<'DRAFT' | 'PUBLISHED' | 'WITHDRAWN'>;
+}
+
+export type DemandCycleStatus = 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'SLOTS_PUBLISHED' | 'COMPLETED' | 'CANCELLED';
+export interface DemandCyclesTable extends Stamped {
+  id: Generated<string>;
+  community_id: string;
+  name: string;
+  opens_at: Timestamp;
+  closes_at: Timestamp;
+  initial_pct: number | null;
+  catalogue_version_id: string | null;
+  status: Generated<DemandCycleStatus>;
+  published_by: string | null;
+  published_at: Timestamp | null;
+  closed_at: Timestamp | null;
+}
+
+export interface DemandCyclePlansTable {
+  cycle_id: string;
+  plan_id: string;
+}
+
+export interface BookingTermsSnapshotsTable {
+  id: Generated<string>;
+  resident_id: string;
+  flat_id: string;
+  community_id: string;
+  cluster_id: string | null;
+  catalogue_version_id: string;
+  plan_id: string;
+  service_id: string | null;
+  residence_category_id: string;
+  plan_snapshot: Json;
+  total_paise: Paise;
+  tax_paise: Paise | null;
+  initial_pct: number | null;
+  initial_due_paise: Paise;
+  remaining_due_paise: Paise;
+  currency: Generated<string>;
+  cycle_id: string | null;
+  validity_days: number;
+  disclosure_version: string | null;
+  disclosure_accepted_at: Timestamp | null;
+  created_at: Generated<Date>;
+}
+
+export type DemandRequestStatus =
+  | 'AWAITING_PAYMENT'
+  | 'COMMITTED'
+  | 'BALANCE_DUE'
+  | 'CONVERTED'
+  | 'EXPIRED'
+  | 'CANCELLED'
+  | 'REVIEW_REQUIRED';
+export interface DemandRequestsTable extends Stamped {
+  id: Generated<string>;
+  reference: Generated<string>;
+  cycle_id: string;
+  resident_id: string;
+  membership_id: string;
+  flat_id: string;
+  community_id: string;
+  cluster_id: string | null;
+  terms_snapshot_id: string;
+  status: Generated<DemandRequestStatus>;
+  allocated_slot_id: string | null;
+  initial_paid_paise: ColumnType<string, number | string | undefined, number | string>;
+  committed_at: Timestamp | null;
+  ended_at: Timestamp | null;
+  end_reason: string | null;
+}
+
+export interface DemandRequestPreferencesTable {
+  request_id: string;
+  rank: number;
+  time_window_id: string;
+}
+
+export type BookingStatus = 'PENDING_PAYMENT' | 'CONFIRMED' | 'CANCELLED' | 'EXPIRED' | 'REVIEW_REQUIRED';
+export interface BookingsTable extends Stamped {
+  id: Generated<string>;
+  reference: Generated<string>;
+  mode: 'DEMAND_LED' | 'CONTINUOUS';
+  demand_request_id: string | null;
+  resident_id: string;
+  membership_id: string;
+  flat_id: string;
+  community_id: string;
+  cluster_id: string | null;
+  terms_snapshot_id: string;
+  slot_id: string;
+  start_date: DateStr;
+  renews_subscription_id: string | null;
+  status: Generated<BookingStatus>;
+  confirmed_at: Timestamp | null;
+  ended_at: Timestamp | null;
+  end_reason: string | null;
+}
+
+export interface SubscriptionsTable extends Stamped {
+  id: Generated<string>;
+  booking_id: string;
+  resident_id: string;
+  flat_id: string;
+  community_id: string;
+  cluster_id: string | null;
+  period_start: DateStr;
+  period_end: DateStr;
+  status: Generated<'PENDING_ACTIVATION' | 'ACTIVE' | 'ENDED' | 'CANCELLED'>;
+  renews_subscription_id: string | null;
+}
+
+export interface SubscriptionComponentsTable {
+  id: Generated<string>;
+  subscription_id: string;
+  cluster_id: string | null;
+  service_id: string;
+  start_time: string;
+  duration_minutes: number;
+  days_of_week: number;
+  visits_per_day: number;
+  is_addon: Generated<boolean>;
+  created_at: Generated<Date>;
+}
+
+export type PaymentPurpose = 'INITIAL' | 'BALANCE' | 'FULL';
+export type PaymentOrderStatus = 'CREATED' | 'PAID' | 'FAILED' | 'EXPIRED' | 'REVIEW_REQUIRED';
+export interface PaymentOrdersTable extends Stamped {
+  id: Generated<string>;
+  purpose: PaymentPurpose;
+  ref_type: 'DEMAND_REQUEST' | 'BOOKING';
+  ref_id: string;
+  resident_id: string;
+  flat_id: string;
+  community_id: string;
+  cluster_id: string | null;
+  amount_paise: Paise;
+  currency: Generated<string>;
+  provider: Generated<string>;
+  provider_order_id: string | null;
+  idempotency_key: string;
+  status: Generated<PaymentOrderStatus>;
+  expires_at: Timestamp;
+  paid_at: Timestamp | null;
+}
+
+export interface ProviderEventsTable {
+  id: Generated<string>;
+  provider: Generated<string>;
+  event_id: string;
+  event_type: string;
+  payload: Json;
+  signature_valid: boolean;
+  received_at: Generated<Date>;
+  processed_at: Timestamp | null;
+  processing_error: string | null;
+}
+
+export interface PaymentTransactionsTable {
+  id: Generated<string>;
+  order_id: string;
+  resident_id: string;
+  cluster_id: string | null;
+  provider_payment_id: string;
+  amount_paise: Paise;
+  currency: string;
+  method: string | null;
+  status: 'CAPTURED' | 'REFUNDED' | 'PARTIALLY_REFUNDED';
+  verified_via: 'CHECKOUT' | 'WEBHOOK' | 'RECONCILIATION';
+  verified_at: Generated<Date>;
+}
+
+export interface RefundRecordsTable {
+  id: Generated<string>;
+  transaction_id: string;
+  cluster_id: string | null;
+  amount_paise: Paise;
+  reason: string | null;
+  status: Generated<'APPROVED' | 'PROCESSED'>;
+  approved_by: string | null;
+  approved_at: Timestamp | null;
+  provider_refund_id: string | null;
+  processed_at: Timestamp | null;
+  created_at: Generated<Date>;
+}
+
+export type PaymentExceptionReason =
+  | 'AMOUNT_MISMATCH'
+  | 'CURRENCY_MISMATCH'
+  | 'SLOT_UNAVAILABLE'
+  | 'CYCLE_CLOSED'
+  | 'DEADLINE_PASSED'
+  | 'DUPLICATE_PAYMENT'
+  | 'RECORD_NOT_PAYABLE'
+  | 'UNAPPROVED_REFUND'
+  | 'UNKNOWN_ORDER';
+export interface PaymentExceptionsTable {
+  id: Generated<string>;
+  order_id: string | null;
+  transaction_id: string | null;
+  cluster_id: string | null;
+  reason_code: PaymentExceptionReason;
+  detail: string | null;
+  status: Generated<'OPEN' | 'RESOLVED'>;
+  resolution_note: string | null;
+  resolved_by: string | null;
+  resolved_at: Timestamp | null;
+  created_at: Generated<Date>;
+}
+
 export interface DB {
+  'app.app_settings': AppSettingsTable;
+  'app.slot_sets': SlotSetsTable;
+  'app.slots': SlotsTable;
+  'app.demand_cycles': DemandCyclesTable;
+  'app.demand_cycle_plans': DemandCyclePlansTable;
+  'app.booking_terms_snapshots': BookingTermsSnapshotsTable;
+  'app.demand_requests': DemandRequestsTable;
+  'app.demand_request_preferences': DemandRequestPreferencesTable;
+  'app.bookings': BookingsTable;
+  'app.subscriptions': SubscriptionsTable;
+  'app.subscription_components': SubscriptionComponentsTable;
+  'app.payment_orders': PaymentOrdersTable;
+  'app.provider_events': ProviderEventsTable;
+  'app.payment_transactions': PaymentTransactionsTable;
+  'app.refund_records': RefundRecordsTable;
+  'app.payment_exceptions': PaymentExceptionsTable;
   'app.resident_profiles': ResidentProfilesTable;
   'app.residence_memberships': ResidenceMembershipsTable;
   'app.documents': DocumentsTable;

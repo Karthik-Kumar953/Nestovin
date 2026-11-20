@@ -203,7 +203,7 @@ erDiagram
 - Family access is enabled only on approval.
 - [OPEN] OD-08 / I2: whether imported occupants are used for verification matching.
 
-## 8. Demand-led mode: planned, Phase 4
+## 8. Demand-led mode: built, Phase 4 (see migration 20261123000100)
 
 | Table | Key columns / constraints | Tier |
 |---|---|---|
@@ -217,7 +217,7 @@ erDiagram
 
 [OPEN]: capacity reservation between slot publication and balance (OPN-10), expiry/refund/forfeiture (OD-04), and request edits after payment. These are status values plus admin actions; no automatic consequence is encoded.
 
-## 9. Bookings, subscriptions & occurrences: planned, Phase 4
+## 9. Bookings & subscriptions: built, Phase 4 (occurrences: Phase 5)
 
 | Table | Key columns / constraints | Tier |
 |---|---|---|
@@ -229,7 +229,7 @@ erDiagram
 
 Entitlement deduction for no-shows is [OPEN] OPN-22. When decided, it becomes an `entitlement_adjustments` ledger, not a column update.
 
-## 10. Payments (Razorpay): planned, Phase 4 (ADR-006)
+## 10. Payments (Razorpay): built, Phase 4 (ADR-006, ADR-013, ADR-015)
 
 | Table | Key columns / constraints | Tier |
 |---|---|---|

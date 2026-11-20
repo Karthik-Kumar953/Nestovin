@@ -5,6 +5,7 @@ import type { TokenVerifier } from '../auth/token-verifier';
 import type { AdminActorLoader } from '../auth/admin-actor-loader';
 import type { AuthAdminAdapter } from '../integrations/auth-admin';
 import type { StorageAdapter } from '../integrations/storage';
+import type { PaymentProvider } from '../integrations/razorpay';
 import type { ResidentActor } from '../modules/residents/auth';
 import type { AdminActor } from '../auth/permissions';
 
@@ -17,6 +18,8 @@ export interface AppDeps {
   adminLoader: AdminActorLoader;
   authAdmin: AuthAdminAdapter;
   storage: StorageAdapter;
+  /** null when Razorpay keys are not configured. */
+  payments: PaymentProvider | null;
 }
 
 declare global {

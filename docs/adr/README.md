@@ -17,3 +17,5 @@ Short records of decisions that shape the code. Status values: **Accepted** (own
 | [011](011-community-migration.md) | Community migration (Excel): structure only, all-or-nothing, category column | Accepted |
 | [012](012-residents-workforce-languages.md) | Residence proof, family access, worker login, English-only V1 | Accepted |
 | [013](013-commercial-rules.md) | Renewal at 100%, unpaid balance kept, refund approval, admin-set slot capacity | Accepted |
+| [014](014-payroll-attendance-escalation.md) | Fixed monthly payroll, OTP/QR check-in, 200 m geofence, 2+2 working-day escalation | Accepted |
+| [015](015-booking-eligibility-and-pricing.md) | Verified residence to book, one request per flat per cycle, tax-inclusive prices, 14-day booking window | Accepted |

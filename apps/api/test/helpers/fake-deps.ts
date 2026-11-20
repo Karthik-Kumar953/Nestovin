@@ -74,5 +74,6 @@ export function fakeDeps(admins: Record<string, LoadedAdmin>, envOverrides: Reco
         return 'https://example.test/signed';
       },
     },
+    payments: null,
   };
 }

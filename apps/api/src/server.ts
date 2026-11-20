@@ -6,10 +6,20 @@ import { createAdminActorLoader } from './auth/admin-actor-loader';
 import { createSupabaseAuthAdmin } from './integrations/auth-admin';
 import { createSupabaseStorage } from './integrations/storage';
 import { createApp } from './app';
+import { createRazorpay } from './integrations/razorpay';
+import { PaymentService } from './modules/bookings/payments';
+import { startJobs } from './jobs/runner';
 
 const env = loadEnv();
 const logger = createLogger(env.LOG_LEVEL, env.NODE_ENV === 'development');
 const db = createDatabase(env.DATABASE_URL, env.DATABASE_SSL_CA_PATH);
+
+const paymentsProvider =
+  env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET
+    ? createRazorpay({ keyId: env.RAZORPAY_KEY_ID, keySecret: env.RAZORPAY_KEY_SECRET, webhookSecret: env.RAZORPAY_WEBHOOK_SECRET })
+    : null;
+if (!paymentsProvider) logger.warn('Razorpay keys are not set: online payments are disabled');
+const payments = new PaymentService(db, paymentsProvider, logger);
 
 const app = createApp({
   env,
@@ -19,7 +29,9 @@ const app = createApp({
   adminLoader: createAdminActorLoader(db),
   authAdmin: createSupabaseAuthAdmin({ supabaseUrl: env.SUPABASE_URL, serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY }),
   storage: createSupabaseStorage({ supabaseUrl: env.SUPABASE_URL, serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY }),
-});
+  payments: paymentsProvider,
+}, payments);
+const stopJobs = env.JOBS_ENABLED && env.NODE_ENV !== 'test' ? startJobs({ db, logger, payments }) : () => undefined;
 
 const server = app.listen(env.PORT, () => {
   logger.info({ port: env.PORT, env: env.NODE_ENV }, 'Nestovin API listening');
@@ -27,6 +39,7 @@ const server = app.listen(env.PORT, () => {
 
 async function shutdown(signal: string) {
   logger.info({ signal }, 'shutting down');
+  stopJobs();
   server.close();
   await db.destroy();
   process.exit(0);

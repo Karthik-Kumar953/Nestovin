@@ -41,6 +41,15 @@ const SECTIONS: { title: string; items: NavItem[] }[] = [
     ],
   },
   {
+    title: 'Demand & bookings',
+    items: [
+      { to: '/demand/cycles', label: 'Demand cycles', module: 'demand_payments' },
+      { to: '/demand/bookings', label: 'Bookings', module: 'demand_payments' },
+      { to: '/demand/payments', label: 'Payments', module: 'demand_payments' },
+      { to: '/scheduling/slots', label: 'Slots', module: 'scheduling' },
+    ],
+  },
+  {
     title: 'Support',
     items: [
       { to: '/support/tickets', label: 'Tickets', module: 'support' },

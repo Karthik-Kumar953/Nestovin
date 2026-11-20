@@ -53,6 +53,17 @@ const envSchema = z
     /** Where website enquiries are routed (email). Optional until the Support destination is approved. */
     SUPPORT_ENQUIRY_EMAIL: optional(z.email()),
 
+    /** Razorpay (ADR-006). Without key id + secret, online payments are disabled (clear error to residents). */
+    RAZORPAY_KEY_ID: optional(z.string().min(8)),
+    RAZORPAY_KEY_SECRET: optional(z.string().min(8)),
+    /** Webhook secret configured in the Razorpay dashboard; webhooks are rejected without it. */
+    RAZORPAY_WEBHOOK_SECRET: optional(z.string().min(8)),
+    /** Periodic maintenance (reconciliation, expiry). Off in tests. */
+    JOBS_ENABLED: z
+      .enum(['true', 'false'])
+      .default('true')
+      .transform((v) => v === 'true'),
+
     /** Admin portal base URL (the /admin mount of the web app), used in invite emails. */
     ADMIN_PORTAL_URL: z.url().default('http://localhost:3000/admin'),
   })
