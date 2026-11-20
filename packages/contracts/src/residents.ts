@@ -164,6 +164,8 @@ export const residentCatalogueSchema = z.object({
       servicePrices: z.array(z.object({ serviceId: uuidSchema, name: z.string(), pricePaise: z.number().int() })),
       components: z.array(
         z.object({
+          /** Needed to choose optional add-ons when booking. */
+          id: uuidSchema,
           serviceId: uuidSchema,
           name: z.string(),
           isOptionalAddon: z.boolean(),

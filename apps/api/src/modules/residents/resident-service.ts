@@ -478,6 +478,7 @@ export class ResidentService {
             .map((c) => {
               const addon = addonPrices.find((a) => a.plan_component_id === c.id);
               return {
+                id: c.id,
                 serviceId: c.service_id,
                 name: c.service_name,
                 isOptionalAddon: c.is_optional_addon,

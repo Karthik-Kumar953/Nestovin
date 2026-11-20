@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "Nestovin",
+    "slug": "nestovin-resident",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "nestovin",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "in.nestovin.resident",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Take a photo of your residence document.",
+        "NSPhotoLibraryUsageDescription": "Choose a photo of your residence document."
+      }
+    },
+    "android": {
+      "package": "in.nestovin.resident",
+      "adaptiveIcon": {
+        "backgroundColor": "#E5F3F1",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "color": "#00796B"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
