@@ -6,3 +6,5 @@ export * from './admin-access';
 export * from './enquiries';
 export * from './catalogue';
 export * from './migration';
+export * from './residents';
+export * from './support';

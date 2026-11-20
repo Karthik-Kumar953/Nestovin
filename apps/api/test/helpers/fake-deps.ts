@@ -48,7 +48,7 @@ export function fakeDeps(admins: Record<string, LoadedAdmin>, envOverrides: Reco
       async verify(token) {
         const [prefix, aal, userId] = token.split(':');
         if (prefix !== 'token' || !aal || !userId) throw new Error('bad token');
-        return { userId, aal, email: undefined, sessionId: undefined };
+        return { userId, aal, email: undefined, phone: undefined, sessionId: undefined };
       },
     },
     adminLoader: {
@@ -62,6 +62,17 @@ export function fakeDeps(admins: Record<string, LoadedAdmin>, envOverrides: Reco
       },
       async deleteUser() {},
       async setBanned() {},
+    },
+    storage: {
+      async createSignedUpload() {
+        throw new Error('not used');
+      },
+      async stat() {
+        return null;
+      },
+      async createSignedDownload() {
+        return 'https://example.test/signed';
+      },
     },
   };
 }

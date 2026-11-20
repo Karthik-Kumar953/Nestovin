@@ -4,6 +4,7 @@ import { createDatabase } from './db/database';
 import { createSupabaseTokenVerifier } from './auth/token-verifier';
 import { createAdminActorLoader } from './auth/admin-actor-loader';
 import { createSupabaseAuthAdmin } from './integrations/auth-admin';
+import { createSupabaseStorage } from './integrations/storage';
 import { createApp } from './app';
 
 const env = loadEnv();
@@ -17,6 +18,7 @@ const app = createApp({
   tokenVerifier: createSupabaseTokenVerifier({ supabaseUrl: env.SUPABASE_URL, jwtSecret: env.SUPABASE_JWT_SECRET }),
   adminLoader: createAdminActorLoader(db),
   authAdmin: createSupabaseAuthAdmin({ supabaseUrl: env.SUPABASE_URL, serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY }),
+  storage: createSupabaseStorage({ supabaseUrl: env.SUPABASE_URL, serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY }),
 });
 
 const server = app.listen(env.PORT, () => {

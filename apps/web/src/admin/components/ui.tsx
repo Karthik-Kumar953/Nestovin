@@ -216,6 +216,13 @@ const BADGE_TONE: Record<string, string> = {
   CONFIGURED: 'info',
   INACTIVE: 'neutral',
   DISABLED: 'error',
+  SUSPENDED: 'error',
+  PENDING: 'warning',
+  VERIFIED: 'success',
+  APPROVED: 'success',
+  REJECTED: 'error',
+  REVOKED: 'neutral',
+  CANCELLED: 'neutral',
 };
 
 export function StatusBadge({ status }: { status: string }) {

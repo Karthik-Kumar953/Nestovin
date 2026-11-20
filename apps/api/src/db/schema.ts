@@ -347,7 +347,128 @@ export interface ImportRowsTable {
   action: 'CREATE' | 'UPDATE' | 'UNCHANGED' | null;
 }
 
+// ------------------------------------------------------------- Phase 3
+
+export interface ResidentProfilesTable extends Stamped {
+  id: string;
+  phone: string;
+  full_name: string | null;
+  email: string | null;
+  status: Generated<'ACTIVE' | 'SUSPENDED'>;
+}
+
+export interface ResidenceMembershipsTable extends Stamped {
+  id: Generated<string>;
+  resident_id: string;
+  flat_id: string;
+  /** Set by trigger from the flat. */
+  community_id: ColumnType<string, string | undefined, string>;
+  cluster_id: ColumnType<string | null, string | null | undefined, string | null>;
+  kind: 'PRIMARY' | 'FAMILY';
+  occupancy: 'OWNER' | 'TENANT' | 'FAMILY';
+  status: Generated<'PENDING' | 'VERIFIED' | 'REJECTED' | 'REVOKED' | 'ENDED'>;
+  primary_membership_id: string | null;
+  verified_at: Timestamp | null;
+  verified_by: string | null;
+  ended_at: Timestamp | null;
+  end_reason: string | null;
+}
+
+export interface DocumentsTable {
+  id: Generated<string>;
+  owner_type: 'RESIDENCE_VERIFICATION';
+  owner_id: string;
+  doc_type: 'OWNERSHIP_PROOF' | 'RENT_AGREEMENT' | 'ELECTRICITY_BILL' | 'SOCIETY_ID';
+  bucket: string;
+  storage_key: string;
+  file_name: string;
+  mime_type: 'application/pdf' | 'image/jpeg' | 'image/png';
+  size_bytes: number | null;
+  status: Generated<'PENDING_UPLOAD' | 'UPLOADED'>;
+  uploaded_by: string;
+  community_id: string;
+  cluster_id: string | null;
+  created_at: Generated<Date>;
+  uploaded_at: Timestamp | null;
+}
+
+export interface ResidenceVerificationRequestsTable {
+  id: Generated<string>;
+  membership_id: string;
+  document_id: string;
+  community_id: string;
+  cluster_id: string | null;
+  decision: Generated<'PENDING' | 'APPROVED' | 'REJECTED'>;
+  reviewed_by: string | null;
+  reviewed_at: Timestamp | null;
+  reason: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface FamilyAccessRequestsTable {
+  id: Generated<string>;
+  primary_membership_id: string;
+  requested_by: string;
+  phone: string;
+  full_name: string;
+  relationship: string;
+  community_id: string;
+  cluster_id: string | null;
+  status: Generated<'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED'>;
+  physical_verification_at: Timestamp | null;
+  reviewed_by: string | null;
+  reviewed_at: Timestamp | null;
+  reason: string | null;
+  resulting_membership_id: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface TicketCategoriesTable {
+  id: Generated<string>;
+  name: string;
+  status: Generated<'ACTIVE' | 'INACTIVE'>;
+  sort: Generated<number>;
+}
+
+export interface SupportTicketsTable extends Stamped {
+  id: Generated<string>;
+  reference: Generated<string>;
+  resident_id: string;
+  membership_id: string | null;
+  flat_id: string | null;
+  community_id: string | null;
+  cluster_id: string | null;
+  category_id: string;
+  subject: string;
+  description: string;
+  priority: Generated<'LOW' | 'NORMAL' | 'HIGH'>;
+  urgent: Generated<boolean>;
+  status: Generated<'OPEN' | 'ASSIGNED' | 'IN_PROGRESS' | 'WAITING' | 'RESOLVED' | 'CLOSED'>;
+  owner_admin_id: string | null;
+  due_at: Timestamp | null;
+  resolved_at: Timestamp | null;
+  closed_at: Timestamp | null;
+}
+
+export interface TicketUpdatesTable {
+  id: Generated<string>;
+  ticket_id: string;
+  author_kind: 'admin' | 'resident' | 'system';
+  author_id: string | null;
+  visibility: 'INTERNAL' | 'RESIDENT';
+  body: string;
+  created_at: Generated<Date>;
+}
+
 export interface DB {
+  'app.resident_profiles': ResidentProfilesTable;
+  'app.residence_memberships': ResidenceMembershipsTable;
+  'app.documents': DocumentsTable;
+  'app.residence_verification_requests': ResidenceVerificationRequestsTable;
+  'app.family_access_requests': FamilyAccessRequestsTable;
+  'app.ticket_categories': TicketCategoriesTable;
+  'app.support_tickets': SupportTicketsTable;
+  'app.ticket_updates': TicketUpdatesTable;
   'app.services': ServicesTable;
   'app.community_services': CommunityServicesTable;
   'app.residence_categories': ResidenceCategoriesTable;

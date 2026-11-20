@@ -33,6 +33,21 @@ const SECTIONS: { title: string; items: NavItem[] }[] = [
     ],
   },
   {
+    title: 'Residents',
+    items: [
+      { to: '/residents', label: 'Residents', module: 'residents' },
+      { to: '/residents/verifications', label: 'Residence verification', module: 'residents' },
+      { to: '/residents/family-requests', label: 'Family requests', module: 'family_requests' },
+    ],
+  },
+  {
+    title: 'Support',
+    items: [
+      { to: '/support/tickets', label: 'Tickets', module: 'support' },
+      { to: '/support/enquiries', label: 'Website enquiries', module: 'support' },
+    ],
+  },
+  {
     title: 'Access control',
     items: [
       { to: '/access/admins', label: 'Admin users', module: 'admin_access' },
@@ -67,7 +82,7 @@ export function Layout({ children }: { children: ReactNode }) {
               <ul>
                 {s.items.map((i) => (
                   <li key={i.to}>
-                    <NavLink to={i.to} end={i.to === '/'} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                    <NavLink to={i.to} end={i.to === '/' || i.to === '/residents'} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                       {i.label}
                     </NavLink>
                   </li>

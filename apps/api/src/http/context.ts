@@ -4,6 +4,8 @@ import type { Logger } from '../lib/logger';
 import type { TokenVerifier } from '../auth/token-verifier';
 import type { AdminActorLoader } from '../auth/admin-actor-loader';
 import type { AuthAdminAdapter } from '../integrations/auth-admin';
+import type { StorageAdapter } from '../integrations/storage';
+import type { ResidentActor } from '../modules/residents/auth';
 import type { AdminActor } from '../auth/permissions';
 
 /** Everything route modules need, injected once at startup (and replaced with fakes in tests). */
@@ -14,6 +16,7 @@ export interface AppDeps {
   tokenVerifier: TokenVerifier;
   adminLoader: AdminActorLoader;
   authAdmin: AuthAdminAdapter;
+  storage: StorageAdapter;
 }
 
 declare global {
@@ -24,6 +27,8 @@ declare global {
       requestId: string;
       /** Set by requireAdmin for authenticated admin requests. */
       admin?: AdminActor;
+      /** Set by requireResident for authenticated resident requests. */
+      resident?: ResidentActor;
     }
   }
 }
@@ -32,4 +37,10 @@ declare global {
 export function adminOf(req: { admin?: AdminActor }): AdminActor {
   if (!req.admin) throw new Error('requireAdmin middleware is missing for this route');
   return req.admin;
+}
+
+/** Use inside handlers mounted behind requireResident. */
+export function residentOf(req: { resident?: ResidentActor }): ResidentActor {
+  if (!req.resident) throw new Error('requireResident middleware is missing for this route');
+  return req.resident;
 }

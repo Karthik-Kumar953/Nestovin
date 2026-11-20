@@ -11,6 +11,8 @@ import { locationRoutes } from './modules/locations/routes';
 import { publicEnquiryRoutes } from './modules/enquiries/routes';
 import { catalogueRoutes } from './modules/catalogue/routes';
 import { migrationRoutes } from './modules/migration/routes';
+import { residentAdminRoutes, residentRoutes } from './modules/residents/routes';
+import { supportAdminRoutes } from './modules/support/routes';
 
 /** Builds the Express app from injected dependencies (no global state; easy to test). */
 export function createApp(deps: AppDeps): express.Express {
@@ -25,7 +27,7 @@ export function createApp(deps: AppDeps): express.Express {
     pinoHttp({
       logger: deps.logger,
       genReqId: (req) => (req as express.Request).requestId,
-      customProps: (req) => ({ adminId: (req as express.Request).admin?.id }),
+      customProps: (req) => ({ adminId: (req as express.Request).admin?.id, residentId: (req as express.Request).resident?.id }),
       autoLogging: { ignore: (req) => req.url === '/health' },
     }),
   );
@@ -63,6 +65,9 @@ export function createApp(deps: AppDeps): express.Express {
   // Public (unauthenticated) endpoints
   app.use('/v1/public', publicEnquiryRoutes(deps));
 
+  // Resident app endpoints: phone-OTP session required (requireResident inside the router).
+  app.use('/v1/resident', residentRoutes(deps));
+
   // Admin endpoints: every route below requires an authenticated, MFA-verified, active admin.
   const admin = express.Router();
   admin.use(requireAdmin(deps));
@@ -70,6 +75,8 @@ export function createApp(deps: AppDeps): express.Express {
   admin.use(locationRoutes(deps));
   admin.use(catalogueRoutes(deps));
   admin.use(migrationRoutes(deps));
+  admin.use(residentAdminRoutes(deps));
+  admin.use(supportAdminRoutes(deps));
   app.use('/v1/admin', admin);
 
   app.use(notFoundHandler());

@@ -3,10 +3,19 @@ import { createRemoteJWKSet, decodeProtectedHeader, jwtVerify, type JWTPayload }
 export interface VerifiedToken {
   userId: string;
   email: string | undefined;
+  /** Phone in E.164 (Supabase stores it without '+'), present for phone-OTP users. */
+  phone: string | undefined;
   /** Authenticator assurance level: 'aal2' after a successful TOTP MFA challenge. */
   aal: 'aal1' | 'aal2' | string | undefined;
   /** Supabase session id, used for audit correlation. */
   sessionId: string | undefined;
+}
+
+/** Supabase stores phones without the leading '+'; we use E.164 everywhere. */
+export function normalizePhone(raw: unknown): string | undefined {
+  if (typeof raw !== 'string' || raw.trim() === '') return undefined;
+  const digits = raw.trim();
+  return digits.startsWith('+') ? digits : `+${digits}`;
 }
 
 export interface TokenVerifier {
@@ -37,7 +46,8 @@ export function createSupabaseTokenVerifier(opts: { supabaseUrl: string; jwtSecr
       if (!payload.sub) throw new Error('Token has no subject');
       return {
         userId: payload.sub,
-        email: typeof payload.email === 'string' ? payload.email : undefined,
+        email: typeof payload.email === 'string' && payload.email ? payload.email : undefined,
+        phone: normalizePhone(payload.phone),
         aal: typeof payload.aal === 'string' ? payload.aal : undefined,
         sessionId: typeof payload.session_id === 'string' ? payload.session_id : undefined,
       };

@@ -32,6 +32,24 @@ export async function auditAdmin(trx: Tx, actor: AdminActor, requestId: string, 
     .execute();
 }
 
+/** Audit row for a resident's own action (e.g. registering a flat, adding family). */
+export async function auditResident(trx: Tx, residentId: string, requestId: string, entry: AuditEntry): Promise<void> {
+  await trx
+    .insertInto('app.audit_events')
+    .values({
+      actor_id: residentId,
+      actor_kind: 'resident',
+      action: entry.action,
+      target_type: entry.targetType,
+      target_id: entry.targetId,
+      request_id: requestId,
+      reason: entry.reason ?? null,
+      before_data: entry.before === undefined ? null : JSON.stringify(entry.before),
+      after_data: entry.after === undefined ? null : JSON.stringify(entry.after),
+    })
+    .execute();
+}
+
 export async function auditSystem(
   trx: Tx,
   actorKind: 'system' | 'public',
