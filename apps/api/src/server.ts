@@ -10,6 +10,8 @@ import { createRazorpay } from './integrations/razorpay';
 import { PaymentService } from './modules/bookings/payments';
 import { startJobs } from './jobs/runner';
 import { AllocationService } from './modules/workforce/allocation';
+import { NotificationService } from './modules/notifications/service';
+import { createFcm, createResend } from './integrations/messaging';
 
 const env = loadEnv();
 const logger = createLogger(env.LOG_LEVEL, env.NODE_ENV === 'development');
@@ -32,7 +34,18 @@ const app = createApp({
   storage: createSupabaseStorage({ supabaseUrl: env.SUPABASE_URL, serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY }),
   payments: paymentsProvider,
 }, payments);
-const stopJobs = env.JOBS_ENABLED && env.NODE_ENV !== 'test' ? startJobs({ db, logger, payments, allocation: new AllocationService(db, logger) }) : () => undefined;
+const stopJobs = env.JOBS_ENABLED && env.NODE_ENV !== 'test' ? startJobs({
+        db,
+        logger,
+        payments,
+        allocation: new AllocationService(db, logger),
+        notifications: new NotificationService(
+          db,
+          env.FCM_PROJECT_ID && env.FCM_CLIENT_EMAIL && env.FCM_PRIVATE_KEY ? createFcm({ projectId: env.FCM_PROJECT_ID, clientEmail: env.FCM_CLIENT_EMAIL, privateKey: env.FCM_PRIVATE_KEY }) : null,
+          env.RESEND_API_KEY && env.EMAIL_FROM ? createResend({ apiKey: env.RESEND_API_KEY, from: env.EMAIL_FROM }) : null,
+          logger,
+        ),
+      }) : () => undefined;
 
 const server = app.listen(env.PORT, () => {
   logger.info({ port: env.PORT, env: env.NODE_ENV }, 'Nestovin API listening');

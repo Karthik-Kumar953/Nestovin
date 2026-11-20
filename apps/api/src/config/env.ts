@@ -58,6 +58,13 @@ const envSchema = z
     RAZORPAY_KEY_SECRET: optional(z.string().min(8)),
     /** Webhook secret configured in the Razorpay dashboard; webhooks are rejected without it. */
     RAZORPAY_WEBHOOK_SECRET: optional(z.string().min(8)),
+    /** Firebase Cloud Messaging (service account). Without them, notifications stay in-app only. */
+    FCM_PROJECT_ID: optional(z.string().min(3)),
+    FCM_CLIENT_EMAIL: optional(z.email()),
+    FCM_PRIVATE_KEY: optional(z.string().min(100)),
+    /** Resend transactional email. Without it, email notifications are skipped. */
+    RESEND_API_KEY: optional(z.string().min(10)),
+    EMAIL_FROM: optional(z.string().min(5)),
     /** Periodic maintenance (reconciliation, expiry). Off in tests. */
     JOBS_ENABLED: z
       .enum(['true', 'false'])

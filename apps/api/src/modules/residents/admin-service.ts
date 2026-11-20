@@ -15,6 +15,7 @@ import type { StorageAdapter } from '../../integrations/storage';
 import { businessRule, notFound, versionConflict } from '../../lib/errors';
 import { decodeCursor, likeContains, toPage } from '../../lib/pagination';
 import { auditAdmin } from '../audit/audit';
+import { notify } from '../notifications/service';
 import { iso, membershipQuery, toMembership } from './queries';
 
 const DOWNLOAD_TTL_SECONDS = 60;
@@ -229,6 +230,7 @@ export class ResidentAdminService {
         targetId: v.membership_id,
         after: { residentId: v.resident_id, flatId: v.flat_id, kind: 'PRIMARY' },
       });
+      await notify(trx, 'residence.verified', v.resident_id, {}, `residence.verified:${id}`);
       return { decision: 'APPROVED' as const };
     });
   }
@@ -253,6 +255,7 @@ export class ResidentAdminService {
         targetId: v.membership_id,
         reason,
       });
+      await notify(trx, 'residence.rejected', v.resident_id, {}, `residence.rejected:${id}`);
       return { decision: 'REJECTED' as const };
     });
   }
@@ -310,7 +313,7 @@ export class ResidentAdminService {
       const r = await trx
         .selectFrom('app.family_access_requests as r')
         .innerJoin('app.residence_memberships as m', 'm.id', 'r.primary_membership_id')
-        .select(['r.id', 'r.status', 'r.phone', 'm.status as primary_status'])
+        .select(['r.id', 'r.status', 'r.phone', 'r.requested_by', 'm.status as primary_status'])
         .where('r.id', '=', id)
         .forUpdate('r')
         .executeTakeFirst();
@@ -331,6 +334,9 @@ export class ResidentAdminService {
         reason: input.note ?? null,
         after: { physicalVerificationRecorded: true, attachedNow: (attached.rows[0]?.n ?? 0) > 0 },
       });
+      await notify(trx, 'family.approved', r.requested_by, {}, `family.approved:${id}`);
+      const member = await trx.selectFrom('app.resident_profiles').select('id').where('phone', '=', r.phone).executeTakeFirst();
+      if (member && (attached.rows[0]?.n ?? 0) > 0) await notify(trx, 'family.access_granted', member.id, {}, `family.access_granted:${id}`);
       return { status: 'APPROVED' as const, attachedNow: (attached.rows[0]?.n ?? 0) > 0 };
     });
   }
@@ -342,13 +348,14 @@ export class ResidentAdminService {
         .set({ status: 'REJECTED', reason, reviewed_by: actor.id, reviewed_at: sql`now()` })
         .where('id', '=', id)
         .where('status', '=', 'PENDING')
-        .returning('id')
+        .returning(['id', 'requested_by'])
         .executeTakeFirst();
       if (!r) {
         const exists = await trx.selectFrom('app.family_access_requests').select('id').where('id', '=', id).executeTakeFirst();
         throw exists ? businessRule('This request has already been decided') : notFound('Family request');
       }
       await auditAdmin(trx, actor, requestId, { action: 'family.rejected', targetType: 'family_access_request', targetId: id, reason });
+      await notify(trx, 'family.rejected', r.requested_by, {}, `family.rejected:${id}`);
       return { status: 'REJECTED' as const };
     });
   }

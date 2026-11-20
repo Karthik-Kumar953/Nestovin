@@ -196,7 +196,7 @@ export interface NotificationOutboxTable {
   channel: 'EMAIL' | 'SMS' | 'PUSH';
   recipient: string;
   payload: unknown;
-  status: Generated<'PENDING' | 'SENT' | 'FAILED' | 'DEAD'>;
+  status: Generated<'PENDING' | 'SENT' | 'FAILED' | 'DEAD' | 'SKIPPED'>;
   attempts: Generated<number>;
   next_attempt_at: Generated<Date>;
   last_error: string | null;
@@ -1093,7 +1093,32 @@ export interface OvertimeOfferResponsesTable {
   responded_at: Timestamp | null;
 }
 
+export interface DeviceTokensTable {
+  id: Generated<string>;
+  owner_kind: 'resident' | 'employee';
+  owner_id: string;
+  token: string;
+  platform: 'android' | 'ios';
+  created_at: Generated<Date>;
+  last_seen_at: Generated<Date>;
+}
+
+export interface NotificationsTable {
+  id: Generated<string>;
+  recipient_kind: 'resident' | 'employee';
+  recipient_id: string;
+  outbox_id: string | null;
+  event_type: string;
+  title: string;
+  body: string;
+  data: Json;
+  read_at: Timestamp | null;
+  created_at: Generated<Date>;
+}
+
 export interface DB {
+  'app.device_tokens': DeviceTokensTable;
+  'app.notifications': NotificationsTable;
   'app.overtime_offers': OvertimeOffersTable;
   'app.overtime_offer_responses': OvertimeOfferResponsesTable;
   'app.resident_change_requests': ResidentChangeRequestsTable;

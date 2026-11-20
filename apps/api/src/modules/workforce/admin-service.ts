@@ -18,6 +18,7 @@ import type { AuthAdminAdapter } from '../../integrations/auth-admin';
 import { businessRule, conflict, notFound, versionConflict } from '../../lib/errors';
 import { decodeCursor, likeContains, toPage } from '../../lib/pagination';
 import { auditAdmin, auditSystem } from '../audit/audit';
+import { notify } from '../notifications/service';
 
 const iso = (d: Date | string | null) => (d === null ? null : new Date(d).toISOString());
 
@@ -515,6 +516,7 @@ export class WorkforceAdminService {
         released = affected.length;
       }
       await auditAdmin(trx, actor, requestId, { action: `leave.${input.decision.toLowerCase()}`, targetType: 'leave_request', targetId: id, reason: input.note ?? null, after: { released } });
+      await notify(trx, 'leave.decided', l.employee_id, { leaveRequestId: id, decision: input.decision }, `leave:${id}`);
       return { status: input.decision, releasedAssignments: released };
     });
   }

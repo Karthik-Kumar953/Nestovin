@@ -4,6 +4,7 @@ import type { Logger } from '../lib/logger';
 import type { PaymentService } from '../modules/bookings/payments';
 import type { AllocationService } from '../modules/workforce/allocation';
 import { escalateOverdue } from '../modules/support/escalation';
+import type { NotificationService } from '../modules/notifications/service';
 
 /**
  * Minimal in-process scheduler for periodic maintenance (payment reconciliation,
@@ -22,7 +23,7 @@ export async function claimLease(db: Database, seconds: number): Promise<boolean
   return rows.length === 1;
 }
 
-export function startJobs(deps: { db: Database; logger: Logger; payments: PaymentService; allocation: AllocationService }, intervalMs = 60_000): () => void {
+export function startJobs(deps: { db: Database; logger: Logger; payments: PaymentService; allocation: AllocationService; notifications: NotificationService }, intervalMs = 60_000): () => void {
   let running = false;
   const tick = async () => {
     if (running) return;
@@ -37,6 +38,8 @@ export function startJobs(deps: { db: Database; logger: Logger; payments: Paymen
       if (visits.generated || visits.assigned) deps.logger.info(visits, 'visits generated');
       const escalated = await escalateOverdue(deps.db, deps.logger);
       if (escalated) deps.logger.info({ escalated }, 'tickets escalated');
+      const delivered = await deps.notifications.processOutbox();
+      if (delivered.sent || delivered.failed) deps.logger.info(delivered, 'notifications processed');
     } catch (err) {
       deps.logger.error({ err }, 'maintenance tick failed');
     } finally {

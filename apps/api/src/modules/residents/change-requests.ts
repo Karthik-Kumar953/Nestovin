@@ -6,6 +6,7 @@ import { inScope, toDbClaims, type AdminActor } from '../../auth/permissions';
 import { businessRule, conflict, notFound } from '../../lib/errors';
 import { auditAdmin, auditResident } from '../audit/audit';
 import { residentClaims, type ResidentActor } from './auth';
+import { notify } from '../notifications/service';
 
 export const createChangeRequestSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('OCCUPANCY_CHANGE'), occupancy: z.enum(['OWNER', 'TENANT']), reason: z.string().trim().max(500).optional() }),
@@ -153,6 +154,7 @@ export class ChangeRequestService {
         }
       }
       await trx.updateTable('app.resident_change_requests').set({ status: input.decision, reviewed_by: actor.id, reviewed_at: sql`now()`, review_note: input.note }).where('id', '=', id).execute();
+      await notify(trx, 'change_request.decided', c.resident_id, { requestId: id, decision: input.decision }, `change_request:${id}`);
       await auditAdmin(trx, actor, requestId, {
         action: `change_request.${input.decision.toLowerCase()}`,
         targetType: 'resident',

@@ -10,6 +10,7 @@ import { businessRule, notFound } from '../../lib/errors';
 import type { Logger } from '../../lib/logger';
 import { auditSystem } from '../audit/audit';
 import { addDays } from './pricing';
+import { notify } from '../notifications/service';
 
 export const SYSTEM_CLAIMS: DbClaims = { userId: null, actorKind: 'system', isSuperAdmin: false, clusterIds: 'all' };
 
@@ -166,6 +167,7 @@ export class PaymentService {
           .values({ order_id: order.id, transaction_id: tx.id, cluster_id: order.cluster_id, reason_code: reason, detail })
           .execute();
         await auditSystem(trx, 'system', null, { action: 'payment.review_required', targetType: 'payment_order', targetId: order.id, reason: `${reason}: ${detail}` });
+        await notify(trx, 'payment.review', order.resident_id, { paymentOrderId: order.id }, `payment.review:${tx.id}`);
         return result('REVIEW_REQUIRED');
       };
 
@@ -186,6 +188,7 @@ export class PaymentService {
         targetId: order.id,
         after: { purpose: order.purpose, amountPaise: payment.amountPaise, providerPaymentId: payment.id, via: v.via },
       });
+      await notify(trx, order.ref_type === 'BOOKING' ? 'booking.confirmed' : 'payment.verified', order.resident_id, { paymentOrderId: order.id, refId: order.ref_id }, `paid:${order.id}`);
       return result('PAID');
     });
   }

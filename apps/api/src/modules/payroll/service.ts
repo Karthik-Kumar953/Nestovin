@@ -16,6 +16,7 @@ import { inScope, toDbClaims, type AdminActor } from '../../auth/permissions';
 import { businessRule, conflict, forbidden, notFound } from '../../lib/errors';
 import { auditAdmin } from '../audit/audit';
 import { employeeClaims, type EmployeeActor } from '../workforce/employee-service';
+import { notify } from '../notifications/service';
 
 const iso = (d: Date | string | null) => (d === null ? null : new Date(d).toISOString());
 const dayMs = 86_400_000;
@@ -400,6 +401,8 @@ export class PayrollService {
       if (r.status !== 'IN_REVIEW') throw businessRule('Only a payroll in review can be approved');
       await trx.updateTable('app.payroll_runs').set({ status: 'APPROVED', reviewed_by: actor.id, reviewed_at: sql`now()`, updated_at: sql`now()` }).where('id', '=', runId).execute();
       await auditAdmin(trx, actor, requestId, { action: 'payroll.approved', targetType: 'payroll_run', targetId: runId });
+      const paid = await trx.selectFrom('app.payroll_lines').select('employee_id').where('run_id', '=', runId).where('net_paise', '>', '0').execute();
+      for (const l of paid) await notify(trx, 'payslip.available', l.employee_id, { runId }, `payslip:${runId}:${l.employee_id}`);
     });
     return this.detail(actor, runId);
   }

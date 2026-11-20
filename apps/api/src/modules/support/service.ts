@@ -22,6 +22,7 @@ import { auditAdmin, auditResident } from '../audit/audit';
 import { residentClaims, type ResidentActor } from '../residents/auth';
 import { activeMembership } from '../residents/queries';
 import { escalate, initialDeadline } from './escalation';
+import { notify } from '../notifications/service';
 
 const iso = (d: Date | string | null) => (d === null ? null : new Date(d).toISOString());
 
@@ -299,6 +300,7 @@ export class SupportService {
           .insertInto('app.ticket_updates')
           .values({ ticket_id: id, author_kind: 'system', author_id: actor.id, visibility: 'RESIDENT', body: `Status changed to ${status.replace('_', ' ').toLowerCase()}` })
           .execute();
+        await notify(trx, 'ticket.status_changed', before.resident_id, { ticketId: id, status });
       }
       await auditAdmin(trx, actor, requestId, {
         action: 'ticket.updated',
@@ -333,6 +335,10 @@ export class SupportService {
         .insertInto('app.ticket_updates')
         .values({ ticket_id: id, author_kind: 'admin', author_id: actor.id, visibility: input.visibility, body: input.body })
         .execute();
+      if (input.visibility === 'RESIDENT') {
+        const owner = await trx.selectFrom('app.support_tickets').select('resident_id').where('id', '=', id).executeTakeFirstOrThrow();
+        await notify(trx, 'ticket.replied', owner.resident_id, { ticketId: id });
+      }
       await auditAdmin(trx, actor, requestId, {
         action: input.visibility === 'INTERNAL' ? 'ticket.internal_note' : 'ticket.replied',
         targetType: 'support_ticket',
