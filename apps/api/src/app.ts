@@ -21,6 +21,7 @@ import { overviewRoutes } from './modules/overview/routes';
 import { auditRoutes } from './modules/audit/routes';
 import { exportRoutes } from './modules/exports/routes';
 import { inboxRoutes, notificationAdminRoutes } from './modules/notifications/routes';
+import { supabaseHookRoutes } from './modules/auth-hooks/routes';
 import { employeePayslipRoutes, payrollAdminRoutes } from './modules/payroll/routes';
 
 /** Builds the Express app from injected dependencies (no global state; easy to test). */
@@ -58,6 +59,7 @@ export function createApp(deps: AppDeps, payments = new PaymentService(deps.db, 
   );
   // Webhooks need the raw body for signature verification: mounted before the JSON parser.
   app.use('/v1/webhooks', razorpayWebhookRoutes(payments));
+  app.use('/v1/hooks', supabaseHookRoutes(deps.env, deps.sms, deps.logger));
   // Small JSON bodies everywhere, except the dashboard migration table (up to 20,000 rows).
   const jsonSmall = express.json({ limit: '100kb' });
   const jsonLarge = express.json({ limit: '4mb' });

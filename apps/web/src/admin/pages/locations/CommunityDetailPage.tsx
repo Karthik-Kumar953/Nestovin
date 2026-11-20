@@ -200,9 +200,9 @@ function EditCommunity({ community, onClose }: { community: Community; onClose: 
       <fieldset>
         <legend>Reference location</legend>
         <p className="field-hint">
-          Used as the reference point for the attendance location check. A Google Maps picker will replace these fields once the
-          Maps key is configured.
+          Used as the reference point for the attendance location check. Search the address on Google Maps or enter the coordinates.
         </p>
+        <GeocodeButton address={[form.addressLine, form.postalCode].filter(Boolean).join(', ')} onPick={(lat, lng) => setForm((f) => ({ ...f, lat: String(lat), lng: String(lng) }))} />
         <div className="grid-2" style={{ marginTop: 8 }}>
           <TextInput label="Latitude" inputMode="decimal" value={form.lat} onChange={set('lat')} error={err?.field('location.lat')} />
           <TextInput label="Longitude" inputMode="decimal" value={form.lng} onChange={set('lng')} error={err?.field('location.lng')} />
@@ -525,5 +525,27 @@ function FlatEditor({ tower, flat, onClose }: { tower: Tower; flat: Flat | null;
       </div>
       {flat ? <SelectInput label="Status" value={form.status} onChange={set('status')} options={STATUS_OPTIONS} /> : null}
     </Modal>
+  );
+}
+
+function GeocodeButton({ address, onPick }: { address: string; onPick: (lat: number, lng: number) => void }) {
+  const search = useMutation({
+    mutationFn: () => api<{ items: { lat: number; lng: number; formattedAddress: string }[] }>(`/v1/admin/geocode${qs({ address })}`),
+  });
+  return (
+    <div className="stack">
+      <div className="row">
+        <Button variant="secondary" disabled={address.trim().length < 3} busy={search.isPending} onClick={() => search.mutate()}>
+          Find address on map
+        </Button>
+      </div>
+      <ErrorBanner error={search.error} />
+      {search.data?.items.length === 0 ? <p className="muted">No match. Try a fuller address.</p> : null}
+      {(search.data?.items ?? []).map((m) => (
+        <Button key={`${m.lat},${m.lng}`} variant="ghost" onClick={() => onPick(m.lat, m.lng)}>
+          Use {m.formattedAddress} ({m.lat.toFixed(5)}, {m.lng.toFixed(5)})
+        </Button>
+      ))}
+    </div>
   );
 }

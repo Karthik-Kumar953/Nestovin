@@ -79,5 +79,6 @@ export function fakeDeps(admins: Record<string, LoadedAdmin>, envOverrides: Reco
       },
     },
     payments: null,
+    sms: null,
   };
 }

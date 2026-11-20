@@ -6,6 +6,8 @@ import type { AdminActorLoader } from '../auth/admin-actor-loader';
 import type { AuthAdminAdapter } from '../integrations/auth-admin';
 import type { StorageAdapter } from '../integrations/storage';
 import type { PaymentProvider } from '../integrations/razorpay';
+import type { SmsSender } from '../integrations/sms';
+import type { Geocoder } from '../integrations/maps';
 import type { ResidentActor } from '../modules/residents/auth';
 import type { AdminActor } from '../auth/permissions';
 
@@ -20,6 +22,10 @@ export interface AppDeps {
   storage: StorageAdapter;
   /** null when Razorpay keys are not configured. */
   payments: PaymentProvider | null;
+  /** null when MSG91 keys are not configured. */
+  sms: SmsSender | null;
+  /** null when GOOGLE_MAPS_API_KEY is not configured. */
+  geocoder?: Geocoder | null;
 }
 
 declare global {

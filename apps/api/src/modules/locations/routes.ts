@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { businessRule } from '../../lib/errors';
 import { z } from 'zod';
 import {
   assignCommunityClusterSchema,
@@ -109,5 +110,12 @@ export function locationRoutes(deps: AppDeps): Router {
     res.json({ items: await svc.voteAggregates(adminOf(req)) });
   });
 
+
+  // Google Maps geocoding for community reference pins (key stays on the server).
+  r.get('/geocode', authorize('locations', 'edit'), async (req, res) => {
+    if (!deps.geocoder) throw businessRule('Map search is not configured. Enter the coordinates manually or add GOOGLE_MAPS_API_KEY.');
+    const q = parseQuery(z.object({ address: z.string().trim().min(3).max(300) }), req);
+    res.json({ items: await deps.geocoder.geocode(q.address) });
+  });
   return r;
 }

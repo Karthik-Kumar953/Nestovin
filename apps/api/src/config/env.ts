@@ -58,6 +58,14 @@ const envSchema = z
     RAZORPAY_KEY_SECRET: optional(z.string().min(8)),
     /** Webhook secret configured in the Razorpay dashboard; webhooks are rejected without it. */
     RAZORPAY_WEBHOOK_SECRET: optional(z.string().min(8)),
+    /** Resident phone OTP: Supabase "Send SMS" hook secret (v1,whsec_...) + MSG91 DLT template. */
+    SUPABASE_SMS_HOOK_SECRET: optional(z.string().min(20)),
+    MSG91_AUTH_KEY: optional(z.string().min(10)),
+    MSG91_OTP_TEMPLATE_ID: optional(z.string().min(5)),
+    /** Variable name used for the OTP in the MSG91 template (default "otp"). */
+    MSG91_OTP_VARIABLE: z.string().regex(/^[A-Za-z0-9_]{1,40}$/).default('otp'),
+    /** Google Maps Geocoding (server-side) for community reference pins. */
+    GOOGLE_MAPS_API_KEY: optional(z.string().min(20)),
     /** Firebase Cloud Messaging (service account). Without them, notifications stay in-app only. */
     FCM_PROJECT_ID: optional(z.string().min(3)),
     FCM_CLIENT_EMAIL: optional(z.email()),
