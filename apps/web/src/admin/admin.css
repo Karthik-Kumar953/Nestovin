@@ -832,3 +832,20 @@ legend {
   background: var(--nv-warning-surface);
   border-radius: 0 var(--nv-radius-sm) var(--nv-radius-sm) 0;
 }
+
+/* ---------- Dashboard migration table ---------- */
+.grid-entry td {
+  padding: 2px 4px;
+}
+.grid-entry .input-compact {
+  width: 100%;
+  min-width: 0;
+}
+.grid-entry tr.row-invalid td {
+  background: var(--nv-error-surface);
+}
+.field-error {
+  color: var(--nv-error-text);
+  margin: 0;
+  font-size: 0.875rem;
+}

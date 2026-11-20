@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { sql } from 'kysely';
-import type { ActivationChecklist, ImportBatch, ImportRow } from '@nestovin/contracts';
+import { IMPORT_COLUMNS, type ActivationChecklist, type GridRow, type GridValidation, type ImportBatch, type ImportRow } from '@nestovin/contracts';
 import type { Database, Tx } from '../../db/database';
 import { withTx } from '../../db/database';
 import { toDbClaims, type AdminActor } from '../../auth/permissions';
@@ -142,7 +142,90 @@ export class MigrationService {
   async upload(actor: AdminActor, requestId: string, communityId: string, fileName: string, buf: Buffer): Promise<ImportBatch> {
     const parsed = await parseWorkbook(buf);
     const sha = createHash('sha256').update(buf).digest('hex');
+    return this.createBatch(actor, requestId, communityId, { source: 'EXCEL', fileName, sha, size: buf.length, fileErrors: parsed.fileErrors, rows: parsed.rows });
+  }
 
+  /** Dashboard table rows mapped onto the template columns (row numbers start at 2, like the sheet). */
+  private gridToRaw(rows: GridRow[]) {
+    return rows
+      .map((r, i) => {
+        const values = [r.tower, r.floor ?? null, r.flatNumber, r.bhkType ?? null, r.areaSqft ?? null, r.category, r.occupancy ?? null];
+        const raw: Record<string, unknown> = {};
+        IMPORT_COLUMNS.forEach((col, c) => {
+          const v = values[c];
+          raw[col] = typeof v === 'string' && v.trim() === '' ? null : v;
+        });
+        return { rowNumber: i + 2, raw, blank: values.every((v) => v === null || v === undefined || String(v).trim() === '') };
+      })
+      .filter((r) => !r.blank)
+      .map(({ rowNumber, raw }) => ({ rowNumber, raw }));
+  }
+
+  /** Live validation of the dashboard table (nothing is stored). */
+  async validateGrid(actor: AdminActor, communityId: string, rows: GridRow[]): Promise<GridValidation> {
+    return this.tx(actor, async (trx) => {
+      await visibleCommunity(trx, actor, communityId);
+      const plan = await this.plan(trx, communityId, this.gridToRaw(rows));
+      return {
+        rows: plan.rows.map((r) => ({ rowNumber: r.rowNumber, errors: r.errors, warnings: r.warnings, action: r.action })),
+        counts: { ...plan.counts, towersNew: plan.newTowers.length },
+      };
+    });
+  }
+
+  /** Submits the dashboard table as an import batch (then approve and commit as usual). */
+  async submitGrid(actor: AdminActor, requestId: string, communityId: string, rows: GridRow[]): Promise<ImportBatch> {
+    const raw = this.gridToRaw(rows);
+    const json = Buffer.from(JSON.stringify(raw));
+    return this.createBatch(actor, requestId, communityId, {
+      source: 'DASHBOARD',
+      fileName: 'Entered in dashboard',
+      sha: createHash('sha256').update(json).digest('hex'),
+      size: json.length,
+      fileErrors: raw.length ? [] : ['Enter at least one flat'],
+      rows: raw,
+    });
+  }
+
+  /** Current structure as an Excel file in the import format (edit and re-import, or archive). */
+  async exportStructure(actor: AdminActor, requestId: string, communityId: string): Promise<{ fileName: string; buffer: Buffer }> {
+    return this.tx(actor, async (trx) => {
+      await visibleCommunity(trx, actor, communityId);
+      const community = await trx.selectFrom('app.communities').select(['name', 'code']).where('id', '=', communityId).executeTakeFirstOrThrow();
+      const categories = await trx.selectFrom('app.residence_categories').select(['id', 'code', 'label']).where('community_id', '=', communityId).orderBy('sort').execute();
+      const flats = await trx
+        .selectFrom('app.flats as f')
+        .innerJoin('app.towers as t', 't.id', 'f.tower_id')
+        .select(['t.name as tower', 'f.floor', 'f.flat_number', 'f.bhk_type', 'f.area_sqft', 'f.residence_category_id', 'f.occupancy'])
+        .where('f.community_id', '=', communityId)
+        .where('f.status', '=', 'ACTIVE')
+        .orderBy('t.name')
+        .orderBy('f.flat_number')
+        .execute();
+      const occ = (o: string | null) => (o ? o.charAt(0) + o.slice(1).toLowerCase() : null);
+      const rows = flats.map((f) => [
+        f.tower,
+        f.floor,
+        f.flat_number,
+        f.bhk_type,
+        f.area_sqft === null ? null : Number(f.area_sqft),
+        categories.find((c) => c.id === f.residence_category_id)?.code ?? null,
+        occ(f.occupancy),
+      ]);
+      const buffer = await buildTemplate(community.name, categories, rows);
+      await auditAdmin(trx, actor, requestId, { action: 'structure.exported', targetType: 'community', targetId: communityId, after: { flats: flats.length } });
+      return { fileName: `nestovin-structure-${community.code.replace(/[^A-Za-z0-9_-]/g, '_')}.xlsx`, buffer };
+    });
+  }
+
+  private async createBatch(
+    actor: AdminActor,
+    requestId: string,
+    communityId: string,
+    src: { source: 'EXCEL' | 'DASHBOARD'; fileName: string; sha: string; size: number; fileErrors: string[]; rows: { rowNumber: number; raw: Record<string, unknown> }[] },
+  ): Promise<ImportBatch> {
+    const parsed = { fileErrors: src.fileErrors, rows: src.rows };
+    const { fileName, sha } = src;
     return this.tx(actor, async (trx) => {
       const community = await visibleCommunity(trx, actor, communityId, { lock: true });
       if (community.status === 'INACTIVE') throw businessRule('This community is inactive');
@@ -171,7 +254,8 @@ export class MigrationService {
           community_id: communityId,
           file_name: fileName.slice(0, 255) || 'upload.xlsx',
           file_sha256: sha,
-          file_size_bytes: buf.length,
+          file_size_bytes: src.size,
+          source: src.source,
           status,
           total_rows: plan?.rows.length ?? 0,
           valid_rows: plan?.counts.valid ?? 0,
@@ -212,7 +296,7 @@ export class MigrationService {
         action: 'import.uploaded',
         targetType: 'import_batch',
         targetId: batch.id,
-        after: { communityId, fileName, sha256: sha, status, rows: plan?.rows.length ?? 0, errors: plan?.counts.errors ?? null },
+        after: { communityId, source: src.source, fileName, sha256: sha, status, rows: plan?.rows.length ?? 0, errors: plan?.counts.errors ?? null },
       });
       return this.loadBatch(trx, batch.id);
     });
@@ -226,6 +310,7 @@ export class MigrationService {
       id: b.id,
       communityId: b.community_id,
       fileName: b.file_name,
+      source: b.source,
       status: b.status,
       totalRows: b.total_rows,
       validRows: b.valid_rows,

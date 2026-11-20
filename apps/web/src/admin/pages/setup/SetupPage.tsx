@@ -19,7 +19,7 @@ import { PublishStep, ActivateStep } from './PublishSteps';
 const STEPS = [
   { key: 'services', label: 'Services & time windows' },
   { key: 'categories', label: 'Residence categories' },
-  { key: 'import', label: 'Import flats (Excel)' },
+  { key: 'import', label: 'Towers & flats' },
   { key: 'tasks', label: 'Tasks' },
   { key: 'plans', label: 'Plans & packages' },
   { key: 'prices', label: 'Price matrix' },

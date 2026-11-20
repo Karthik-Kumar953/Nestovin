@@ -121,9 +121,16 @@ export function normalizeRow(raw: Record<string, unknown>): { value?: Normalized
 }
 
 /** Template workbook: header row + an instructions sheet listing this community's categories. */
-export async function buildTemplate(communityName: string, categories: { code: string; label: string }[]): Promise<Buffer> {
+export async function buildTemplate(
+  communityName: string,
+  categories: { code: string; label: string }[],
+  rows: (string | number | null)[][] = [],
+): Promise<Buffer> {
   const headerStyle = { fontWeight: 'bold' as const, backgroundColor: '#E5F3F1' };
-  const data = [IMPORT_COLUMNS.map((c) => ({ value: c, ...headerStyle }))];
+  const data: ({ value: string | number } | null)[][] = [
+    IMPORT_COLUMNS.map((c) => ({ value: c, ...headerStyle })),
+    ...rows.map((r) => r.map((v) => (v === null || v === '' ? null : { value: v }))),
+  ];
   const instructions = [
     [{ value: `Community migration template: ${communityName}`, fontWeight: 'bold' as const }],
     [{ value: 'Fill the "Flats" sheet, one row per flat. Keep the header row exactly as it is.' }],

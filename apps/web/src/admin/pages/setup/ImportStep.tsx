@@ -6,8 +6,17 @@ import { IMPORT_COLUMNS, XLSX_MIME, type ImportBatch, type ImportRow } from '@ne
 import { api, apiDownload, apiUpload } from '../../lib/api';
 import { can } from '../../lib/permissions';
 import { useMe } from '../../auth/AuthProvider';
-import { Button, DataTable, ErrorBanner, formatDateTime, InfoBanner, Modal, TextArea } from '../../components/ui';
+import {
+  Button,
+  DataTable,
+  ErrorBanner,
+  formatDateTime,
+  InfoBanner,
+  Modal,
+  TextArea,
+} from '../../components/ui';
 import { useCategories } from './BasicsSteps';
+import { GridEntry } from './GridEntry';
 
 const BATCH_TONE: Record<ImportBatch['status'], string> = {
   VALIDATED: 'info',
@@ -19,7 +28,11 @@ const BATCH_TONE: Record<ImportBatch['status'], string> = {
 };
 
 function BatchBadge({ status }: { status: ImportBatch['status'] }) {
-  return <span className={`badge badge-${BATCH_TONE[status]}`}>{status.charAt(0) + status.slice(1).toLowerCase()}</span>;
+  return (
+    <span className={`badge badge-${BATCH_TONE[status]}`}>
+      {status.charAt(0) + status.slice(1).toLowerCase()}
+    </span>
+  );
 }
 
 /**
@@ -32,12 +45,14 @@ export function ImportStep({ communityId }: { communityId: string }) {
   const categories = useCategories(communityId);
   const batches = useQuery({
     queryKey: ['setup', communityId, 'imports'],
-    queryFn: () => api<{ items: ImportBatch[] }>(`/v1/admin/communities/${communityId}/import-batches`),
+    queryFn: () =>
+      api<{ items: ImportBatch[] }>(`/v1/admin/communities/${communityId}/import-batches`),
     select: (d) => d.items,
   });
   const fileRef = useRef<HTMLInputElement>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState<ImportBatch | null>(null);
+  const [mode, setMode] = useState<'table' | 'excel'>('table');
 
   const refresh = async () => {
     await qc.invalidateQueries({ queryKey: ['setup', communityId] });
@@ -46,9 +61,27 @@ export function ImportStep({ communityId }: { communityId: string }) {
     await qc.invalidateQueries({ queryKey: ['towers'] });
   };
 
-  const download = useMutation({ mutationFn: () => apiDownload(`/v1/admin/communities/${communityId}/import-template`, 'nestovin-migration.xlsx') });
+  const download = useMutation({
+    mutationFn: () =>
+      apiDownload(
+        `/v1/admin/communities/${communityId}/import-template`,
+        'nestovin-migration.xlsx',
+      ),
+  });
+  const exportStructure = useMutation({
+    mutationFn: () =>
+      apiDownload(
+        `/v1/admin/communities/${communityId}/structure-export`,
+        'nestovin-structure.xlsx',
+      ),
+  });
   const upload = useMutation({
-    mutationFn: (file: File) => apiUpload<ImportBatch>(`/v1/admin/communities/${communityId}/import-batches`, file, XLSX_MIME),
+    mutationFn: (file: File) =>
+      apiUpload<ImportBatch>(
+        `/v1/admin/communities/${communityId}/import-batches`,
+        file,
+        XLSX_MIME,
+      ),
     onSuccess: async (b) => {
       setSelected(b.id);
       await refresh();
@@ -56,51 +89,116 @@ export function ImportStep({ communityId }: { communityId: string }) {
   });
   const action = useMutation({
     mutationFn: ({ id, verb }: { id: string; verb: 'approve' | 'commit' | 'cancel' }) =>
-      api<ImportBatch>(`/v1/admin/import-batches/${id}/${verb}`, { method: 'POST', body: verb === 'commit' ? undefined : {} }),
+      api<ImportBatch>(`/v1/admin/import-batches/${id}/${verb}`, {
+        method: 'POST',
+        body: verb === 'commit' ? undefined : {},
+      }),
     onSuccess: refresh,
   });
 
   const open = batches.data?.find((b) => b.status === 'VALIDATED' || b.status === 'APPROVED');
   const current = batches.data?.find((b) => b.id === selected) ?? open ?? batches.data?.[0];
-  const noCategories = categories.data && categories.data.filter((c) => c.status === 'ACTIVE').length === 0;
+  const noCategories =
+    categories.data && categories.data.filter((c) => c.status === 'ACTIVE').length === 0;
 
   return (
     <div className="stack">
-      <h2 className="section-title">Import flats from Excel</h2>
-      <p className="field-hint">
-        One row per flat: {IMPORT_COLUMNS.join(' · ')}. No residents’ names or phone numbers; residents register themselves in the app. A file is
-        imported only when every row is valid. Re-importing updates changed flats and never deletes any.
-      </p>
-      {noCategories ? (
-        <InfoBanner tone="warning">Define residence categories first (previous step). The import checks every row against them.</InfoBanner>
-      ) : null}
-      <ErrorBanner error={download.error ?? upload.error ?? action.error ?? batches.error} />
-
-      <div className="row">
-        <Button variant="secondary" onClick={() => download.mutate()} busy={download.isPending}>
-          Download template
+      <div className="page-header">
+        <h2 className="section-title">Towers and flats</h2>
+        <Button
+          variant="ghost"
+          onClick={() => exportStructure.mutate()}
+          busy={exportStructure.isPending}
+        >
+          Export current structure (Excel)
         </Button>
-        {can(me, 'community_migration', 'create') ? (
-          <>
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-              className="sr-only"
-              aria-label="Choose Excel file"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) upload.mutate(f);
-                e.target.value = '';
-              }}
-            />
-            <Button onClick={() => fileRef.current?.click()} busy={upload.isPending} disabled={Boolean(open) || Boolean(noCategories)}>
-              Upload filled workbook
-            </Button>
-          </>
-        ) : null}
       </div>
-      {open ? <p className="field-hint">An import is waiting for a decision below. Commit, reject or cancel it before uploading another file.</p> : null}
+      <p className="field-hint">
+        One row per flat: {IMPORT_COLUMNS.join(' · ')}. Enter rows in the table or import an Excel
+        file. No residents’ names or phone numbers; residents register themselves in the app. A
+        batch is imported only when every row is valid. Re-importing updates changed flats and never
+        deletes any.
+      </p>
+      <div className="row" role="tablist" aria-label="How to enter flats">
+        <Button
+          variant={mode === 'table' ? 'primary' : 'secondary'}
+          role="tab"
+          aria-selected={mode === 'table'}
+          onClick={() => setMode('table')}
+        >
+          Enter in table
+        </Button>
+        <Button
+          variant={mode === 'excel' ? 'primary' : 'secondary'}
+          role="tab"
+          aria-selected={mode === 'excel'}
+          onClick={() => setMode('excel')}
+        >
+          Excel import
+        </Button>
+      </div>
+      {noCategories ? (
+        <InfoBanner tone="warning">
+          Define residence categories first (previous step). The import checks every row against
+          them.
+        </InfoBanner>
+      ) : null}
+      <ErrorBanner
+        error={
+          download.error ?? exportStructure.error ?? upload.error ?? action.error ?? batches.error
+        }
+      />
+
+      {mode === 'table' && can(me, 'community_migration', 'create') ? (
+        <GridEntry
+          communityId={communityId}
+          categories={(categories.data ?? [])
+            .filter((c) => c.status === 'ACTIVE')
+            .map((c) => ({ code: c.code, label: c.label }))}
+          disabled={Boolean(open) || Boolean(noCategories)}
+          onSubmitted={(b) => {
+            setSelected(b.id);
+            void refresh();
+          }}
+        />
+      ) : null}
+
+      {mode === 'excel' ? (
+        <div className="row">
+          <Button variant="secondary" onClick={() => download.mutate()} busy={download.isPending}>
+            Download template
+          </Button>
+          {can(me, 'community_migration', 'create') ? (
+            <>
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                className="sr-only"
+                aria-label="Choose Excel file"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) upload.mutate(f);
+                  e.target.value = '';
+                }}
+              />
+              <Button
+                onClick={() => fileRef.current?.click()}
+                busy={upload.isPending}
+                disabled={Boolean(open) || Boolean(noCategories)}
+              >
+                Upload filled workbook
+              </Button>
+            </>
+          ) : null}
+        </div>
+      ) : null}
+      {open ? (
+        <p className="field-hint">
+          An import is waiting for a decision below. Commit, reject or cancel it before entering or
+          uploading another batch.
+        </p>
+      ) : null}
 
       {current ? (
         <BatchPanel
@@ -125,7 +223,10 @@ export function ImportStep({ communityId }: { communityId: string }) {
           emptyTitle="No imports yet"
           columns={[
             { header: 'Uploaded', cell: (b) => formatDateTime(b.uploadedAt) },
-            { header: 'File', cell: (b) => b.fileName },
+            {
+              header: 'Source',
+              cell: (b) => (b.source === 'DASHBOARD' ? 'Dashboard table' : b.fileName),
+            },
             { header: 'Rows', className: 'num', cell: (b) => b.totalRows },
             { header: 'Errors', className: 'num', cell: (b) => b.errorRows },
             { header: 'Status', cell: (b) => <BatchBadge status={b.status} /> },
@@ -173,7 +274,10 @@ function BatchPanel({
   const [onlyProblems, setOnlyProblems] = useState(true);
   const rows = useQuery({
     queryKey: ['import-rows', batch.id, onlyProblems],
-    queryFn: () => api<{ items: ImportRow[]; nextAfterRow: number | null }>(`/v1/admin/import-batches/${batch.id}/rows?onlyProblems=${onlyProblems}&limit=200`),
+    queryFn: () =>
+      api<{ items: ImportRow[]; nextAfterRow: number | null }>(
+        `/v1/admin/import-batches/${batch.id}/rows?onlyProblems=${onlyProblems}&limit=200`,
+      ),
     enabled: batch.totalRows > 0,
   });
 
@@ -195,12 +299,14 @@ function BatchPanel({
               Commit to community
             </Button>
           ) : null}
-          {(batch.status === 'VALIDATED' || batch.status === 'APPROVED') && can(me, 'community_migration', 'approve') ? (
+          {(batch.status === 'VALIDATED' || batch.status === 'APPROVED') &&
+          can(me, 'community_migration', 'approve') ? (
             <Button variant="danger" onClick={onReject}>
               Reject
             </Button>
           ) : null}
-          {(batch.status === 'VALIDATED' || batch.status === 'APPROVED') && can(me, 'community_migration', 'create') ? (
+          {(batch.status === 'VALIDATED' || batch.status === 'APPROVED') &&
+          can(me, 'community_migration', 'create') ? (
             <Button variant="ghost" onClick={onCancel}>
               Cancel
             </Button>
@@ -215,11 +321,14 @@ function BatchPanel({
       ) : null}
       {batch.status === 'COMMITTED' ? (
         <InfoBanner tone="success">
-          Imported: {batch.towersNew} new tower(s), {batch.flatsNew} new flat(s), {batch.flatsUpdated} updated. The community is not active yet; finish the setup and
+          Imported: {batch.towersNew} new tower(s), {batch.flatsNew} new flat(s),{' '}
+          {batch.flatsUpdated} updated. The community is not active yet; finish the setup and
           activate it in the last step.
         </InfoBanner>
       ) : null}
-      {batch.status === 'REJECTED' && batch.decisionReason ? <InfoBanner tone="warning">Rejected: {batch.decisionReason}</InfoBanner> : null}
+      {batch.status === 'REJECTED' && batch.decisionReason ? (
+        <InfoBanner tone="warning">Rejected: {batch.decisionReason}</InfoBanner>
+      ) : null}
 
       {batch.totalRows > 0 ? (
         <>
@@ -236,7 +345,11 @@ function BatchPanel({
             <dd>{batch.flatsUpdated} existing flat(s)</dd>
           </dl>
           <label className="checkbox">
-            <input type="checkbox" checked={onlyProblems} onChange={(e) => setOnlyProblems(e.target.checked)} />
+            <input
+              type="checkbox"
+              checked={onlyProblems}
+              onChange={(e) => setOnlyProblems(e.target.checked)}
+            />
             Show only rows with errors or warnings
           </label>
           <DataTable
@@ -259,11 +372,21 @@ function BatchPanel({
                   ) : r.warnings.length ? (
                     <span style={{ color: 'var(--nv-warning-text)' }}>{r.warnings.join('; ')}</span>
                   ) : (
-                    <span className="muted">{r.action === 'UNCHANGED' ? 'No change' : r.action === 'UPDATE' ? 'Update' : 'New'}</span>
+                    <span className="muted">
+                      {r.action === 'UNCHANGED'
+                        ? 'No change'
+                        : r.action === 'UPDATE'
+                          ? 'Update'
+                          : 'New'}
+                    </span>
                   ),
               },
             ]}
-            footer={rows.data?.nextAfterRow ? <span className="muted">Showing the first 200 rows.</span> : null}
+            footer={
+              rows.data?.nextAfterRow ? (
+                <span className="muted">Showing the first 200 rows.</span>
+              ) : null
+            }
           />
         </>
       ) : null}
@@ -274,7 +397,8 @@ function BatchPanel({
 function RejectBatch({ batch, onClose }: { batch: ImportBatch; onClose: () => void }) {
   const [reason, setReason] = useState('');
   const reject = useMutation({
-    mutationFn: () => api(`/v1/admin/import-batches/${batch.id}/reject`, { method: 'POST', body: { reason } }),
+    mutationFn: () =>
+      api(`/v1/admin/import-batches/${batch.id}/reject`, { method: 'POST', body: { reason } }),
     onSuccess: onClose,
   });
   return (
@@ -287,14 +411,25 @@ function RejectBatch({ batch, onClose }: { batch: ImportBatch; onClose: () => vo
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button variant="danger" onClick={() => reject.mutate()} busy={reject.isPending} disabled={reason.trim().length < 3}>
+          <Button
+            variant="danger"
+            onClick={() => reject.mutate()}
+            busy={reject.isPending}
+            disabled={reason.trim().length < 3}
+          >
             Reject
           </Button>
         </>
       }
     >
       <ErrorBanner error={reject.error} />
-      <TextArea label="What needs fixing?" value={reason} onChange={(e) => setReason(e.target.value)} rows={3} required />
+      <TextArea
+        label="What needs fixing?"
+        value={reason}
+        onChange={(e) => setReason(e.target.value)}
+        rows={3}
+        required
+      />
     </Modal>
   );
 }

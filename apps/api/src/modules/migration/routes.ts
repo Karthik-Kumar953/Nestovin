@@ -1,6 +1,6 @@
 import express, { Router } from 'express';
 import { z } from 'zod';
-import { IMPORT_LIMITS, XLSX_MIME, importDecisionSchema, uuidSchema } from '@nestovin/contracts';
+import { IMPORT_LIMITS, XLSX_MIME, gridImportSchema, importDecisionSchema, uuidSchema } from '@nestovin/contracts';
 import type { AppDeps } from '../../http/context';
 import { adminOf } from '../../http/context';
 import { authorize, parseParam, parseQuery, validateBody } from '../../http/middleware';
@@ -44,6 +44,21 @@ export function migrationRoutes(deps: AppDeps): Router {
       res.status(201).json(await svc.upload(adminOf(req), req.requestId, id(req.params.id), fileName, req.body));
     },
   );
+
+  // Dashboard table entry: live validation (nothing stored) and submission as a batch.
+  r.post('/communities/:id/import-grid/validate', authorize('community_migration', 'create'), validateBody(gridImportSchema), async (req, res) => {
+    res.json(await svc.validateGrid(adminOf(req), id(req.params.id), req.body.rows));
+  });
+  r.post('/communities/:id/import-grid', authorize('community_migration', 'create'), validateBody(gridImportSchema), async (req, res) => {
+    res.status(201).json(await svc.submitGrid(adminOf(req), req.requestId, id(req.params.id), req.body.rows));
+  });
+  // Excel export of the current structure in the import format.
+  r.get('/communities/:id/structure-export', authorize('community_migration', 'view'), async (req, res) => {
+    const { fileName, buffer } = await svc.exportStructure(adminOf(req), req.requestId, id(req.params.id));
+    res.setHeader('Content-Type', XLSX_MIME);
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.send(buffer);
+  });
 
   r.get('/communities/:id/import-batches', authorize('community_migration', 'view'), async (req, res) => {
     res.json({ items: await svc.listBatches(adminOf(req), id(req.params.id)) });

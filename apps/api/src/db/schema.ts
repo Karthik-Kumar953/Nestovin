@@ -319,6 +319,7 @@ export interface ImportBatchesTable {
   file_name: string;
   file_sha256: string;
   file_size_bytes: number;
+  source: Generated<'EXCEL' | 'DASHBOARD'>;
   status: Generated<'VALIDATED' | 'INVALID' | 'APPROVED' | 'REJECTED' | 'COMMITTED' | 'CANCELLED'>;
   total_rows: Generated<number>;
   valid_rows: Generated<number>;

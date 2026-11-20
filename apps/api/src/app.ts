@@ -55,7 +55,10 @@ export function createApp(deps: AppDeps, payments = new PaymentService(deps.db, 
   );
   // Webhooks need the raw body for signature verification: mounted before the JSON parser.
   app.use('/v1/webhooks', razorpayWebhookRoutes(payments));
-  app.use(express.json({ limit: '100kb' }));
+  // Small JSON bodies everywhere, except the dashboard migration table (up to 20,000 rows).
+  const jsonSmall = express.json({ limit: '100kb' });
+  const jsonLarge = express.json({ limit: '4mb' });
+  app.use((req, res, next) => (/\/import-grid(\/validate)?$/.test(req.path) ? jsonLarge(req, res, next) : jsonSmall(req, res, next)));
   app.use((_req, res, next) => {
     res.setHeader('Cache-Control', 'no-store');
     next();
