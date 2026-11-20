@@ -17,6 +17,7 @@ import { bookingAdminRoutes, razorpayWebhookRoutes, residentBookingRoutes } from
 import { PaymentService } from './modules/bookings/payments';
 import { employeeRoutes, publicApplicantRoutes, workforceAdminRoutes } from './modules/workforce/routes';
 import { attendanceAdminRoutes, employeeVisitRoutes, residentVisitRoutes } from './modules/attendance/routes';
+import { overviewRoutes } from './modules/overview/routes';
 
 /** Builds the Express app from injected dependencies (no global state; easy to test). */
 export function createApp(deps: AppDeps, payments = new PaymentService(deps.db, deps.payments, deps.logger)): express.Express {
@@ -90,6 +91,7 @@ export function createApp(deps: AppDeps, payments = new PaymentService(deps.db, 
   admin.use(bookingAdminRoutes(deps));
   admin.use(workforceAdminRoutes(deps));
   admin.use(attendanceAdminRoutes(deps));
+  admin.use(overviewRoutes(deps));
   app.use('/v1/admin', admin);
 
   app.use(notFoundHandler());
