@@ -44,6 +44,7 @@ export interface CommunitiesTable extends Stamped {
   status: Generated<'DRAFT' | 'IMPORTED' | 'CONFIGURED' | 'ACTIVE' | 'INACTIVE'>;
   default_operating_mode: 'DEMAND_LED' | 'CONTINUOUS' | null;
   timezone: Generated<string>;
+  geofence_radius_m: Generated<number>;
 }
 
 export interface ClusterCommunityMembershipsTable {
@@ -706,7 +707,259 @@ export interface PaymentExceptionsTable {
   created_at: Generated<Date>;
 }
 
+// ---------------------------------------------------------------- Phase 5
+export interface ApplicantsTable extends Stamped {
+  id: Generated<string>;
+  full_name: string;
+  phone: string;
+  city: string | null;
+  preferred_cluster_id: string | null;
+  services: Generated<string[]>;
+  experience_note: string | null;
+  source: Generated<'APP' | 'ADMIN'>;
+  status: Generated<'NEW' | 'IN_REVIEW' | 'REJECTED' | 'CONVERTED'>;
+  reviewed_by: string | null;
+  review_note: string | null;
+}
+
+export interface EmployeesTable extends Stamped {
+  id: Generated<string>;
+  employee_code: Generated<string>;
+  auth_user_id: string | null;
+  applicant_id: string | null;
+  full_name: string;
+  phone: string;
+  home_cluster_id: string;
+  status: Generated<'ACTIVE' | 'INACTIVE' | 'EXITED'>;
+  readiness: Generated<'NOT_READY' | 'READY'>;
+  readiness_note: string | null;
+  joined_on: DateStr | null;
+  login_enabled_at: Timestamp | null;
+  must_change_password: Generated<boolean>;
+  sessions_valid_after: Timestamp | null;
+}
+
+export interface VerificationItemsTable {
+  id: Generated<string>;
+  name: string;
+  required: Generated<boolean>;
+  status: Generated<'ACTIVE' | 'INACTIVE'>;
+  sort: Generated<number>;
+}
+
+export interface EmployeeVerificationsTable {
+  employee_id: string;
+  item_id: string;
+  cluster_id: string | null;
+  status: 'PENDING' | 'VERIFIED' | 'REJECTED';
+  note: string | null;
+  reviewed_by: string | null;
+  reviewed_at: Generated<Date>;
+}
+
+export interface EmployeeQualificationsTable {
+  employee_id: string;
+  service_id: string;
+  cluster_id: string | null;
+  approved_by: string | null;
+  approved_at: Generated<Date>;
+}
+
+export interface EmployeeAvailabilityTable {
+  id: Generated<string>;
+  employee_id: string;
+  cluster_id: string | null;
+  days_of_week: number;
+  start_time: string;
+  end_time: string;
+}
+
+export interface LeaveRequestsTable extends Stamped {
+  id: Generated<string>;
+  employee_id: string;
+  cluster_id: string | null;
+  start_date: DateStr;
+  end_date: DateStr;
+  reason: string | null;
+  status: Generated<'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED'>;
+  reviewed_by: string | null;
+  reviewed_at: Timestamp | null;
+  review_note: string | null;
+}
+
+export interface TrainingItemsTable {
+  id: Generated<string>;
+  title: string;
+  url: string;
+  status: Generated<'ACTIVE' | 'INACTIVE'>;
+  sort: Generated<number>;
+}
+
+export interface TrainingCompletionsTable {
+  employee_id: string;
+  item_id: string;
+  cluster_id: string | null;
+  completed_at: Generated<Date>;
+}
+
+export interface StandingAssignmentsTable {
+  id: Generated<string>;
+  subscription_component_id: string;
+  employee_id: string;
+  cluster_id: string | null;
+  effective_from: DateStr;
+  effective_to: DateStr | null;
+  status: Generated<'ACTIVE' | 'ENDED'>;
+  end_reason: string | null;
+  confirmed_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export type OccurrenceStatus =
+  | 'SCHEDULED'
+  | 'ASSIGNED'
+  | 'IN_PROGRESS'
+  | 'COMPLETION_SUBMITTED'
+  | 'COMPLETED'
+  | 'NO_SHOW'
+  | 'CANCELLED'
+  | 'EXCEPTION';
+export interface ServiceOccurrencesTable extends Stamped {
+  id: Generated<string>;
+  subscription_component_id: string;
+  subscription_id: string;
+  service_id: string;
+  flat_id: string;
+  community_id: string;
+  cluster_id: string | null;
+  scheduled_date: DateStr;
+  visit_no: Generated<number>;
+  starts_at: Timestamp | null;
+  ends_at: Timestamp | null;
+  status: Generated<OccurrenceStatus>;
+}
+
+export interface OccurrenceAssignmentsTable {
+  id: Generated<string>;
+  occurrence_id: string;
+  employee_id: string;
+  cluster_id: string | null;
+  source: 'STANDING' | 'MANUAL' | 'REPLACEMENT';
+  replaced_assignment_id: string | null;
+  status: Generated<'ACTIVE' | 'REPLACED' | 'CANCELLED'>;
+  starts_at: Timestamp | null;
+  ends_at: Timestamp | null;
+  assigned_by: string | null;
+  reason: string | null;
+  created_at: Generated<Date>;
+}
+
+// ---------------------------------------------------------------- Phase 6
+export interface AttendanceChallengesTable {
+  id: Generated<string>;
+  occurrence_id: string;
+  flat_id: string;
+  cluster_id: string | null;
+  otp_hash: string;
+  qr_hash: string;
+  issued_to: string;
+  expires_at: Timestamp;
+  used_at: Timestamp | null;
+  failed_attempts: Generated<number>;
+  created_at: Generated<Date>;
+}
+
+export interface AttendanceEventsTable {
+  id: Generated<string>;
+  occurrence_id: string;
+  employee_id: string;
+  cluster_id: string | null;
+  kind: 'CHECK_IN';
+  method: 'OTP' | 'QR';
+  result: 'VERIFIED' | 'REJECTED';
+  reject_reason: string | null;
+  flags: Generated<string[]>;
+  lat: Numeric | null;
+  lng: Numeric | null;
+  accuracy_m: Numeric | null;
+  distance_m: number | null;
+  device_time: Timestamp | null;
+  client_event_id: string;
+  server_time: Generated<Date>;
+  review_status: Generated<'NONE' | 'OPEN' | 'ACCEPTED' | 'REJECTED'>;
+  reviewed_by: string | null;
+  review_note: string | null;
+}
+
+export interface ServiceCompletionsTable {
+  occurrence_id: string;
+  employee_id: string;
+  cluster_id: string | null;
+  flat_id: string;
+  note: string | null;
+  completed_at: Generated<Date>;
+}
+
+export interface NoShowRecordsTable {
+  id: Generated<string>;
+  occurrence_id: string;
+  cluster_id: string | null;
+  flat_id: string;
+  kind: 'RESIDENT_ABSENT' | 'WORKER_ABSENT';
+  recorded_by_kind: 'employee' | 'admin';
+  recorded_by: string;
+  employee_id: string | null;
+  note: string | null;
+  lat: Numeric | null;
+  lng: Numeric | null;
+  created_at: Generated<Date>;
+}
+
+export interface AttendanceCorrectionsTable {
+  id: Generated<string>;
+  occurrence_id: string;
+  employee_id: string;
+  cluster_id: string | null;
+  original_event_id: string | null;
+  requested_change: 'MARK_ATTENDED' | 'MARK_COMPLETED';
+  explanation: string;
+  status: Generated<'PENDING' | 'APPROVED' | 'REJECTED'>;
+  reviewed_by: string | null;
+  reviewed_at: Timestamp | null;
+  review_note: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface VisitFeedbackTable {
+  occurrence_id: string;
+  resident_id: string;
+  flat_id: string;
+  cluster_id: string | null;
+  employee_id: string | null;
+  rating: number;
+  comment: string | null;
+  created_at: Generated<Date>;
+}
+
 export interface DB {
+  'app.attendance_challenges': AttendanceChallengesTable;
+  'app.attendance_events': AttendanceEventsTable;
+  'app.service_completions': ServiceCompletionsTable;
+  'app.no_show_records': NoShowRecordsTable;
+  'app.attendance_corrections': AttendanceCorrectionsTable;
+  'app.visit_feedback': VisitFeedbackTable;
+  'app.applicants': ApplicantsTable;
+  'app.employees': EmployeesTable;
+  'app.verification_items': VerificationItemsTable;
+  'app.employee_verifications': EmployeeVerificationsTable;
+  'app.employee_qualifications': EmployeeQualificationsTable;
+  'app.employee_availability': EmployeeAvailabilityTable;
+  'app.leave_requests': LeaveRequestsTable;
+  'app.training_items': TrainingItemsTable;
+  'app.training_completions': TrainingCompletionsTable;
+  'app.standing_assignments': StandingAssignmentsTable;
+  'app.service_occurrences': ServiceOccurrencesTable;
+  'app.occurrence_assignments': OccurrenceAssignmentsTable;
   'app.app_settings': AppSettingsTable;
   'app.slot_sets': SlotSetsTable;
   'app.slots': SlotsTable;

@@ -24,7 +24,7 @@ import { ResidentAdminService } from './admin-service';
 const id = (v: unknown, name = 'id') => parseParam(uuidSchema, v, name);
 
 /** /v1/resident/* — the Resident app (RES-01..05, RES-02A, RES-12, RES-14). */
-export function residentRoutes(deps: AppDeps, extra?: Router): Router {
+export function residentRoutes(deps: AppDeps, ...extra: Router[]): Router {
   const r = Router();
   const svc = new ResidentService(deps.db, deps.storage);
   const support = new SupportService(deps.db);
@@ -108,7 +108,7 @@ export function residentRoutes(deps: AppDeps, extra?: Router): Router {
     res.status(201).json(await support.residentReply(residentOf(req), req.requestId, id(req.params.id), req.body.body));
   });
 
-  if (extra) r.use(extra);
+  for (const x of extra) r.use(x);
   return r;
 }
 

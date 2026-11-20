@@ -15,6 +15,8 @@ import { residentAdminRoutes, residentRoutes } from './modules/residents/routes'
 import { supportAdminRoutes } from './modules/support/routes';
 import { bookingAdminRoutes, razorpayWebhookRoutes, residentBookingRoutes } from './modules/bookings/routes';
 import { PaymentService } from './modules/bookings/payments';
+import { employeeRoutes, publicApplicantRoutes, workforceAdminRoutes } from './modules/workforce/routes';
+import { attendanceAdminRoutes, employeeVisitRoutes, residentVisitRoutes } from './modules/attendance/routes';
 
 /** Builds the Express app from injected dependencies (no global state; easy to test). */
 export function createApp(deps: AppDeps, payments = new PaymentService(deps.db, deps.payments, deps.logger)): express.Express {
@@ -68,9 +70,13 @@ export function createApp(deps: AppDeps, payments = new PaymentService(deps.db, 
 
   // Public (unauthenticated) endpoints
   app.use('/v1/public', publicEnquiryRoutes(deps));
+  app.use('/v1/public', publicApplicantRoutes(deps));
+
+  // Worker app: Employee ID session required (requireEmployee inside the router).
+  app.use('/v1/employee', employeeRoutes(deps, employeeVisitRoutes(deps)));
 
   // Resident app endpoints: phone-OTP session required (requireResident inside the router).
-  app.use('/v1/resident', residentRoutes(deps, residentBookingRoutes(deps, payments)));
+  app.use('/v1/resident', residentRoutes(deps, residentBookingRoutes(deps, payments), residentVisitRoutes(deps)));
 
   // Admin endpoints: every route below requires an authenticated, MFA-verified, active admin.
   const admin = express.Router();
@@ -82,6 +88,8 @@ export function createApp(deps: AppDeps, payments = new PaymentService(deps.db, 
   admin.use(residentAdminRoutes(deps));
   admin.use(supportAdminRoutes(deps));
   admin.use(bookingAdminRoutes(deps));
+  admin.use(workforceAdminRoutes(deps));
+  admin.use(attendanceAdminRoutes(deps));
   app.use('/v1/admin', admin);
 
   app.use(notFoundHandler());

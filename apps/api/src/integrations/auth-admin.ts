@@ -13,6 +13,10 @@ export interface AuthAdminAdapter {
    * email. Never called by the running API.
    */
   createUserWithPassword?(email: string, password: string): Promise<{ userId: string }>;
+  /** Worker login (ADR-012): confirmed user with an internal email and an HR-issued temporary password. */
+  createStaffUser(email: string, password: string): Promise<{ userId: string }>;
+  /** Sets a new (temporary) password for a worker. */
+  setPassword(userId: string, password: string): Promise<void>;
   /** Best-effort cleanup if the admin profile could not be created after inviting. */
   deleteUser(userId: string): Promise<void>;
   /** Blocks (or unblocks) token refresh for the user. Access is also denied per request via profile status. */
@@ -36,6 +40,15 @@ export function createSupabaseAuthAdmin(opts: { supabaseUrl: string; serviceRole
       const { data, error } = await client.auth.admin.createUser({ email, password, email_confirm: true });
       if (error || !data.user) throw new Error(`Create user failed: ${error?.message ?? 'no user returned'}`);
       return { userId: data.user.id };
+    },
+    async createStaffUser(email, password) {
+      const { data, error } = await client.auth.admin.createUser({ email, password, email_confirm: true, app_metadata: { actor: 'employee' } });
+      if (error || !data.user) throw new Error(`Create worker login failed: ${error?.message ?? 'no user returned'}`);
+      return { userId: data.user.id };
+    },
+    async setPassword(userId, password) {
+      const { error } = await client.auth.admin.updateUserById(userId, { password });
+      if (error) throw new Error(`Could not set password: ${error.message}`);
     },
     async deleteUser(userId) {
       await client.auth.admin.deleteUser(userId);

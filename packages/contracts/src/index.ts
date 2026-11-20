@@ -9,3 +9,5 @@ export * from './migration';
 export * from './residents';
 export * from './support';
 export * from './bookings';
+export * from './workforce';
+export * from './attendance';

@@ -9,6 +9,8 @@ export interface VerifiedToken {
   aal: 'aal1' | 'aal2' | string | undefined;
   /** Supabase session id, used for audit correlation. */
   sessionId: string | undefined;
+  /** Issued-at (seconds since epoch), used to reject sessions older than a password reset. */
+  issuedAt?: number | undefined;
 }
 
 /** Supabase stores phones without the leading '+'; we use E.164 everywhere. */
@@ -50,6 +52,7 @@ export function createSupabaseTokenVerifier(opts: { supabaseUrl: string; jwtSecr
         phone: normalizePhone(payload.phone),
         aal: typeof payload.aal === 'string' ? payload.aal : undefined,
         sessionId: typeof payload.session_id === 'string' ? payload.session_id : undefined,
+        issuedAt: typeof payload.iat === 'number' ? payload.iat : undefined,
       };
     },
   };

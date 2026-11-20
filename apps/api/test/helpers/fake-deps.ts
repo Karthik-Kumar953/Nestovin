@@ -60,6 +60,10 @@ export function fakeDeps(admins: Record<string, LoadedAdmin>, envOverrides: Reco
       async inviteUser() {
         throw new Error('not used');
       },
+      async createStaffUser() {
+        throw new Error('not used');
+      },
+      async setPassword() {},
       async deleteUser() {},
       async setBanned() {},
     },

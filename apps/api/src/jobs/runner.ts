@@ -2,6 +2,7 @@ import { sql } from 'kysely';
 import type { Database } from '../db/database';
 import type { Logger } from '../lib/logger';
 import type { PaymentService } from '../modules/bookings/payments';
+import type { AllocationService } from '../modules/workforce/allocation';
 
 /**
  * Minimal in-process scheduler for periodic maintenance (payment reconciliation,
@@ -20,7 +21,7 @@ export async function claimLease(db: Database, seconds: number): Promise<boolean
   return rows.length === 1;
 }
 
-export function startJobs(deps: { db: Database; logger: Logger; payments: PaymentService }, intervalMs = 60_000): () => void {
+export function startJobs(deps: { db: Database; logger: Logger; payments: PaymentService; allocation: AllocationService }, intervalMs = 60_000): () => void {
   let running = false;
   const tick = async () => {
     if (running) return;
@@ -31,6 +32,8 @@ export function startJobs(deps: { db: Database; logger: Logger; payments: Paymen
       if (result.reconciled || result.expiredOrders || result.closedCycles || result.expiredBalances) {
         deps.logger.info(result, 'maintenance tick');
       }
+      const visits = await deps.allocation.maintain();
+      if (visits.generated || visits.assigned) deps.logger.info(visits, 'visits generated');
     } catch (err) {
       deps.logger.error({ err }, 'maintenance tick failed');
     } finally {
