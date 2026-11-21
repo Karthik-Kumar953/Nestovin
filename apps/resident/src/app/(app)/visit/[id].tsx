@@ -116,7 +116,7 @@ function Stars({ value, onChange, readOnly }: { value: number; onChange?: (n: nu
         readOnly ? (
           <Icon key={n} name={n <= value ? 'star' : 'star-outline'} size={22} color={n <= value ? colors.warning : colors.border} />
         ) : (
-          <PressScale key={n} onPress={() => onChange?.(n)} haptic="select" scaleTo={0.85} accessibilityRole="button" accessibilityLabel={`${n} star${n > 1 ? 's' : ''}, ${LABELS[n - 1]}`} accessibilityState={{ selected: n === value }} className="h-12 w-12 items-center justify-center">
+          <PressScale key={n} onPress={() => onChange?.(n)} haptic="select" scaleTo={0.85} accessibilityRole="button" accessibilityLabel={`${n} star${n > 1 ? 's' : ''}, ${LABELS[n - 1]}`} aria-selected={n === value} className="h-12 w-12 items-center justify-center">
             <Icon name={n <= value ? 'star' : 'star-outline'} size={36} color={n <= value ? colors.warning : colors.textSecondary} />
           </PressScale>
         ),

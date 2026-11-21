@@ -41,7 +41,7 @@ export function ChoiceTile({
       haptic="select"
       scaleTo={0.985}
       accessibilityRole={kind}
-      accessibilityState={{ checked: selected, disabled }}
+      aria-checked={selected} aria-disabled={disabled}
       accessibilityLabel={[title, description, rank ? `choice ${rank}` : null].filter(Boolean).join(', ')}
     >
       <View style={{ borderWidth: 1.5, borderColor: selected ? colors.tealAction : colors.border, backgroundColor: selected ? colors.teal50 : colors.white }} className={`flex-row items-center gap-3 rounded-lg ${compact ? 'px-4 py-3 min-h-[52px]' : 'p-4 min-h-[64px]'} ${disabled ? 'opacity-45' : ''}`}>

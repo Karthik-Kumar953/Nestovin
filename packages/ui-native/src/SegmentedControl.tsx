@@ -47,7 +47,7 @@ export function SegmentedControl<T extends string>({
               }
             }}
             accessibilityRole="tab"
-            accessibilityState={{ selected: on }}
+            aria-selected={on}
             accessibilityLabel={o.label}
             className={`flex-1 min-h-[44px] items-center justify-center px-2 ${android && on ? 'bg-teal-100' : ''} ${android && i > 0 ? 'border-l border-line' : ''}`}
           >

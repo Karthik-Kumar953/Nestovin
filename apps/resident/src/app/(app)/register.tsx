@@ -179,7 +179,7 @@ export default function Register() {
             const label = { city: 'City', community: 'Community', tower: 'Tower', flat: 'Flat' }[level];
             const icon: IconName = { city: 'location-outline', community: 'business-outline', tower: 'layers-outline', flat: 'home-outline' }[level] as IconName;
             return (
-              <PressScale key={level} disabled={!enabled} onPress={() => setPicking(level)} haptic="tap" scaleTo={0.985} accessibilityRole="button" accessibilityLabel={`${label}: ${value?.label ?? 'not chosen'}`} accessibilityState={{ disabled: !enabled }}>
+              <PressScale key={level} disabled={!enabled} onPress={() => setPicking(level)} haptic="tap" scaleTo={0.985} accessibilityRole="button" accessibilityLabel={`${label}: ${value?.label ?? 'not chosen'}`} aria-disabled={!enabled}>
                 <Card className={`flex-row items-center gap-3 ${enabled ? '' : 'opacity-45'}`}>
                   <IconTile icon={icon} tone={value ? 'teal' : 'info'} size={40} />
                   <View className="flex-1">

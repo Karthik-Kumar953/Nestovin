@@ -66,7 +66,7 @@ export function Button({
       accessibilityRole="button"
       accessibilityLabel={title}
       accessibilityHint={accessibilityHint}
-      accessibilityState={{ disabled: off, busy: loading }}
+      aria-disabled={off} aria-busy={loading}
       android_ripple={variant === 'tertiary' ? undefined : { color: 'rgba(255,255,255,0.18)', borderless: false }}
       testID={testID}
       hitSlop={size === 'sm' ? 4 : 0}

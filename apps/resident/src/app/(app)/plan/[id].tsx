@@ -153,7 +153,7 @@ export default function PlanDetail() {
                 </View>
               ))}
               {tasks.length > 4 ? (
-                <Pressable onPress={() => setShowAllTasks(!showAllTasks)} accessibilityRole="button" accessibilityState={{ expanded: showAllTasks }} className="min-h-[44px] justify-center">
+                <Pressable onPress={() => setShowAllTasks(!showAllTasks)} accessibilityRole="button" aria-expanded={showAllTasks} className="min-h-[44px] justify-center">
                   <Text variant="label" tone="brand">{showAllTasks ? 'Show fewer tasks' : `Show all ${tasks.length} tasks`}</Text>
                 </Pressable>
               ) : null}
@@ -183,7 +183,7 @@ export default function PlanDetail() {
         ) : null}
 
         <Card tone="subtle" padded={false}>
-          <Pressable onPress={() => setShowTerms(!showTerms)} accessibilityRole="button" accessibilityState={{ expanded: showTerms }} className="flex-row items-center justify-between min-h-[56px] px-5">
+          <Pressable onPress={() => setShowTerms(!showTerms)} accessibilityRole="button" aria-expanded={showTerms} className="flex-row items-center justify-between min-h-[56px] px-5">
             <Text variant="bodyStrong">Payment conditions</Text>
             <Icon name={showTerms ? 'chevron-up' : 'chevron-down'} size="sm" color={colors.textSecondary} />
           </Pressable>

@@ -196,7 +196,7 @@ function Terms({ demand, pct }: { demand: boolean; pct?: number }) {
   const [open, setOpen] = useState(false);
   return (
     <Card tone="subtle" padded={false}>
-      <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityState={{ expanded: open }} className="flex-row items-center justify-between min-h-[56px] px-5">
+      <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" aria-expanded={open} className="flex-row items-center justify-between min-h-[56px] px-5">
         <Text variant="bodyStrong">What you agreed to</Text>
         <Icon name={open ? 'chevron-up' : 'chevron-down'} size="sm" color={colors.textSecondary} />
       </Pressable>
@@ -245,7 +245,7 @@ function AgreedTerms({ terms }: { terms: BookingDetail['terms'] }) {
   const [open, setOpen] = useState(false);
   return (
     <Card tone="subtle" padded={false}>
-      <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityState={{ expanded: open }} className="flex-row items-center justify-between min-h-[56px] px-5">
+      <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" aria-expanded={open} className="flex-row items-center justify-between min-h-[56px] px-5">
         <Text variant="bodyStrong">What you agreed to</Text>
         <Icon name={open ? 'chevron-up' : 'chevron-down'} size="sm" color={colors.textSecondary} />
       </Pressable>

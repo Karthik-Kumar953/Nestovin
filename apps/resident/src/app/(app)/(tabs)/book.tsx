@@ -95,7 +95,7 @@ function Plans({ cat, options, filter, setFilter, community }: { cat: ResidentCa
           {(['all', ...kinds] as const).map((k) => {
             const on = filter === k;
             return (
-              <PressScale key={k} onPress={() => setFilter(k)} haptic="select" accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={k === 'all' ? 'All plans' : SERVICE_VISUAL[k].label} className={`flex-row items-center gap-1.5 rounded-full px-4 min-h-[44px] border ${on ? 'bg-teal border-teal' : 'bg-white border-line'}`}>
+              <PressScale key={k} onPress={() => setFilter(k)} haptic="select" accessibilityRole="tab" aria-selected={on} accessibilityLabel={k === 'all' ? 'All plans' : SERVICE_VISUAL[k].label} className={`flex-row items-center gap-1.5 rounded-full px-4 min-h-[44px] border ${on ? 'bg-teal border-teal' : 'bg-white border-line'}`}>
                 <Icon name={k === 'all' ? 'grid-outline' : SERVICE_VISUAL[k].icon} size={16} color={on ? colors.white : colors.tealDeep} />
                 <Text variant="label" tone={on ? 'inverse' : 'default'}>{k === 'all' ? 'All' : SERVICE_VISUAL[k].label}</Text>
               </PressScale>

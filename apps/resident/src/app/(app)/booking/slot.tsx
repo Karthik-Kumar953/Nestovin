@@ -93,7 +93,7 @@ export default function PickSlot() {
                     onPress={() => setStart(d)}
                     haptic="select"
                     accessibilityRole="radio"
-                    accessibilityState={{ checked: on }}
+                    aria-checked={on}
                     accessibilityLabel={longDate(d)}
                     className={`w-[64px] items-center rounded-lg py-3 border-[1.5px] ${on ? 'bg-teal border-teal' : 'bg-white border-line'}`}
                   >
