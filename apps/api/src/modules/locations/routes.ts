@@ -18,7 +18,7 @@ import {
 } from '@nestovin/contracts';
 import type { AppDeps } from '../../http/context';
 import { adminOf } from '../../http/context';
-import { authorize, parseParam, parseQuery, validateBody } from '../../http/middleware';
+import { authorize, parseParam, parseQuery, superAdminOnly, validateBody } from '../../http/middleware';
 import { LocationService } from './service';
 
 const listQuery = paginationQuerySchema.extend({
@@ -105,8 +105,8 @@ export function locationRoutes(deps: AppDeps): Router {
     res.json(await svc.updateFlat(adminOf(req), req.requestId, id(req.params.id), req.body));
   });
 
-  // ADM-03A expansion votes (Super Admin only; enforced in the service)
-  r.get('/expansion-votes', authorize('locations', 'view'), async (req, res) => {
+  // ADM-03A expansion votes: Super Admin only (route guard + service check)
+  r.get('/expansion-votes', superAdminOnly('Only the Super Admin reviews expansion votes'), async (req, res) => {
     res.json({ items: await svc.voteAggregates(adminOf(req)) });
   });
 

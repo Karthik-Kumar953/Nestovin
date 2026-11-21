@@ -233,6 +233,15 @@ describe.skipIf(!available)('demand cycles, bookings and payments (Phase 4)', { 
     expect(await payments.handleWebhook(wh.raw, wh.signature, id)).toBe('duplicate');
   });
 
+  it('webhooks: an unsigned event cannot pre-empt the genuine one with the same id (BUG-QA-003)', async () => {
+    const wh = webhook({ event: 'payment.failed', payload: {} });
+    const id = `evt_${randomUUID()}`;
+    expect(await payments.handleWebhook(wh.raw, 'forged', id)).toBe('rejected');
+    expect(await payments.handleWebhook(wh.raw, wh.signature, id)).toBe('ok');
+    const { rows } = await admin.query(`select signature_valid from app.provider_events where event_id = $1`, [id]);
+    expect(rows).toEqual([{ signature_valid: true }]);
+  });
+
   it('slot set: allocation respects capacity; publishing creates bookings awaiting the balance', async () => {
     const set = await ops.createSlotSet(root, 't', cycleId, {
       commencementDate: addDays(new Date().toISOString().slice(0, 10), 10),
