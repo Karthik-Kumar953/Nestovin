@@ -33,8 +33,8 @@ test.describe('Locations: city, cluster, community, towers and flats', () => {
     await gotoAdmin(page, '/locations/clusters');
     await page.getByRole('button', { name: 'Add cluster' }).click();
     const d = dialog(page, 'Add cluster');
-    await d.getByLabel('Name', { exact: true }).fill('E2E invalid code');
-    await d.getByLabel('Code', { exact: true }).fill('E2E.BAD/CODE');
+    await d.getByLabel(/^Name( \*)?$/).fill('E2E invalid code');
+    await d.getByLabel(/^Code( \*)?$/).fill('E2E.BAD/CODE');
     await d.getByRole('button', { name: 'Save' }).click();
     await expect(d.getByText('Use letters, numbers, spaces, hyphen or underscore')).toBeVisible();
     await d.getByRole('button', { name: 'Cancel' }).click();
@@ -73,7 +73,7 @@ test.describe('Locations: city, cluster, community, towers and flats', () => {
     await page.getByRole('button', { name: 'Add flat' }).click();
     const f = dialog(page, 'Add flat to E2E Tower Z');
     await f.getByLabel('Flat number').fill('Z-1201');
-    await f.getByLabel('Floor', { exact: true }).fill('12');
+    await f.getByLabel(/^Floor( \*)?$/).fill('12');
     await f.getByLabel('Type (e.g. 2 BHK)').fill('3 BHK');
     await f.getByLabel('Area (sq ft)').fill('1450');
     await f.getByLabel('Occupancy').selectOption('TENANT');

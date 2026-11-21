@@ -69,7 +69,7 @@ test.describe('Employees and HR', () => {
     await expect(page.getByText('No windows set: availability is not restricted.')).toHaveCount(0);
 
     await page.getByLabel('Monthly salary (₹)').fill('15000');
-    await page.getByLabel('From', { exact: true }).fill(isoDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1)));
+    await page.getByLabel(/^From( \*)?$/).fill(isoDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1)));
     await page.getByRole('button', { name: 'Set salary' }).click();
     await expect(page.getByText(/₹15,000(\.00)?\/month · from /)).toBeVisible();
   });
@@ -85,7 +85,7 @@ test.describe('Employees and HR', () => {
     const title = uniq('Training');
     await gotoAdmin(page, '/workforce/settings');
     await expectPageTitle(page, 'HR settings');
-    await page.getByLabel('Title', { exact: true }).fill(title);
+    await page.getByLabel(/^Title( \*)?$/).fill(title);
     await page.getByLabel('Video link (https)').fill('https://example.com/e2e-training');
     await page.getByRole('button', { name: 'Add link' }).click();
     const row = page.getByRole('table', { name: 'Training links' }).getByRole('row').filter({ hasText: title });

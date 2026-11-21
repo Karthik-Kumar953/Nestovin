@@ -16,8 +16,12 @@ if (existsSync(envFile)) process.loadEnvFile(envFile);
 // One id per `playwright test` invocation, shared by every worker (workers inherit env).
 process.env.E2E_RUN_ID ??= randomBytes(3).toString('hex').toUpperCase();
 
-const WEB_URL = process.env.E2E_WEB_URL ?? 'http://localhost:3000';
-const API_URL = process.env.E2E_API_URL ?? 'http://localhost:4000';
+// Dedicated ports: other sessions run their own API on :4000/:4100 and web on :3000/:3100,
+// and reusing someone else's server (or racing it for the port) breaks sign-in.
+const WEB_PORT = process.env.E2E_WEB_PORT ?? '3200';
+const API_PORT = process.env.E2E_API_PORT ?? '4200';
+const WEB_URL = process.env.E2E_WEB_URL ?? `http://localhost:${WEB_PORT}`;
+const API_URL = process.env.E2E_API_URL ?? `http://localhost:${API_PORT}`;
 const ADMIN_STORAGE_STATE = 'e2e/.auth/admin.json';
 
 // The Resident Expo web build is opt-in: it needs react-native-web in apps/resident and its own dev server.
@@ -70,17 +74,22 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: 'corepack pnpm --filter @nestovin/api dev',
+      // No watch mode: a tsx-watch restart mid-run logged every spec out ("Cannot reach the server").
+      command: 'corepack pnpm --filter @nestovin/api exec tsx --env-file-if-exists=.env src/server.ts',
       url: `${API_URL}/health`,
       reuseExistingServer: true,
       timeout: 180_000,
+      // Process env wins over apps/api/.env (--env-file-if-exists never overrides).
+      env: { PORT: API_PORT, CORS_ORIGINS: WEB_URL },
       stdout: 'ignore',
       stderr: 'pipe',
     },
     {
-      command: 'corepack pnpm --filter @nestovin/web dev',
+      command: `corepack pnpm --filter @nestovin/web exec next dev --port ${WEB_PORT}`,
       url: `${WEB_URL}/admin/login`,
       reuseExistingServer: true,
+      // The admin calls the API directly (no dev rewrite to :4000).
+      env: { NEXT_PUBLIC_API_URL: API_URL },
       timeout: 240_000,
       stdout: 'ignore',
       stderr: 'pipe',

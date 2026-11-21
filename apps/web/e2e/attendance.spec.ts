@@ -4,8 +4,8 @@ test.describe('Attendance', () => {
   test('attendance page loads with date range and filter', async ({ page }) => {
     await gotoAdmin(page, '/attendance');
     await expectPageTitle(page, 'Attendance');
-    await expect(page.getByLabel('From', { exact: true })).toBeVisible();
-    await expect(page.getByLabel('To', { exact: true })).toBeVisible();
+    await expect(page.getByLabel(/^From( \*)?$/)).toBeVisible();
+    await expect(page.getByLabel(/^To( \*)?$/)).toBeVisible();
     await expectListLoaded(page, 'Attendance records', ['Nothing needs attention', 'No visits in this period']);
     await page.getByRole('checkbox', { name: 'Only items needing attention' }).uncheck();
     await expectListLoaded(page, 'Attendance records', ['No visits in this period', 'Nothing needs attention']);

@@ -39,8 +39,8 @@ export async function createCluster(page: Page): Promise<Cluster> {
   await gotoAdmin(page, '/locations/clusters');
   await page.getByRole('button', { name: 'Add cluster' }).click();
   const d = dialog(page, 'Add cluster');
-  await d.getByLabel('Name', { exact: true }).fill(cluster.name);
-  await d.getByLabel('Code', { exact: true }).fill(cluster.code);
+  await d.getByLabel(/^Name( \*)?$/).fill(cluster.name);
+  await d.getByLabel(/^Code( \*)?$/).fill(cluster.code);
   await d.getByLabel('Description').fill('Created by the Playwright E2E suite');
   await d.getByRole('button', { name: 'Save' }).click();
   await expect(d).toBeHidden();
@@ -58,7 +58,7 @@ export async function createCommunity(page: Page, city: City): Promise<Community
   const d = dialog(page, 'Add community');
   await selectByText(d.getByLabel('City'), `${city.name}, ${city.state}`);
   await d.getByLabel('Community name').fill(name);
-  await d.getByLabel('Code', { exact: true }).fill(code);
+  await d.getByLabel(/^Code( \*)?$/).fill(code);
   await d.getByLabel('Address').fill('1 E2E Road, Test Nagar');
   await d.getByLabel('PIN code').fill('560001');
   await d.getByRole('button', { name: 'Create community' }).click();
@@ -92,9 +92,12 @@ export async function gotoStep(page: Page, community: Community, step: Step): Pr
 /** Step 1: default mode Demand-led, offer the first service. Returns that service's name. */
 export async function enableServices(page: Page, community: Community): Promise<string> {
   await gotoStep(page, community, 'services');
-  await selectByText(page.getByLabel('Community default operating mode'), 'Demand-led');
+  // Wait for the services to load first: loading resets the form from the server copy.
   const offer = page.getByRole('checkbox', { name: /^Offer / }).first();
   await expect(offer).toBeVisible();
+  const defaultMode = page.getByLabel('Community default operating mode');
+  await selectByText(defaultMode, 'Demand-led');
+  await expect(defaultMode.locator('option:checked')).toHaveText(/^Demand-led/);
   const serviceName = ((await offer.getAttribute('aria-label')) ?? '').replace(/^Offer /, '');
   await offer.check();
   await page.getByRole('button', { name: 'Save services' }).click();
@@ -107,9 +110,9 @@ export async function addTimeWindow(page: Page, community: Community): Promise<s
   const name = `${uniq('Morning')}`.slice(0, 60);
   await page.getByRole('button', { name: 'Add time window' }).click();
   const d = dialog(page, 'Add time window');
-  await d.getByLabel('Name', { exact: true }).fill(name);
-  await d.getByLabel('From', { exact: true }).fill('07:00');
-  await d.getByLabel('To', { exact: true }).fill('11:00');
+  await d.getByLabel(/^Name( \*)?$/).fill(name);
+  await d.getByLabel(/^From( \*)?$/).fill('07:00');
+  await d.getByLabel(/^To( \*)?$/).fill('11:00');
   await d.getByRole('button', { name: 'Save' }).click();
   await expect(d).toBeHidden();
   await expect(page.getByRole('table', { name: 'Time windows' }).getByText(name)).toBeVisible();
@@ -126,7 +129,7 @@ export async function addCategory(page: Page, community: Community): Promise<Cat
   const cat = { code: uniqCode('2BHK'), label: uniq('2 BHK') };
   await page.getByRole('button', { name: 'Add category' }).click();
   const d = dialog(page, 'Add category');
-  await d.getByLabel('Code', { exact: true }).fill(cat.code);
+  await d.getByLabel(/^Code( \*)?$/).fill(cat.code);
   await d.getByLabel('Label').fill(cat.label);
   await d.getByLabel('Display order').fill('1');
   await d.getByRole('button', { name: 'Save' }).click();
@@ -166,8 +169,8 @@ export async function addTask(page: Page, community: Community, serviceName: str
   const name = uniq('Sweeping and mopping');
   await page.getByRole('button', { name: 'Add task' }).click();
   const d = dialog(page, 'Add task');
-  await selectByText(d.getByLabel('Service', { exact: true }), serviceName);
-  await d.getByLabel('Task', { exact: true }).fill(name);
+  await selectByText(d.getByLabel(/^Service( \*)?$/), serviceName);
+  await d.getByLabel(/^Task( \*)?$/).fill(name);
   await d.getByLabel('Typical minutes (optional)').fill('30');
   await d.getByRole('button', { name: 'Save' }).click();
   await expect(d).toBeHidden();
@@ -193,7 +196,7 @@ export async function addPlanWithService(page: Page, community: Community, servi
   await addPlan.click();
   const d = dialog(page, 'Add plan');
   await d.getByLabel('Plan name').fill(plan.name);
-  await d.getByLabel('Code', { exact: true }).fill(plan.code);
+  await d.getByLabel(/^Code( \*)?$/).fill(plan.code);
   await d.getByLabel('Validity (days)').fill('30');
   await d.getByLabel('Description (shown to residents)').fill('E2E plan');
   await d.getByRole('button', { name: 'Save' }).click();
@@ -203,7 +206,7 @@ export async function addPlanWithService(page: Page, community: Community, servi
   await expect(card).toBeVisible();
   await card.getByRole('button', { name: 'Add service' }).click();
   const c = dialog(page, `Add service to ${plan.name}`);
-  await selectByText(c.getByLabel('Service', { exact: true }), serviceName);
+  await selectByText(c.getByLabel(/^Service( \*)?$/), serviceName);
   await c.getByLabel('Visits per day').fill('1');
   await c.getByLabel('Minutes per visit').fill('60');
   if (taskName) await c.getByRole('checkbox', { name: taskName }).check();
@@ -264,7 +267,9 @@ export async function provisionActiveCommunity(page: Page): Promise<ProvisionedC
   const serviceName = await enableServices(page, community);
   const category = await addCategory(page, community);
   await importFlatsViaGrid(page, community, category);
-  const plan = await addPlanWithService(page, community, serviceName);
+  // Publishing needs at least one task per offered service.
+  const taskName = await addTask(page, community, serviceName);
+  const plan = await addPlanWithService(page, community, serviceName, taskName);
   await setPackagePrice(page, community, plan, category);
   await publishCatalogue(page, community);
   await activateCommunity(page, community);

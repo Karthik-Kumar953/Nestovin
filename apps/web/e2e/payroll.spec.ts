@@ -39,7 +39,7 @@ test.describe('Payroll: prepare, review, approve and record payment', () => {
     await d.getByRole('button', { name: 'Create' }).click();
     await expect(page).toHaveURL(/\/admin\/workforce\/employees\/[0-9a-f-]{36}$/);
     await page.getByLabel('Monthly salary (₹)').fill('12000');
-    await page.getByLabel('From', { exact: true }).fill(`${month}-01`);
+    await page.getByLabel(/^From( \*)?$/).fill(`${month}-01`);
     await page.getByRole('button', { name: 'Set salary' }).click();
     await expect(page.getByText(/₹12,000(\.00)?\/month · from /)).toBeVisible();
     await page.context().close();

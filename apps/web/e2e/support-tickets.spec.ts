@@ -30,7 +30,8 @@ test.describe('Support tickets', () => {
     await gotoAdmin(page, '/support/tickets');
     await page.getByRole('combobox', { name: 'View' }).selectOption({ label: 'Open tickets' });
     const link = page.getByRole('table', { name: 'Support tickets' }).getByRole('link', { name: /E2E/ }).first();
-    await expect(link.or(page.getByText('No tickets', { exact: true })).first()).toBeVisible();
+    // Wait for the list to settle (rows or the empty state); other tickets may exist without "E2E".
+    await expectListLoaded(page, 'Support tickets', ['No tickets']);
     test.skip(
       (await link.count()) === 0,
       'No open ticket with "E2E" in its subject. Tickets can only be raised from the Resident app; create one there to run this test.',
@@ -39,7 +40,7 @@ test.describe('Support tickets', () => {
     await expect(page.getByRole('heading', { level: 2, name: 'Conversation' })).toBeVisible();
 
     await page.getByLabel('Type').selectOption({ label: 'Internal note (admins only)' });
-    await page.getByLabel('Note', { exact: true }).fill(`${uniq('note')}`);
+    await page.getByLabel(/^Note( \*)?$/).fill(`${uniq('note')}`);
     await page.getByRole('button', { name: 'Add note' }).click();
     await expect(page.getByText(/ · internal note/).first()).toBeVisible();
 
@@ -71,8 +72,8 @@ test.describe('Support tickets', () => {
     const year = 2090 + Math.floor(Math.random() * 9);
     const date = `${year}-0${1 + Math.floor(Math.random() * 9)}-1${Math.floor(Math.random() * 9)}`;
     const name = uniq('Holiday');
-    await page.getByLabel('Date', { exact: true }).fill(date);
-    await page.getByLabel('Name', { exact: true }).fill(name);
+    await page.getByLabel(/^Date( \*)?$/).fill(date);
+    await page.getByLabel(/^Name( \*)?$/).fill(name);
     await page.getByRole('button', { name: 'Add holiday' }).click();
     const row = page.getByRole('table', { name: 'Holidays' }).getByRole('row').filter({ hasText: name });
     await expect(row).toBeVisible();

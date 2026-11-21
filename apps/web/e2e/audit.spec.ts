@@ -5,7 +5,7 @@ test.describe('Audit log', () => {
     await gotoAdmin(page, '/access/audit');
     await expectPageTitle(page, 'Audit log');
     await expectListLoaded(page, 'Audit log', ['No entries']);
-    await page.getByRole('textbox', { name: 'Record type' }).fill('no_such_record_type_e2e');
+    await page.getByRole('textbox', { name: 'Record type' }).fill('no_such_record_type_qa');
     await expect(page.getByText('No entries', { exact: true })).toBeVisible();
   });
 
