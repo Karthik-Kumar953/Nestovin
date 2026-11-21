@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { View, useWindowDimensions } from 'react-native';
+import { Linking, View, useWindowDimensions } from 'react-native';
 import type { UseQueryResult } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { Check, CheckCheck, ClipboardList, Clock3, FileText, ScanLine, Sun } from 'lucide-react-native';
+import { Check, CheckCheck, ClipboardList, Clock3, FileText, Navigation, ScanLine, Sun, UserRound } from 'lucide-react-native';
 import { ApiError } from '../lib/api';
 import { addressLabel, duration, shortAddress, time, timeParts, timeWindow } from '../lib/format';
 import { visitStatus } from '../lib/queries';
@@ -129,6 +129,12 @@ export function NextVisitCard({ visit }: { visit: Visit }) {
               <Clock3 size={16} color={c.textSecondary} />
               <Text className="font-semibold text-sm">{timeWindow(visit.startsAt, visit.endsAt)}</Text>
             </View>
+            {visit.residentFirstName ? (
+              <View className="flex-row items-center gap-1.5">
+                <UserRound size={16} color={c.textSecondary} />
+                <Text className="font-semibold text-sm">{visit.residentFirstName}</Text>
+              </View>
+            ) : null}
             {visit.tasks.length ? (
               <View className="flex-row items-center gap-1.5">
                 <ClipboardList size={16} color={c.textSecondary} />
@@ -141,7 +147,19 @@ export function NextVisitCard({ visit }: { visit: Visit }) {
         </View>
       </PressScale>
       <View className={`mx-4 mb-4 mt-4 gap-2 border-t border-line pt-4 ${large ? 'flex-col-reverse' : 'flex-row'}`}>
-        <Button title="Details" variant="secondary" size="md" icon={FileText} onPress={open} className={large ? undefined : 'flex-1'} />
+        {visit.communityLocation ? (
+          <Button
+            title="Directions"
+            variant="secondary"
+            size="md"
+            icon={Navigation}
+            onPress={() => void Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${visit.communityLocation!.lat},${visit.communityLocation!.lng}`)}
+            accessibilityHint={`Opens maps to ${visit.flat.communityName}`}
+            className={large ? undefined : 'flex-1'}
+          />
+        ) : (
+          <Button title="Details" variant="secondary" size="md" icon={FileText} onPress={open} className={large ? undefined : 'flex-1'} />
+        )}
         {live ? (
           <Button title="Complete visit" size="md" icon={CheckCheck} onPress={() => router.push({ pathname: '/visit/[id]/complete', params: { id: visit.occurrenceId } })} className={large ? undefined : 'flex-[1.5]'} />
         ) : (

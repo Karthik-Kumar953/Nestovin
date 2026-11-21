@@ -218,6 +218,10 @@ export const employeeScheduleItemSchema = z.object({
   endsAt: z.string().nullable(),
   serviceName: z.string(),
   flat: z.object({ flatNumber: z.string(), towerName: z.string(), communityName: z.string() }),
+  /** Community reference point, for a Directions link (null until the admin sets the map pin). */
+  communityLocation: z.object({ lat: z.number(), lng: z.number() }).nullable().optional(),
+  /** Resident's first name only, so the worker can greet them at the door. */
+  residentFirstName: z.string().nullable().optional(),
   status: z.string(),
   source: z.string(),
   durationMinutes: z.number().int().nullable(),

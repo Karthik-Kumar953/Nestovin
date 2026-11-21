@@ -179,7 +179,7 @@ export class EmployeeService {
       .innerJoin('app.flats as f', 'f.id', 'o.flat_id')
       .innerJoin('app.towers as t', 't.id', 'f.tower_id')
       .innerJoin('app.communities as c', 'c.id', 'o.community_id')
-      .select(['o.id', 'o.scheduled_date', 'o.starts_at', 'o.ends_at', 'o.status', 'o.service_id', 'o.subscription_component_id', 'a.source', 's.name as service_name', 'f.flat_number', 't.name as tower_name', 'c.name as community_name'])
+      .select(['o.id', 'o.scheduled_date', 'o.starts_at', 'o.ends_at', 'o.status', 'o.service_id', 'o.subscription_component_id', 'a.source', 's.name as service_name', 'f.flat_number', 't.name as tower_name', 'c.name as community_name', 'c.location_lat', 'c.location_lng'])
       .where('a.employee_id', '=', actor.id)
       .where('a.status', '=', 'ACTIVE');
   }
@@ -203,11 +203,13 @@ export class EmployeeService {
       flat_number: string;
       tower_name: string;
       community_name: string;
+      location_lat?: string | number | null;
+      location_lng?: string | number | null;
     }[],
   ): Promise<EmployeeScheduleItem[]> {
     const componentIds = [...new Set(rows.map((r) => r.subscription_component_id))];
     type SnapComponent = { serviceId: string; isAddon?: boolean; tasks?: VisitTask[] };
-    const byComponent = new Map<string, { isAddon: boolean; durationMinutes: number | null; tasks: VisitTask[] }>();
+    const byComponent = new Map<string, { isAddon: boolean; durationMinutes: number | null; tasks: VisitTask[]; residentFirstName: string | null }>();
     if (componentIds.length) {
       const comps = await withTx(this.db, SYSTEM_CLAIMS, (trx) =>
         trx
@@ -215,7 +217,8 @@ export class EmployeeService {
           .innerJoin('app.subscriptions as sub', 'sub.id', 'sc.subscription_id')
           .innerJoin('app.bookings as b', 'b.id', 'sub.booking_id')
           .innerJoin('app.booking_terms_snapshots as snap', 'snap.id', 'b.terms_snapshot_id')
-          .select(['sc.id', 'sc.service_id', 'sc.is_addon', 'sc.duration_minutes', 'snap.plan_snapshot'])
+          .leftJoin('app.resident_profiles as rp', 'rp.id', 'sub.resident_id')
+          .select(['sc.id', 'sc.service_id', 'sc.is_addon', 'sc.duration_minutes', 'snap.plan_snapshot', 'rp.full_name'])
           .where('sc.id', 'in', componentIds)
           .execute(),
       );
@@ -226,6 +229,7 @@ export class EmployeeService {
           isAddon: c.is_addon,
           durationMinutes: c.duration_minutes,
           tasks: (match?.tasks ?? []).map((t) => ({ name: t.name, frequency: t.frequency, timesPerPeriod: t.timesPerPeriod })),
+          residentFirstName: c.full_name ? (c.full_name.trim().split(/\s+/)[0] ?? null) : null,
         });
       }
     }
@@ -238,6 +242,8 @@ export class EmployeeService {
         endsAt: r.ends_at ? new Date(r.ends_at).toISOString() : null,
         serviceName: r.service_name,
         flat: { flatNumber: r.flat_number, towerName: r.tower_name, communityName: r.community_name },
+        communityLocation: r.location_lat != null && r.location_lng != null ? { lat: Number(r.location_lat), lng: Number(r.location_lng) } : null,
+        residentFirstName: comp?.residentFirstName ?? null,
         status: r.status,
         source: r.source,
         durationMinutes: comp?.durationMinutes ?? null,
