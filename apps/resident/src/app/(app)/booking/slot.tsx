@@ -30,7 +30,7 @@ import {
 import { useBookingOptions, useCatalogue } from '../../../lib/queries';
 import { parseAddons, resolveSelection } from '../../../lib/selection';
 import { img } from '../../../assets/images';
-import { ErrorState, KeyValue } from '../../../components/common';
+import { ErrorState, KeyValue, TestPayButton } from '../../../components/common';
 
 /** RES-08: continuous booking. Pick a published slot with capacity and a start date; pay in full. */
 export default function PickSlot() {
@@ -83,8 +83,9 @@ export default function PickSlot() {
       addonComponentIds: addons,
     },
   };
-  const book = () =>
+  const book = (test = false) =>
     pay.start({
+      test,
       purpose: 'book',
       path: '/v1/resident/bookings',
       body,
@@ -119,6 +120,13 @@ export default function PickSlot() {
             onPress={() => void book()}
             accessibilityHint="Opens secure payment"
           />
+          {slots.length ? (
+            <TestPayButton
+              busy={pay.busy}
+              disabled={!slotId || !start}
+              onPress={() => void book(true)}
+            />
+          ) : null}
         </>
       }
     >

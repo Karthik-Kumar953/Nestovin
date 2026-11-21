@@ -35,7 +35,7 @@ import {
 } from '../../../lib/format';
 import { keys, useBookings, useRequests } from '../../../lib/queries';
 import { bookingStatus, requestStatus, subscriptionStatus } from '../../../lib/status';
-import { ErrorState, KeyValue, Timeline } from '../../../components/common';
+import { ErrorState, KeyValue, TestPayButton, Timeline } from '../../../components/common';
 import { serviceIcon } from '../../../assets/images';
 
 /** Booking detail: progress timeline, amounts, the terms agreed, and the one action that is due. */
@@ -73,6 +73,36 @@ export default function BookingDetail() {
 function BookingDetailView({ b, request }: { b: BookingView; request?: ResidentDemandRequest }) {
   const st = bookingStatus(b.status, b.mode, b.outstandingPaise);
   const pay = useCheckout();
+  const payBooking = (test = false) =>
+    pay.start({
+      test,
+      purpose: b.mode === 'DEMAND_LED' ? 'balance' : 'retry',
+      path: `/v1/resident/bookings/${b.id}/pay`,
+      create: async (key) => ({
+        checkout: await payExisting(`/v1/resident/bookings/${b.id}/pay`, key),
+        id: b.id,
+        kind: 'booking',
+        reference: b.reference,
+      }),
+    });
+  const renew = (test = false) =>
+    pay.start({
+      test,
+      purpose: 'renew',
+      path: `/v1/resident/subscriptions/${b.subscription!.id}/renew`,
+      create: async (key) => {
+        const r = await postWithKey<{ booking: BookingView; checkout: Checkout }>(
+          `/v1/resident/subscriptions/${b.subscription!.id}/renew`,
+          key,
+        );
+        return {
+          checkout: r.checkout,
+          id: r.booking.id,
+          kind: 'booking',
+          reference: r.booking.reference,
+        };
+      },
+    });
   const detail = useQuery({
     queryKey: [...keys.bookings, 'detail', b.id],
     queryFn: () => api<BookingDetail>(`/v1/resident/bookings/${b.id}`),
@@ -134,67 +164,55 @@ function BookingDetailView({ b, request }: { b: BookingView; request?: ResidentD
 
   return (
     <Screen
-      title={b.planName}
-      eyebrow={`${b.reference} · ${demand ? 'Booking round' : 'Continuous'}`}
+      title="Booking"
       onBack={() => router.back()}
       footer={
         b.status === 'PENDING_PAYMENT' || b.subscription?.renewable ? (
           <>
             {pay.error ? <Banner tone="error">{pay.error}</Banner> : null}
             {b.status === 'PENDING_PAYMENT' ? (
-              <Button
-                title={`${demand ? 'Pay balance' : 'Pay'} ${rupees(b.outstandingPaise)}`}
-                icon="lock-closed"
-                loading={pay.busy}
-                onPress={() =>
-                  void pay.start({
-                    purpose: demand ? 'balance' : 'retry',
-                    path: `/v1/resident/bookings/${b.id}/pay`,
-                    create: async (key) => ({
-                      checkout: await payExisting(`/v1/resident/bookings/${b.id}/pay`, key),
-                      id: b.id,
-                      kind: 'booking',
-                      reference: b.reference,
-                    }),
-                  })
-                }
-              />
+              <>
+                <Button
+                  title={`${demand ? 'Pay balance' : 'Pay'} ${rupees(b.outstandingPaise)}`}
+                  icon="lock-closed"
+                  loading={pay.busy}
+                  onPress={() => void payBooking()}
+                  accessibilityHint="Opens secure payment"
+                />
+                <TestPayButton busy={pay.busy} onPress={() => void payBooking(true)} />
+              </>
             ) : (
-              <Button
-                title="Renew for the next period"
-                icon="refresh"
-                loading={pay.busy}
-                onPress={() =>
-                  void pay.start({
-                    purpose: 'renew',
-                    path: `/v1/resident/subscriptions/${b.subscription!.id}/renew`,
-                    create: async (key) => {
-                      const r = await postWithKey<{ booking: BookingView; checkout: Checkout }>(
-                        `/v1/resident/subscriptions/${b.subscription!.id}/renew`,
-                        key,
-                      );
-                      return {
-                        checkout: r.checkout,
-                        id: r.booking.id,
-                        kind: 'booking',
-                        reference: r.booking.reference,
-                      };
-                    },
-                  })
-                }
-              />
+              <>
+                <Button
+                  title="Renew for the next period"
+                  icon="refresh"
+                  loading={pay.busy}
+                  onPress={() => void renew()}
+                  accessibilityHint="Opens secure payment"
+                />
+                <TestPayButton busy={pay.busy} onPress={() => void renew(true)} />
+              </>
             )}
           </>
         ) : undefined
       }
     >
-      <View className="flex-row flex-wrap gap-2">
-        <StatusChip label={st.label} tone={st.tone} icon={st.icon} />
+      <Card raised className="gap-3">
+        <View className="flex-row items-center justify-between gap-2">
+          <View className="flex-row items-center gap-1.5 flex-1">
+            <Icon name={serviceIcon(b.selectionLabel)} size={16} color={colors.tealAction} />
+            <Text variant="label" tone="brand" numberOfLines={1} className="flex-1">
+              {b.selectionLabel}
+            </Text>
+          </View>
+          <StatusChip label={st.label} tone={st.tone} icon={st.icon} />
+        </View>
+        <Text variant="h2">{b.planName}</Text>
+        <Text variant="sm" tone="muted" style={{ fontVariant: ['tabular-nums'] }}>
+          {`${b.reference} · ${demand ? 'Booking round' : 'Continuous'}`}
+        </Text>
         {b.subscription ? <StatusChip {...subscriptionStatus(b.subscription.status)} /> : null}
-      </View>
-      <Text variant="body" tone="muted">
-        {b.selectionLabel}
-      </Text>
+      </Card>
 
       <Entrance>
         <Card className="gap-4">
@@ -256,6 +274,18 @@ function RequestDetail({ r }: { r: ResidentDemandRequest }) {
       router.back();
     },
   });
+  const payRequest = (test = false) =>
+    pay.start({
+      test,
+      purpose: 'join',
+      path: `/v1/resident/demand-requests/${r.id}/pay`,
+      create: async (key) => ({
+        checkout: await payExisting(`/v1/resident/demand-requests/${r.id}/pay`, key),
+        id: r.id,
+        kind: 'request',
+        reference: r.reference,
+      }),
+    });
   const paid = r.initialPaidPaise >= r.initialDuePaise && r.initialDuePaise > 0;
   const confirmCancel = () =>
     Alert.alert('Cancel this request?', 'You have not paid for it yet, so nothing is charged.', [
@@ -265,8 +295,7 @@ function RequestDetail({ r }: { r: ResidentDemandRequest }) {
 
   return (
     <Screen
-      title={r.planName}
-      eyebrow={`${r.reference} · Booking round`}
+      title="Booking round"
       onBack={() => router.back()}
       footer={
         r.status === 'AWAITING_PAYMENT' ? (
@@ -277,19 +306,10 @@ function RequestDetail({ r }: { r: ResidentDemandRequest }) {
               title={`Pay ${rupees(r.initialDuePaise)} and join`}
               icon="lock-closed"
               loading={pay.busy}
-              onPress={() =>
-                void pay.start({
-                  purpose: 'join',
-                  path: `/v1/resident/demand-requests/${r.id}/pay`,
-                  create: async (key) => ({
-                    checkout: await payExisting(`/v1/resident/demand-requests/${r.id}/pay`, key),
-                    id: r.id,
-                    kind: 'request',
-                    reference: r.reference,
-                  }),
-                })
-              }
+              onPress={() => void payRequest()}
+              accessibilityHint="Opens secure payment"
             />
+            <TestPayButton busy={pay.busy} onPress={() => void payRequest(true)} />
             <Button
               title="Cancel request"
               variant="tertiary"
@@ -300,8 +320,21 @@ function RequestDetail({ r }: { r: ResidentDemandRequest }) {
         ) : undefined
       }
     >
-      <StatusChip label={st.label} tone={st.tone} icon={st.icon} />
-      <Text variant="body" tone="muted">{`${r.selectionLabel} · ${r.cycleName}`}</Text>
+      <Card raised className="gap-3">
+        <View className="flex-row items-center justify-between gap-2">
+          <View className="flex-row items-center gap-1.5 flex-1">
+            <Icon name="time-outline" size={16} color={colors.tealAction} />
+            <Text variant="label" tone="brand" numberOfLines={1} className="flex-1">
+              {r.cycleName}
+            </Text>
+          </View>
+          <StatusChip label={st.label} tone={st.tone} icon={st.icon} />
+        </View>
+        <Text variant="h2">{r.planName}</Text>
+        <Text variant="sm" tone="muted" style={{ fontVariant: ['tabular-nums'] }}>
+          {`${r.reference} · ${r.selectionLabel}`}
+        </Text>
+      </Card>
       {r.status === 'COMMITTED' ? (
         <Banner tone="info" title="Not a confirmed service yet">
           When the round closes we publish your slot and the balance due date. We will notify you.
@@ -388,18 +421,19 @@ function RequestDetail({ r }: { r: ResidentDemandRequest }) {
 function Terms({ demand, pct }: { demand: boolean; pct?: number }) {
   const [open, setOpen] = useState(false);
   return (
-    <Card tone="subtle" padded={false}>
+    <Card padded={false}>
       <Pressable
         onPress={() => setOpen(!open)}
+        android_ripple={{ color: colors.teal100 }}
         accessibilityRole="button"
         aria-expanded={open}
-        className="flex-row items-center justify-between min-h-[56px] px-5"
+        className="flex-row items-center justify-between min-h-[56px] px-4"
       >
         <Text variant="bodyStrong">What you agreed to</Text>
         <Icon name={open ? 'chevron-up' : 'chevron-down'} size="sm" color={colors.textSecondary} />
       </Pressable>
       {open ? (
-        <View className="px-5 pb-5 gap-2">
+        <View className="px-4 pb-4 gap-2">
           <Text variant="body" tone="muted">
             Plan, tasks, prices{demand ? ' and payment split' : ''} as they were when you paid.
             Later catalogue changes do not affect this booking.
@@ -457,12 +491,13 @@ function Payments({ items }: { items: BookingDetail['payments'] }) {
 function AgreedTerms({ terms }: { terms: BookingDetail['terms'] }) {
   const [open, setOpen] = useState(false);
   return (
-    <Card tone="subtle" padded={false}>
+    <Card padded={false}>
       <Pressable
         onPress={() => setOpen(!open)}
+        android_ripple={{ color: colors.teal100 }}
         accessibilityRole="button"
         aria-expanded={open}
-        className="flex-row items-center justify-between min-h-[56px] px-5"
+        className="flex-row items-center justify-between min-h-[56px] px-4"
       >
         <Text variant="bodyStrong">What you agreed to</Text>
         <Icon name={open ? 'chevron-up' : 'chevron-down'} size="sm" color={colors.textSecondary} />

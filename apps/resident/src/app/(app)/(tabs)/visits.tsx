@@ -113,11 +113,7 @@ function Upcoming({
     <View className="gap-5">
       {days.map((d) => (
         <View key={d} className="gap-3">
-          <Text
-            variant="overline"
-            tone={d === today() ? 'brand' : 'muted'}
-            accessibilityRole="header"
-          >
+          <Text variant="label" tone={d === today() ? 'brand' : 'muted'} accessibilityRole="header">
             {dayLabel(d)}
           </Text>
           {list

@@ -16,6 +16,7 @@ import {
 } from '@nestovin/ui-native';
 import { ApiError, errorMessage } from '../lib/api';
 import { useOnline } from '../lib/online';
+import { useTestPayments } from '../lib/queries';
 import { img } from '../assets/images';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -265,6 +266,52 @@ export function Progress({ value, label }: { value: number; label: string }) {
       accessibilityValue={{ min: 0, max: 100, now: Math.round(pct * 100) }}
     >
       <View style={{ width: `${pct * 100}%` }} className="h-full rounded-full bg-teal" />
+    </View>
+  );
+}
+
+/**
+ * TEMPORARY (client demos): a secondary action beside the real pay button that completes the same
+ * server order through the API's test route, with no Razorpay and no money taken. Renders only while
+ * GET /v1/resident/test-mode says `testPayments: true`; hidden on false, 404 or any error.
+ */
+export function TestPayButton({
+  onPress,
+  busy = false,
+  disabled = false,
+}: {
+  onPress: () => void;
+  busy?: boolean;
+  disabled?: boolean;
+}) {
+  const test = useTestPayments();
+  if (!test.data) return null;
+  return (
+    <View className="gap-1">
+      <Button
+        title="Test booking (no payment)"
+        variant="secondary"
+        size="sm"
+        icon="flask-outline"
+        disabled={disabled || busy}
+        onPress={onPress}
+        accessibilityHint="Demo only. Completes this booking without opening payment or taking money."
+        testID="test-booking"
+      />
+    </View>
+  );
+}
+
+/** Direction-C grouped list: a small sentence-case label over one white card of rows. */
+export function Group({ label, children }: { label?: string; children: ReactNode }) {
+  return (
+    <View className="gap-2">
+      {label ? (
+        <Text variant="label" tone="muted" accessibilityRole="header" className="px-1">
+          {label}
+        </Text>
+      ) : null}
+      <View className="rounded-lg border border-line bg-white px-4 py-1">{children}</View>
     </View>
   );
 }

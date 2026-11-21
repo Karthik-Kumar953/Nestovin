@@ -2,16 +2,16 @@ import { expect, test } from '@playwright/test';
 
 /*
  * Signed-in area guard (src/app/(app)/_layout.tsx): with no session, every
- * route under (app) redirects to /sign-in. No credentials or network needed.
+ * route under (app) redirects to the /welcome steps (then phone sign-in). No credentials or network needed.
  */
 
 const protectedRoutes = ['/', '/book', '/visits', '/support', '/profile', '/register', '/vote', '/bookings', '/household', '/notifications'];
 
 for (const path of protectedRoutes) {
-  test(`redirects ${path} to /sign-in when signed out`, async ({ page }) => {
+  test(`redirects ${path} to /welcome when signed out`, async ({ page }) => {
     await page.goto(path);
-    await expect(page).toHaveURL(/\/sign-in$/);
-    await expect(page.getByRole('heading', { name: 'Sign in or create an account' })).toBeVisible();
+    await expect(page).toHaveURL(/\/welcome$/);
+    await expect(page.getByRole('button', { name: 'Skip to sign in' })).toBeVisible();
   });
 }
 

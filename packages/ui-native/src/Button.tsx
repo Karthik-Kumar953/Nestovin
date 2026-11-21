@@ -1,4 +1,4 @@
-import { ActivityIndicator, Platform, View, type GestureResponderEvent } from 'react-native';
+import { ActivityIndicator, View, type GestureResponderEvent } from 'react-native';
 import { Icon, type IconName } from './Icon';
 import { Text } from './Text';
 import { PressScale } from './motion/PressScale';
@@ -26,7 +26,7 @@ const FG: Record<ButtonVariant, string> = {
 
 /**
  * Buttons per DESIGN.md: teal-action fill (5.3:1 with white), 52 tall (44 for `size="sm"`),
- * 12 pt corners on iOS, a full pill on Android. Pressed: spring scale; loading: spinner plus label kept for screen readers.
+ * 12 pt corners on both platforms (same family as the Worker app). Pressed: spring scale; loading: spinner plus label kept for screen readers.
  */
 export function Button({
   title,
@@ -57,7 +57,7 @@ export function Button({
 }) {
   const off = disabled || loading;
   const fg = FG[variant];
-  const radius = Platform.OS === 'android' ? 'rounded-full' : 'rounded-md';
+  const radius = 'rounded-md';
   const height = size === 'md' ? 'min-h-[52px] px-5' : 'min-h-[44px] px-4';
   return (
     <PressScale

@@ -94,7 +94,7 @@ export default function Notifications() {
       ].map(([label, list]) =>
         (list as InboxItem[]).length ? (
           <View key={label as string} className="gap-2">
-            <Text variant="overline" tone="muted" accessibilityRole="header">
+            <Text variant="label" tone="muted" accessibilityRole="header">
               {label as string}
             </Text>
             {(list as InboxItem[]).map((n, i) => (
@@ -110,10 +110,10 @@ export default function Notifications() {
                     n.body,
                     relative(n.createdAt),
                   )}
-                  className={`flex-row gap-3 rounded-xl p-4 border ${n.readAt ? 'bg-white border-line/70' : 'bg-teal-50 border-teal-200'}`}
+                  className={`flex-row gap-3 rounded-lg p-4 border ${n.readAt ? 'bg-white border-line' : 'bg-teal-50 border-teal-200'}`}
                 >
                   <View
-                    className={`h-10 w-10 rounded-full items-center justify-center ${n.readAt ? 'bg-surface-subtle' : 'bg-teal'}`}
+                    className={`h-10 w-10 rounded-md items-center justify-center ${n.readAt ? 'bg-surface-subtle' : 'bg-teal'}`}
                   >
                     <Icon
                       name={iconFor(n.eventType)}

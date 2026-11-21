@@ -1,5 +1,7 @@
 # Nestovin image shot list (Resident and Worker apps)
 
+> The full, in-depth prompts (including the new welcome and registration images) are in [App_Image_Master_Prompts.md](App_Image_Master_Prompts.md). This file is kept for reference.
+
 Generate these and save them in `docs/Design/images/` with the exact file names below. I pick them up from there.
 
 - Photos: JPG or PNG, at least the size listed.

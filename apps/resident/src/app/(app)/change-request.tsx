@@ -7,6 +7,7 @@ import {
   Banner,
   Button,
   Card,
+  StatusChip,
   ChoiceTile,
   EmptyState,
   Icon,
@@ -65,16 +66,17 @@ export default function ChangeRequest() {
   if (send.isSuccess) {
     return (
       <Screen title="Change residence" onBack={() => router.back()}>
-        <View className="items-center gap-4 pt-10">
+        <Card raised className="items-center gap-4 py-8">
           <SuccessCheck />
           <Text variant="h2" className="text-center">
             Request sent
           </Text>
+          <StatusChip label="Waiting for review" tone="info" align="center" />
           <Text variant="body" tone="muted" className="text-center">
             Our team reviews it and you will get an update in Updates. Your current details stay
             until then.
           </Text>
-        </View>
+        </Card>
         <Button
           title="Back to household"
           icon="people-outline"

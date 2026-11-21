@@ -6,7 +6,6 @@ import {
   EmptyState,
   Entrance,
   Icon,
-  IconButton,
   Screen,
   SkeletonList,
   StatusChip,
@@ -25,15 +24,11 @@ export default function Support() {
   const list = tickets.data ?? [];
   const open = list.filter((t) => !['RESOLVED', 'CLOSED'].includes(t.status));
   const closed = list.filter((t) => ['RESOLVED', 'CLOSED'].includes(t.status));
-  const newBtn = (
-    <IconButton icon="add" label="New request" onPress={() => router.push('/ticket/new')} />
-  );
 
   return (
     <Screen
       title="Support"
       subtitle="We usually reply within a working day."
-      actions={newBtn}
       onRefresh={() => void tickets.refetch()}
       refreshing={tickets.isRefetching}
     >
@@ -52,16 +47,11 @@ export default function Support() {
           <Button title="New request" icon="add" onPress={() => router.push('/ticket/new')} />
         </EmptyState>
       ) : null}
+      {list.length ? (
+        <Button title="New request" icon="add" onPress={() => router.push('/ticket/new')} />
+      ) : null}
       {open.length ? <Section title="Open" items={open} offset={0} /> : null}
       {closed.length ? <Section title="Closed" items={closed} offset={open.length} /> : null}
-      {list.length ? (
-        <Button
-          title="New request"
-          icon="add"
-          variant="secondary"
-          onPress={() => router.push('/ticket/new')}
-        />
-      ) : null}
     </Screen>
   );
 }
@@ -77,7 +67,7 @@ function Section({
 }) {
   return (
     <View className="gap-3">
-      <Text variant="overline" tone="muted" accessibilityRole="header">
+      <Text variant="label" tone="muted" accessibilityRole="header">
         {title}
       </Text>
       {items.map((t, i) => {

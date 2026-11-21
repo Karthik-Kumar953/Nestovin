@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { TextInput, View } from 'react-native';
+import { ActivityIndicator, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { TicketDetail } from '@nestovin/contracts';
 import {
   Banner,
+  Card,
   Entrance,
-  IconButton,
+  Icon,
+  PressScale,
   Screen,
   SkeletonList,
   StatusChip,
@@ -60,8 +62,7 @@ export default function Ticket() {
 
   return (
     <Screen
-      title={t.subject}
-      eyebrow={`${t.reference} · ${t.categoryName}`}
+      title="Request"
       onBack={() => router.back()}
       onRefresh={() => void ticket.refetch()}
       refreshing={ticket.isRefetching}
@@ -86,7 +87,7 @@ export default function Ticket() {
                   flex: 1,
                   minHeight: 48,
                   maxHeight: 120,
-                  borderRadius: 24,
+                  borderRadius: 12,
                   borderWidth: 1.5,
                   borderColor: colors.border,
                   paddingHorizontal: 16,
@@ -98,20 +99,42 @@ export default function Ticket() {
                   backgroundColor: colors.white,
                 }}
               />
-              <View className={`rounded-full ${body.trim() ? 'bg-teal' : 'bg-surface-subtle'}`}>
-                <IconButton
-                  icon="arrow-up"
-                  label="Send reply"
-                  tone={body.trim() ? 'inverse' : 'plain'}
-                  onPress={() => body.trim() && !reply.isPending && reply.mutate()}
-                />
-              </View>
+              <PressScale
+                onPress={() => body.trim() && !reply.isPending && reply.mutate()}
+                haptic="tap"
+                accessibilityRole="button"
+                accessibilityLabel="Send reply"
+                aria-disabled={!body.trim() || reply.isPending}
+                android_ripple={{ color: 'rgba(255,255,255,0.18)' }}
+                className={`h-12 w-12 items-center justify-center rounded-md overflow-hidden ${body.trim() ? 'bg-teal' : 'bg-surface-subtle'}`}
+              >
+                {reply.isPending ? (
+                  <ActivityIndicator color={colors.white} />
+                ) : (
+                  <Icon
+                    name="send"
+                    size={20}
+                    color={body.trim() ? colors.white : colors.textSecondary}
+                  />
+                )}
+              </PressScale>
             </View>
           </View>
         )
       }
     >
-      <StatusChip label={st.label} tone={st.tone} icon={st.icon} />
+      <Card raised className="gap-3">
+        <View className="flex-row items-center justify-between gap-2">
+          <Text variant="label" tone="brand" numberOfLines={1} className="flex-1">
+            {t.categoryName}
+          </Text>
+          <StatusChip label={st.label} tone={st.tone} icon={st.icon} />
+        </View>
+        <Text variant="h2">{t.subject}</Text>
+        <Text variant="sm" tone="muted" style={{ fontVariant: ['tabular-nums'] }}>
+          {`${t.reference} · opened ${dateTime(t.createdAt)}`}
+        </Text>
+      </Card>
       <Bubble mine author="You" at={t.createdAt} body={t.description} />
       {t.updates.map((u, i) => (
         <Entrance key={u.id} index={i}>
@@ -156,7 +179,7 @@ function Bubble({
     >
       <Text variant="caption" tone="muted">{`${author} · ${dateTime(at)}`}</Text>
       <View
-        className={`rounded-2xl px-4 py-3 ${mine ? 'bg-teal rounded-br-md' : 'bg-white border border-line rounded-bl-md'}`}
+        className={`rounded-lg px-4 py-3 ${mine ? 'bg-teal rounded-br-md' : 'bg-white border border-line rounded-bl-md'}`}
       >
         <Text variant="body" tone={mine ? 'inverse' : 'default'}>
           {body}

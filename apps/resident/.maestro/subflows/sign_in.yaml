@@ -1,4 +1,4 @@
-# Reusable: RES-01 phone OTP sign-in (src/app/sign-in.tsx). Starts on the sign-in screen.
+# Reusable: RES-01 phone OTP sign-in (src/app/sign-in.tsx). Starts on the welcome steps or the sign-in screen.
 # Needs: E2E_RESIDENT_PHONE (Supabase TEST phone number, 10 digits), E2E_RESIDENT_OTP (its fixed code).
 #
 # Selectors:
@@ -9,6 +9,10 @@
 #    Typing the 6th digit calls verify() automatically (onComplete), so there is no button tap.
 appId: in.nestovin.resident
 ---
+# Signed-out launches open the welcome steps first; "Skip" goes to phone sign-in.
+- tapOn:
+    text: "Skip"
+    optional: true
 - extendedWaitUntil:
     visible: "Sign in or create an account"
     timeout: 30000

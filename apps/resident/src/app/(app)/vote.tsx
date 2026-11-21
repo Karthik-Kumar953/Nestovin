@@ -5,6 +5,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   Banner,
   Button,
+  Card,
   ChoiceTile,
   Field,
   Illustration,
@@ -47,7 +48,7 @@ export default function Vote() {
   if (vote.isSuccess || already) {
     return (
       <Screen title="Thank you" onBack={() => router.back()}>
-        <View className="items-center gap-4 pt-8">
+        <Card raised className="items-center gap-4 py-8">
           <SuccessCheck />
           <Text variant="h2" className="text-center">
             {already ? 'Your vote is already counted' : 'Your vote is in'}
@@ -57,7 +58,7 @@ export default function Vote() {
               ? `You have voted for ${name.trim()} before, and that vote still counts. Each person gets one vote per place.`
               : `Thank you for voting for ${name.trim()}. We use votes to decide where Nestovin goes next. A vote does not register you for service.`}
           </Text>
-        </View>
+        </Card>
         <Button title="Done" icon="checkmark" onPress={() => router.back()} />
       </Screen>
     );
@@ -80,12 +81,12 @@ export default function Vote() {
         </>
       }
     >
-      <View className="items-center">
-        <Illustration source={img('ill-vote.png')} icon="megaphone-outline" size={132} />
-      </View>
-      <Text variant="body" tone="muted" className="text-center">
-        Tell us where you live. One vote per place, and we count every one.
-      </Text>
+      <Card raised className="flex-row items-center gap-4">
+        <Illustration source={img('ill-vote.png')} icon="megaphone-outline" size={88} />
+        <Text variant="body" tone="muted" className="flex-1">
+          Tell us where you live. One vote per place, and we count every one.
+        </Text>
+      </Card>
       <SegmentedControl
         label="What is missing"
         value={level}

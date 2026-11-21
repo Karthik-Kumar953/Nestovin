@@ -24,7 +24,7 @@ export const VisitRow = memo(function VisitRow({
       scaleTo={0.98}
       accessibilityRole="button"
       accessibilityLabel={`${v.serviceName}, ${weekday(v.scheduledDate)} ${dayOfMonth(v.scheduledDate)}${at ? ` at ${at}` : ''}${v.workerName ? `, ${v.workerName}` : ''}, ${st.label}`}
-      className={`flex-row items-center gap-4 rounded-xl p-4 border ${highlight ? 'bg-teal-50 border-teal-200' : 'bg-white border-line/70'}`}
+      className={`flex-row items-center gap-4 rounded-lg p-4 border ${highlight ? 'bg-teal-50 border-teal-200' : 'bg-white border-line'}`}
     >
       <View
         className={`w-[52px] items-center rounded-lg py-2 ${highlight ? 'bg-teal' : 'bg-teal-100'}`}

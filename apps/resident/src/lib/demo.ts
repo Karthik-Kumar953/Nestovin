@@ -491,7 +491,8 @@ export async function demoApi<T>(
   const method = init.method ?? 'GET';
   const m = (re: RegExp) => route!.match(re);
   let out: unknown;
-  if (route === '/me') out = me();
+  if (path === '/v1/public/demo-login') out = { tokenHash: 'demo', type: 'magiclink' };
+  else if (route === '/me') out = me();
   else if (route === '/notifications')
     out = q.get('unread') === 'true' ? { ...inbox(), items: [] } : inbox();
   else if (route?.startsWith('/notifications')) out = { ...inbox(), unread: 0 };
@@ -506,6 +507,9 @@ export async function demoApi<T>(
     } satisfies VisitCode;
   else if (m(/^\/visits\/[^/]+\/feedback$/)) out = {};
   else if (route === '/booking-options') out = options();
+  else if (route === '/test-mode') out = { testPayments: true };
+  else if (route === '/payments/test-complete' && method === 'POST')
+    out = { orderStatus: 'PAID', message: 'Test booking confirmed. No money was taken.' };
   else if (route === '/bookings' && method === 'POST')
     out = { booking: bookings()[0], checkout: checkout(650000) };
   else if (route === '/demand-requests' && method === 'POST')

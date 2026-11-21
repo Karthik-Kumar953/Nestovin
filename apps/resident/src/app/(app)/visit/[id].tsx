@@ -10,7 +10,6 @@ import {
   Entrance,
   Field,
   Icon,
-  IconTile,
   Illustration,
   PressScale,
   Screen,
@@ -70,8 +69,7 @@ export default function VisitDetail() {
 
   return (
     <Screen
-      title={v.serviceName}
-      eyebrow={longDate(v.scheduledDate)}
+      title="Visit"
       onBack={() => router.back()}
       footer={
         v.canShowCode ? (
@@ -86,18 +84,28 @@ export default function VisitDetail() {
       }
     >
       <Entrance>
-        <Card className="gap-4">
-          <View className="flex-row items-center gap-3">
-            <IconTile icon={serviceIcon(v.serviceName)} size={52} />
-            <View className="flex-1">
-              <Text variant="h3">{v.serviceName}</Text>
-              <Text variant="body" tone="muted">
-                {v.startsAt ? `Starts ${time(v.startsAt)}` : 'Time to be confirmed'}
+        <Card raised className="gap-4">
+          <View className="flex-row items-center justify-between gap-2">
+            <View className="flex-row items-center gap-1.5 flex-1">
+              <Icon name={serviceIcon(v.serviceName)} size={16} color={colors.tealAction} />
+              <Text variant="label" tone="brand" numberOfLines={1}>
+                {v.serviceName}
               </Text>
             </View>
             <StatusChip label={st.label} tone={st.tone} icon={st.icon} />
           </View>
-          <View className="flex-row items-center gap-3 rounded-lg bg-teal-50 p-3">
+          <View className="gap-1">
+            <Text variant="h2" style={{ fontVariant: ['tabular-nums'] }}>
+              {v.startsAt ? `Starts ${time(v.startsAt)}` : 'Time to be confirmed'}
+            </Text>
+            <View className="flex-row items-center gap-1.5">
+              <Icon name="calendar-outline" size={16} color={colors.textSecondary} />
+              <Text variant="body" tone="muted">
+                {longDate(v.scheduledDate)}
+              </Text>
+            </View>
+          </View>
+          <View className="flex-row items-center gap-3 border-t border-line pt-4">
             <Avatar name={v.workerName} size={44} />
             <View className="flex-1">
               <Text variant="bodyStrong">{v.workerName ?? 'Worker not assigned yet'}</Text>
@@ -155,7 +163,7 @@ export default function VisitDetail() {
       {done ? (
         rated ? (
           <Entrance>
-            <Card tone="mint" className="items-center gap-2 py-6">
+            <Card className="items-center gap-2 py-6">
               {feedback.isSuccess ? (
                 <SuccessCheck size={80} />
               ) : (

@@ -69,15 +69,16 @@ export default function Home() {
     );
 
   const m = me.data.membership;
-  const bell = (
+  const bellFor = (tone: 'inverse' | 'default') => (
     <IconButton
       icon="notifications-outline"
       label="Updates"
       badge={unread.data}
       onPress={() => router.push('/notifications')}
-      tone="inverse"
+      tone={tone}
     />
   );
+  const bell = bellFor('inverse');
   if (!m) return <HomeNew me={me.data} bell={bell} />;
   if (m.status === 'PENDING')
     return (
@@ -100,6 +101,8 @@ export default function Home() {
     .filter((v) => v !== focus && !['COMPLETED', 'NO_SHOW', 'CANCELLED'].includes(v.status))
     .slice(0, 4);
   const codeVisit = list.find((v) => v.canShowCode);
+  // The Today card carries the code button for its own visit; the floating action covers any other visit.
+  const floating = codeVisit && codeVisit !== focus ? codeVisit : undefined;
   const refresh = () =>
     Promise.all([
       me.refetch(),
@@ -113,12 +116,12 @@ export default function Home() {
     <View className="flex-1">
       <Screen
         title="Home"
-        hero={<HomeHero me={me.data} bell={bell} />}
+        hero={<HomeHeader me={me.data} bell={bellFor('default')} />}
         onRefresh={() => void refresh()}
         refreshing={visits.isRefetching}
-        bottomInset={codeVisit ? 76 : 0}
+        bottomInset={floating ? 76 : 0}
       >
-        <View className="-mt-16">
+        <View>
           {visits.isLoading ? (
             <SkeletonCard lines={3} />
           ) : visits.error && !visits.data ? (
@@ -160,12 +163,12 @@ export default function Home() {
         <ServicesRail title="Book a service" />
         <CommunityCard me={me.data} />
       </Screen>
-      {codeVisit ? (
+      {floating ? (
         <FloatingAction
           label="Show check-in code"
           icon="qr-code-outline"
           onPress={() =>
-            router.push({ pathname: '/check-in/[id]', params: { id: codeVisit.occurrenceId } })
+            router.push({ pathname: '/check-in/[id]', params: { id: floating.occurrenceId } })
           }
         />
       ) : null}
@@ -173,45 +176,39 @@ export default function Home() {
   );
 }
 
-function HomeHero({ me, bell }: { me: ResidentMe; bell: React.ReactNode }) {
+/** Worker-app family header: avatar, greeting with the flat, name, and the updates bell. */
+function HomeHeader({ me, bell }: { me: ResidentMe; bell: React.ReactNode }) {
   const insets = useSafeAreaInsets();
   const m = me.membership;
   const name = firstName(me.fullName);
   return (
-    <Photo
-      source={img('res-home-hero.jpg')}
-      scrim
-      contentPosition="right"
-      style={{ height: 300 + insets.top }}
-      alt="A Nestovin cook preparing breakfast in a sunlit kitchen"
-    >
-      <View
-        style={{ paddingTop: insets.top + 8 }}
-        className="flex-1 justify-between px-gutter pb-24"
-      >
-        <View className="flex-row items-center justify-between">
-          {m ? (
-            <View className="flex-row items-center gap-1.5 rounded-full bg-black/25 px-3 py-1.5">
-              <Icon name="location" size={14} color={colors.white} />
-              <Text variant="label" tone="inverse" numberOfLines={1}>
-                {m.communityName} · {m.towerName} {m.flatNumber}
-              </Text>
-            </View>
-          ) : (
-            <View />
-          )}
-          {bell}
+    <View style={{ paddingTop: insets.top + 12 }} className="px-gutter pb-5 gap-4">
+      <View className="flex-row items-center gap-3">
+        <Avatar name={me.fullName} size={48} />
+        <View className="flex-1">
+          <Text variant="sm" tone="muted" numberOfLines={1}>
+            {m ? `${greeting()} · ${m.towerName} ${m.flatNumber}` : greeting()}
+          </Text>
+          <Text variant="h2" numberOfLines={1}>
+            {name ?? 'Welcome'}
+          </Text>
         </View>
-        <Entrance className="gap-1">
-          <Text variant="label" tone="inverseMuted">
+        {bell}
+      </View>
+      {m ? (
+        <View className="flex-row items-center justify-between gap-3">
+          <View className="flex-row items-center gap-1.5 flex-1">
+            <Icon name="location-outline" size={16} color={colors.tealAction} />
+            <Text variant="sm" tone="muted" numberOfLines={1} className="flex-1">
+              {m.communityName}
+            </Text>
+          </View>
+          <Text variant="label" style={{ fontVariant: ['tabular-nums'] }}>
             {longDate(today())}
           </Text>
-          <Text variant="display" tone="inverse">
-            {name ? `${greeting()}, ${name}` : greeting()}
-          </Text>
-        </Entrance>
-      </View>
-    </Photo>
+        </View>
+      ) : null}
+    </View>
   );
 }
 
@@ -235,9 +232,6 @@ function TodayCard({
           <View className="flex-row items-center gap-3">
             <IconTile icon={starting ? 'calendar-outline' : 'sunny-outline'} />
             <View className="flex-1">
-              <Text variant="overline" tone="brand">
-                Today
-              </Text>
               <Text variant="h3">
                 {starting
                   ? `Service starts ${dayLabel(starting.startDate)}`
@@ -259,48 +253,56 @@ function TodayCard({
   }
   const st = visitStatus(focus.status, focus.noShow);
   const at = focus.startsAt ? time(focus.startsAt) : null;
+  const open = () => router.push({ pathname: '/visit/[id]', params: { id: focus.occurrenceId } });
   return (
     <Entrance>
-      <Card
-        raised
-        onPress={() => router.push({ pathname: '/visit/[id]', params: { id: focus.occurrenceId } })}
-        accessibilityLabel={`${isToday ? 'Today' : dayLabel(focus.scheduledDate)}: ${focus.serviceName}${at ? ` at ${at}` : ''}, ${st.label}`}
-      >
-        <View className="flex-row items-center justify-between">
-          <Text variant="overline" tone="brand">
-            {isToday ? 'Today' : `Next · ${dayLabel(focus.scheduledDate)}`}
-          </Text>
-          <StatusChip label={st.label} tone={st.tone} icon={st.icon} />
-        </View>
-        <View className="flex-row items-center gap-3">
-          <IconTile icon={serviceIcon(focus.serviceName)} size={52} />
-          <View className="flex-1">
-            <Text variant="h3">{focus.serviceName}</Text>
-            <Text variant="body" tone="muted">
+      <Card raised className="gap-4">
+        <PressScale
+          onPress={open}
+          haptic="tap"
+          scaleTo={0.985}
+          accessibilityRole="button"
+          accessibilityLabel={`${isToday ? 'Today' : dayLabel(focus.scheduledDate)}: ${focus.serviceName}${at ? ` at ${at}` : ''}, ${st.label}. Open visit`}
+          className="gap-4"
+        >
+          <View className="flex-row items-center justify-between gap-2">
+            <View className="flex-row items-center gap-1.5 flex-1">
+              <Icon name={serviceIcon(focus.serviceName)} size={16} color={colors.tealAction} />
+              <Text variant="label" tone="brand" numberOfLines={1}>
+                {`${focus.serviceName} · ${isToday ? 'Today' : dayLabel(focus.scheduledDate)}`}
+              </Text>
+            </View>
+            <StatusChip label={st.label} tone={st.tone} icon={st.icon} />
+          </View>
+          <View className="gap-1">
+            <Text variant="h2" style={{ fontVariant: ['tabular-nums'] }}>
               {at ? `Starts ${at}` : 'Time to be confirmed'}
             </Text>
+            <View className="flex-row items-center gap-1.5">
+              <Icon name="person-outline" size={16} color={colors.textSecondary} />
+              <Text variant="body" tone="muted" className="flex-1">
+                {focus.workerName
+                  ? focus.checkedInAt
+                    ? `${focus.workerName} · checked in at ${time(focus.checkedInAt)}`
+                    : `${focus.workerName} · Nestovin staff`
+                  : 'Worker to be assigned. You will see their name here.'}
+              </Text>
+            </View>
           </View>
-        </View>
-        <View className="flex-row items-center gap-3 rounded-lg bg-teal-50 p-3">
-          <Avatar name={focus.workerName} size={44} />
-          <View className="flex-1">
-            <Text variant="bodyStrong">{focus.workerName ?? 'Assigning your worker'}</Text>
+        </PressScale>
+        {isToday && focus.canShowCode ? (
+          <View className="gap-3 border-t border-line pt-4">
+            <Button
+              title="Show check-in code"
+              icon="qr-code-outline"
+              onPress={() =>
+                router.push({ pathname: '/check-in/[id]', params: { id: focus.occurrenceId } })
+              }
+            />
             <Text variant="sm" tone="muted">
-              {focus.workerName
-                ? focus.checkedInAt
-                  ? `Checked in at ${time(focus.checkedInAt)}`
-                  : 'Nestovin staff, assigned for this visit'
-                : 'You will see their name here before the visit'}
+              Show it when they arrive. Never share it on the phone.
             </Text>
           </View>
-          {focus.checkedInAt ? (
-            <Icon name="checkmark-circle" color={colors.greenAction} label="Checked in" />
-          ) : null}
-        </View>
-        {isToday && focus.canShowCode ? (
-          <Text variant="sm" tone="muted">
-            When they arrive, show your check-in code. Do not share it on the phone.
-          </Text>
         ) : null}
       </Card>
     </Entrance>
@@ -379,7 +381,7 @@ export function ServicesRail({ title }: { title: string }) {
                 haptic="tap"
                 accessibilityRole="button"
                 accessibilityLabel={`${v.label}, ${blurb[k]}. See plans`}
-                className="rounded-xl overflow-hidden"
+                className="rounded-lg overflow-hidden"
               >
                 <Photo
                   source={v.photo ? img(v.photo) : null}
@@ -387,7 +389,7 @@ export function ServicesRail({ title }: { title: string }) {
                   fallbackTone={v.tone}
                   scrim
                   style={{ width: 168, height: 208 }}
-                  className="rounded-xl"
+                  className="rounded-lg"
                 >
                   <View className="flex-1 justify-end p-4 gap-0.5">
                     <Text variant="h3" tone="inverse">

@@ -26,7 +26,8 @@ export default function AppLayout() {
       </View>
     );
   }
-  if (!session) return <Redirect href="/sign-in" />;
+  // Signed out: the welcome steps first, never straight onto the phone-number form.
+  if (!session) return <Redirect href="/welcome" />;
 
   return (
     <Stack

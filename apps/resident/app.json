@@ -18,7 +18,7 @@
     "android": {
       "package": "in.nestovin.resident",
       "adaptiveIcon": {
-        "backgroundColor": "#E5F3F1",
+        "backgroundColor": "#E6F4F1",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -37,11 +37,21 @@
       "expo-image",
       "@react-native-community/datetimepicker",
       "expo-font",
-      "expo-splash-screen"
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#F5FAF9",
+          "image": "./assets/brand/logo.png",
+          "imageWidth": 160,
+          "resizeMode": "contain"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
       "tsconfigPaths": false
-    }
+    },
+    "backgroundColor": "#F5FAF9",
+    "primaryColor": "#00796B"
   }
 }

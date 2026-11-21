@@ -19,7 +19,7 @@ import { postWithKey, useCheckout } from '../../../lib/checkout';
 import { dateTime, hhmm, rupees } from '../../../lib/format';
 import { useBookingOptions, useCatalogue } from '../../../lib/queries';
 import { initialEstimate, parseAddons, resolveSelection } from '../../../lib/selection';
-import { ErrorState, KeyValue } from '../../../components/common';
+import { ErrorState, KeyValue, TestPayButton } from '../../../components/common';
 
 /**
  * RES-07: join a demand-led booking round. Up to three preferred times in order, the non-refundable
@@ -78,8 +78,9 @@ export default function JoinRound() {
     acceptNonRefundable: true as const,
     disclosureVersion: options.data.disclosure.version,
   };
-  const join = () =>
+  const join = (test = false) =>
     pay.start({
+      test,
       purpose: 'join',
       path: '/v1/resident/demand-requests',
       body,
@@ -113,6 +114,11 @@ export default function JoinRound() {
             disabled={!accepted || !windows.length}
             onPress={() => void join()}
             accessibilityHint="Opens secure payment"
+          />
+          <TestPayButton
+            busy={pay.busy}
+            disabled={!accepted || !windows.length}
+            onPress={() => void join(true)}
           />
         </>
       }

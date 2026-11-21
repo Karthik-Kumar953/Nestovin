@@ -167,5 +167,6 @@ export function Avatar({
 const styles = StyleSheet.create({
   ring: { position: 'absolute', borderRadius: 999, borderWidth: 18 },
   blob: { position: 'absolute', width: 200, height: 200, borderRadius: 999 },
-  icon: { position: 'absolute', right: 28, top: 26, opacity: 0.95 },
+  // Centre-right, clear of header actions (top-right) and titles (bottom-left).
+  icon: { position: 'absolute', right: 28, top: '34%', opacity: 0.95 },
 });

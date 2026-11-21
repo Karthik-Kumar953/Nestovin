@@ -8,6 +8,12 @@ import generated from './images.generated';
  */
 export const SHOT_LIST = [
   'res-onboarding-hero.jpg',
+  'onb-verified-staff.jpg',
+  'onb-book-services.jpg',
+  'onb-track-visits.jpg',
+  'reg-step-flat.png',
+  'reg-step-occupancy.png',
+  'reg-step-proof.png',
   'res-home-hero.jpg',
   'svc-maid.jpg',
   'svc-cook.jpg',

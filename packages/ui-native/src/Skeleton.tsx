@@ -28,7 +28,7 @@ export function Skeleton({
 /** Card-shaped skeleton matching the list cards. */
 export function SkeletonCard({ lines = 2, media = false }: { lines?: number; media?: boolean }) {
   return (
-    <View className="bg-white rounded-xl border border-line/70 p-5 gap-3" accessible={false}>
+    <View className="bg-white rounded-lg border border-line p-4 gap-3" accessible={false}>
       {media ? <Skeleton height={140} radius={16} /> : null}
       <View className="flex-row gap-3 items-center">
         <Skeleton width={44} height={44} radius={14} />

@@ -24,7 +24,7 @@ import { api, ApiError, errorMessage } from '../../../lib/api';
 import { useAuth } from '../../../lib/auth';
 import { keys, useMe, useUnread } from '../../../lib/queries';
 import { phone } from '../../../lib/format';
-import { ErrorState } from '../../../components/common';
+import { ErrorState, Group } from '../../../components/common';
 
 /** RES-14: the resident's details, household, requests and settings. Sign-out sits apart from everything else. */
 export default function Profile() {
@@ -56,44 +56,52 @@ export default function Profile() {
   return (
     <Screen title="Profile" onRefresh={() => void me.refetch()} refreshing={me.isRefetching}>
       <Entrance>
-        <Card raised className="items-center gap-3 py-7">
-          <Avatar name={d.fullName} size={84} />
-          <View className="items-center gap-0.5">
-            <Text variant="h2">{d.fullName ?? 'Add your name'}</Text>
-            <Text variant="body" tone="muted">
-              {phone(d.phone)}
-            </Text>
-            {d.email ? (
-              <Text variant="sm" tone="muted">
-                {d.email}
+        <Card raised className="gap-4">
+          <View className="flex-row items-center gap-4">
+            <Avatar name={d.fullName} size={64} />
+            <View className="flex-1 gap-0.5">
+              <Text variant="h2" numberOfLines={2}>
+                {d.fullName ?? 'Add your name'}
               </Text>
-            ) : null}
+              <Text variant="body" tone="muted" style={{ fontVariant: ['tabular-nums'] }}>
+                {phone(d.phone)}
+              </Text>
+              {d.email ? (
+                <Text variant="sm" tone="muted" numberOfLines={1}>
+                  {d.email}
+                </Text>
+              ) : null}
+            </View>
           </View>
-          {m ? (
-            <StatusChip
-              label={
-                m.status === 'VERIFIED'
-                  ? m.kind === 'PRIMARY'
-                    ? 'Primary resident'
-                    : 'Family member'
-                  : 'Verification in progress'
-              }
-              tone={m.status === 'VERIFIED' ? 'success' : 'info'}
-              icon={m.status === 'VERIFIED' ? 'shield-checkmark' : 'time'}
+          <View className="flex-row flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+            {m ? (
+              <StatusChip
+                label={
+                  m.status === 'VERIFIED'
+                    ? m.kind === 'PRIMARY'
+                      ? 'Primary resident'
+                      : 'Family member'
+                    : 'Verification in progress'
+                }
+                tone={m.status === 'VERIFIED' ? 'success' : 'info'}
+                icon={m.status === 'VERIFIED' ? 'shield-checkmark' : 'time'}
+              />
+            ) : (
+              <StatusChip label="Flat not registered" tone="warning" />
+            )}
+            <Button
+              title="Edit details"
+              variant="secondary"
+              size="sm"
+              icon="create-outline"
+              block={false}
+              onPress={() => setEditing(true)}
             />
-          ) : null}
-          <Button
-            title="Edit details"
-            variant="secondary"
-            size="sm"
-            icon="create-outline"
-            block={false}
-            onPress={() => setEditing(true)}
-          />
+          </View>
         </Card>
       </Entrance>
 
-      <Card padded={false} className="px-5 py-1 gap-0">
+      <Group label="Your home">
         {m ? (
           <ListRow
             icon="business-outline"
@@ -127,9 +135,9 @@ export default function Profile() {
             />
           </>
         ) : null}
-      </Card>
+      </Group>
 
-      <Card padded={false} className="px-5 py-1 gap-0">
+      <Group label="Account and help">
         <ListRow
           icon="receipt-outline"
           title="Bookings and payments"
@@ -158,9 +166,9 @@ export default function Profile() {
           title="Bring Nestovin to another community"
           onPress={() => router.push('/vote')}
         />
-      </Card>
+      </Group>
 
-      <Card padded={false} className="px-5 py-1">
+      <Group>
         <ListRow
           icon="log-out-outline"
           title="Sign out"
@@ -168,7 +176,7 @@ export default function Profile() {
           chevron={false}
           onPress={confirmSignOut}
         />
-      </Card>
+      </Group>
       <Text
         variant="caption"
         tone="muted"

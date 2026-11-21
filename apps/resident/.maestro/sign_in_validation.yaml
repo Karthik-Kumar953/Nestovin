@@ -10,6 +10,9 @@ tags:
     clearState: true
     permissions:
       notifications: allow
+- tapOn:
+    text: "Skip"
+    optional: true
 - extendedWaitUntil:
     visible: "Sign in or create an account"
     timeout: 30000

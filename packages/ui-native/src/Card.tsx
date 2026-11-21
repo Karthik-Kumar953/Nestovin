@@ -7,13 +7,13 @@ import { colors, elevation } from './tokens';
 
 type Tone = 'surface' | 'mint' | 'brand' | 'subtle';
 const TONE: Record<Tone, string> = {
-  surface: 'bg-white border border-line/70',
+  surface: 'bg-white border border-line',
   mint: 'bg-teal-100 border border-teal-200',
   brand: 'bg-teal-deep',
   subtle: 'bg-surface-subtle',
 };
 
-/** Grouping surface: white on mint, 24 corners, hairline border, a soft shadow only when `raised`. */
+/** Grouping surface: white on mint, 16 corners, hairline border, a soft shadow only when `raised`. */
 export function Card({
   children,
   onPress,
@@ -35,7 +35,7 @@ export function Card({
   accessibilityLabel?: string;
   accessibilityHint?: string;
 }) {
-  const cls = `${TONE[tone]} rounded-xl ${padded ? 'p-5' : ''} gap-3 overflow-hidden ${className}`;
+  const cls = `${TONE[tone]} rounded-lg ${padded ? 'p-4' : ''} gap-3 overflow-hidden ${className}`;
   const shadow = raised ? elevation.card : undefined;
   if (onPress) {
     return (
@@ -81,7 +81,7 @@ export function IconTile({
   const [bg, fg] = map[tone];
   return (
     <View
-      style={{ width: size, height: size, borderRadius: size * 0.32, backgroundColor: bg }}
+      style={{ width: size, height: size, borderRadius: size >= 40 ? 12 : 8, backgroundColor: bg }}
       className="items-center justify-center"
     >
       <Icon name={icon} color={fg} size={size * 0.5} />

@@ -53,6 +53,7 @@ export const keys = {
   tickets: ['tickets'] as const,
   household: ['household'] as const,
   changes: ['change-requests'] as const,
+  testMode: ['test-mode'] as const,
 };
 
 export const useMe = () =>
@@ -206,3 +207,22 @@ export async function refreshAfterPayment(qc: QueryClient) {
     ),
   );
 }
+
+/**
+ * TEMPORARY (client demos): whether the API allows "Test booking (no payment)".
+ * Any error, including a 404 from an API without the route, means no.
+ */
+export const useTestPayments = () =>
+  useQuery({
+    queryKey: keys.testMode,
+    queryFn: async () => {
+      try {
+        const r = await api<{ testPayments?: boolean }>('/v1/resident/test-mode');
+        return r?.testPayments === true;
+      } catch {
+        return false;
+      }
+    },
+    staleTime: 5 * 60_000,
+    retry: false,
+  });

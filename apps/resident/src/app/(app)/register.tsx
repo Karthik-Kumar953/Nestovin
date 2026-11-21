@@ -28,7 +28,9 @@ import {
   colors,
   haptics,
   type IconName,
+  Illustration,
 } from '@nestovin/ui-native';
+import { img, type ShotName } from '../../assets/images';
 import { api, errorMessage } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
 import { keys, useMe } from '../../lib/queries';
@@ -266,6 +268,23 @@ export default function Register() {
 
   const flatDone = Boolean(sel.flat);
   const titles = ['Your flat', 'You are the', 'Proof of residence'];
+  const stepArt: { image: ShotName; icon: IconName; lead: string }[] = [
+    {
+      image: 'reg-step-flat.png',
+      icon: 'business-outline',
+      lead: 'Find your city, community, tower and flat.',
+    },
+    {
+      image: 'reg-step-occupancy.png',
+      icon: 'key-outline',
+      lead: 'Tell us whether you own or rent this flat.',
+    },
+    {
+      image: 'reg-step-proof.png',
+      icon: 'document-text-outline',
+      lead: 'Add one document. Only our verification team sees it.',
+    },
+  ];
   const canNext =
     step === 0 ? flatDone : step === 1 ? Boolean(occupancy) : Boolean(docType && file);
   const lockedFlat = prefilled === 'pending';
@@ -300,12 +319,19 @@ export default function Register() {
       <View className="gap-2">
         <View className="flex-row justify-between">
           <Text variant="label" tone="brand">{`Step ${step + 1} of 3`}</Text>
-          <Text variant="label" tone="muted">
-            {titles[step]}
-          </Text>
         </View>
         <Progress value={(step + 1) / 3} label={`Step ${step + 1} of 3`} />
       </View>
+
+      <Card raised className="flex-row items-center gap-4">
+        <Illustration source={img(stepArt[step]!.image)} icon={stepArt[step]!.icon} size={72} />
+        <View className="flex-1 gap-0.5">
+          <Text variant="h3">{titles[step]}</Text>
+          <Text variant="sm" tone="muted">
+            {stepArt[step]!.lead}
+          </Text>
+        </View>
+      </Card>
 
       {prefilled === 'rejected' && step === 2 ? (
         <Banner tone="info" title="Same flat, new document">

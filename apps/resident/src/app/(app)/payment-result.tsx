@@ -145,7 +145,9 @@ export default function PaymentResult() {
     id?: string;
     kind?: 'booking' | 'request';
     reference?: string;
+    test?: string;
   }>();
+  const test = p.test === '1';
   const c = copyFor(p.state ?? 'processing', p.purpose ?? 'book', p.message ?? '');
   const openBooking = () =>
     p.id
@@ -184,12 +186,24 @@ export default function PaymentResult() {
               {c.body}
             </Text>
             <StatusChip label={c.chip} tone={c.chipTone} align="center" />
+            {test ? (
+              <StatusChip
+                label="Test booking · no money taken"
+                tone="warning"
+                icon="flask-outline"
+                align="center"
+              />
+            ) : null}
           </Entrance>
         </View>
         <Entrance delay={400}>
-          <Card tone="subtle" className="gap-2.5">
+          <Card className="gap-2.5">
             {p.amount ? (
-              <KeyValue label={c.amountLabel} value={rupees(Number(p.amount))} strong />
+              <KeyValue
+                label={test ? `${c.amountLabel} (test, not charged)` : c.amountLabel}
+                value={rupees(Number(p.amount))}
+                strong
+              />
             ) : null}
             {p.reference ? <KeyValue label="Reference" value={p.reference} /> : null}
           </Card>

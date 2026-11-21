@@ -48,9 +48,9 @@ module.exports = {
         bold: [f.bold],
       },
       fontSize: {
-        title: ['30px', { lineHeight: '38px' }],
+        title: ['28px', { lineHeight: '34px' }],
         h2: ['24px', { lineHeight: '32px' }],
-        h3: ['20px', { lineHeight: '28px' }],
+        h3: ['18px', { lineHeight: '24px' }],
         lead: ['18px', { lineHeight: '26px' }],
         body: ['16px', { lineHeight: '24px' }],
         sm: ['14px', { lineHeight: '20px' }],

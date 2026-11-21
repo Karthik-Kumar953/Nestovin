@@ -12,6 +12,13 @@ export const env = {
 /** DEV-ONLY: EXPO_PUBLIC_DEMO=1 serves fixtures (src/lib/demo.ts) for design review. Never on in a release build. */
 export const demoMode = __DEV__ && process.env.EXPO_PUBLIC_DEMO === '1';
 
+/**
+ * TEMPORARY (client showcases): one-tap "Demo login" on the welcome and sign-in screens. The API
+ * (POST /v1/public/demo-login) issues a one-time magic-link token for the seeded demo resident.
+ * Never enable in production builds.
+ */
+export const demoLoginEnabled = process.env.EXPO_PUBLIC_DEMO_LOGIN === 'true';
+
 export const missingEnv = Object.entries(env)
   .filter(([, v]) => !v)
   .map(([k]) => k);

@@ -5,7 +5,7 @@ import type { Checkout } from '@nestovin/contracts';
 import { haptics } from '@nestovin/ui-native';
 import { api, errorMessage } from './api';
 import { ActionKey, actionSignature, isFinalOutcome } from './idempotency';
-import { payWithRazorpay } from './payments';
+import { completeTestPayment, payWithRazorpay } from './payments';
 import { refreshAfterPayment, useMe } from './queries';
 
 /** Why the resident is paying; picks the copy on the result screen. */
@@ -33,6 +33,8 @@ export function useCheckout() {
     path: string;
     body?: unknown;
     create: (idempotencyKey: string) => Promise<Created>;
+    /** TEMPORARY demo bypass: complete the order through the API's test route instead of Razorpay. */
+    test?: boolean;
   }) => {
     if (busy) return;
     setBusy(true);
@@ -40,10 +42,12 @@ export function useCheckout() {
     const key = keys.current.for(actionSignature(opts.path, opts.body));
     try {
       const { checkout, id, kind, reference } = await opts.create(key);
-      const outcome = await payWithRazorpay(checkout, {
-        contact: me.data?.phone,
-        email: me.data?.email ?? undefined,
-      });
+      const outcome = opts.test
+        ? await completeTestPayment(checkout)
+        : await payWithRazorpay(checkout, {
+            contact: me.data?.phone,
+            email: me.data?.email ?? undefined,
+          });
       if (isFinalOutcome(outcome.state)) keys.current.settle();
       await refreshAfterPayment(qc);
       if (outcome.state === 'paid') haptics.success();
@@ -58,6 +62,7 @@ export function useCheckout() {
           id,
           kind,
           reference: reference ?? '',
+          ...(opts.test ? { test: '1' } : {}),
         },
       });
     } catch (e) {

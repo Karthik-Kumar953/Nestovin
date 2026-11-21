@@ -87,6 +87,25 @@ export async function payWithRazorpay(
   }
 }
 
+/**
+ * TEMPORARY (client demos): completes a server-created order without Razorpay. The API only accepts
+ * this while its test-payments switch is on (GET /v1/resident/test-mode); the server still decides the outcome.
+ */
+export async function completeTestPayment(checkout: Checkout): Promise<PaymentOutcome> {
+  try {
+    const v = await api<PaymentResult>('/v1/resident/payments/test-complete', {
+      method: 'POST',
+      body: { paymentOrderId: checkout.paymentOrderId },
+    });
+    return toOutcome(v);
+  } catch (e) {
+    return {
+      state: 'cancelled',
+      message: `The test booking did not go through. ${errorMessage(e)}`,
+    };
+  }
+}
+
 function toOutcome(v: PaymentResult): PaymentOutcome {
   switch (v.orderStatus) {
     case 'PAID':

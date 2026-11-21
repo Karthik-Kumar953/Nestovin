@@ -197,11 +197,16 @@ function CodeView({
         style={{ opacity: expired ? 0.25 : 1 }}
       >
         <View
-          className="rounded-xl border border-line bg-white p-4"
+          className="rounded-lg border border-line bg-white p-4"
           accessible
           accessibilityLabel="QR code for the worker to scan"
         >
-          <QRCode value={code.qr} size={196} color={colors.charcoal} backgroundColor={colors.white} />
+          <QRCode
+            value={code.qr}
+            size={196}
+            color={colors.charcoal}
+            backgroundColor={colors.white}
+          />
         </View>
       </Animated.View>
 

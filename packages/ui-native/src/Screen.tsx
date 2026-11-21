@@ -18,7 +18,7 @@ import { colors } from './tokens';
 export type ScreenProps = {
   /** Large title (iOS large-title pattern; collapses into a compact bar on scroll). */
   title?: string;
-  /** Small line above the title (community, flat). */
+  /** Short context line (community, flat, reference), shown under the title as metadata. */
   eyebrow?: string | null;
   subtitle?: string | null;
   /** Header actions on the right (IconButtons). */
@@ -97,21 +97,21 @@ export function Screen({
       ) : null}
       <View className="flex-row items-end justify-between gap-3">
         <View className="flex-1 gap-0.5">
-          {eyebrow ? (
-            <Text variant="label" tone="muted">
-              {eyebrow}
-            </Text>
-          ) : null}
           {title ? (
             <Text
               variant="title"
               style={
                 Platform.OS === 'android'
-                  ? { fontFamily: 'Manrope_600SemiBold', fontSize: 28, lineHeight: 36 }
+                  ? { fontFamily: 'Manrope_600SemiBold', fontSize: 28, lineHeight: 34 }
                   : undefined
               }
             >
               {title}
+            </Text>
+          ) : null}
+          {eyebrow ? (
+            <Text variant="sm" tone="muted" numberOfLines={2}>
+              {eyebrow}
             </Text>
           ) : null}
           {subtitle ? (

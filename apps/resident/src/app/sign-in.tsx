@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
-import { Redirect } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Banner,
   Button,
   Entrance,
   Field,
+  IconButton,
   OtpInput,
   Photo,
   Text,
@@ -17,6 +18,7 @@ import { toE164, useAuth } from '../lib/auth';
 import { missingEnv } from '../lib/env';
 import { img } from '../assets/images';
 import { Logo } from '../components/common';
+import { DemoLoginButton } from '../components/DemoLoginButton';
 
 /** Supabase's default minimum gap between OTP sends. */
 const RESEND_SECONDS = 60;
@@ -132,8 +134,16 @@ export default function SignIn() {
             style={{ paddingTop: insets.top + 16 }}
             className="flex-1 justify-between px-gutter pb-16"
           >
-            <View className="self-start rounded-lg bg-white p-2.5">
-              <Logo size={34} />
+            <View className="flex-row items-center justify-between">
+              <IconButton
+                icon={Platform.OS === 'ios' ? 'chevron-back' : 'arrow-back'}
+                label="Back to welcome"
+                tone="inverse"
+                onPress={() => (router.canGoBack() ? router.back() : router.replace('/welcome'))}
+              />
+              <View className="rounded-md bg-white p-2.5">
+                <Logo size={30} />
+              </View>
             </View>
             <Entrance delay={120} className="gap-2">
               <Text variant="display" tone="inverse">
@@ -148,7 +158,7 @@ export default function SignIn() {
 
         <View
           style={{ paddingBottom: insets.bottom + 24 }}
-          className="-mt-8 flex-1 rounded-t-2xl bg-white px-gutter pt-7 gap-5"
+          className="-mt-6 flex-1 rounded-t-lg bg-white px-gutter pt-7 gap-5"
         >
           {missingEnv.length ? (
             <Banner
@@ -185,10 +195,16 @@ export default function SignIn() {
                 returnKeyType="send"
                 onSubmitEditing={() => void send()}
               />
-              <Button title="Send code" onPress={() => void send()} loading={busy} />
+              <Button
+                title="Send code"
+                icon="chatbubble-ellipses-outline"
+                onPress={() => void send()}
+                loading={busy}
+              />
               <Text variant="sm" tone="muted" className="text-center">
                 Nestovin uses your number only to sign you in and to reach you about your service.
               </Text>
+              <DemoLoginButton disabled={busy} />
             </Entrance>
           ) : (
             <Entrance key="code" className="gap-5">

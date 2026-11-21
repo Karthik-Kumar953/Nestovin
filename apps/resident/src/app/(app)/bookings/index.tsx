@@ -62,7 +62,9 @@ export default function Bookings() {
 
       {shownReqs.length ? (
         <View className="gap-3">
-          <Text variant="h3">Booking round requests</Text>
+          <Text variant="label" tone="muted" accessibilityRole="header" className="px-1">
+            Booking round requests
+          </Text>
           {shownReqs.map((r, i) => (
             <Entrance key={r.id} index={i}>
               <RequestCard r={r} />
@@ -73,7 +75,11 @@ export default function Bookings() {
 
       {shownBookings.length ? (
         <View className="gap-3">
-          {shownReqs.length ? <Text variant="h3">Bookings</Text> : null}
+          {shownReqs.length ? (
+            <Text variant="label" tone="muted" accessibilityRole="header" className="px-1">
+              Bookings
+            </Text>
+          ) : null}
           {shownBookings.map((b, i) => (
             <Entrance key={b.id} index={i + shownReqs.length}>
               <BookingCard b={b} />
@@ -115,18 +121,18 @@ function BookingCard({ b }: { b: BookingView }) {
       }
       accessibilityLabel={`${b.planName}, ${b.selectionLabel}, ${st.label}`}
     >
-      <View className="flex-row items-start gap-3">
-        <View className="h-11 w-11 rounded-md bg-teal-100 items-center justify-center">
-          <Icon name={serviceIcon(b.selectionLabel)} color={colors.tealDeep} />
-        </View>
-        <View className="flex-1 gap-0.5">
-          <Text variant="bodyStrong">{b.planName}</Text>
-          <Text
-            variant="sm"
-            tone="muted"
-          >{`${b.selectionLabel} · ${b.slot.label} ${hhmm(b.slot.startTime)}`}</Text>
+      <View className="flex-row items-center justify-between gap-2">
+        <View className="flex-row items-center gap-1.5 flex-1">
+          <Icon name={serviceIcon(b.selectionLabel)} size={16} color={colors.tealAction} />
+          <Text variant="label" tone="brand" numberOfLines={1} className="flex-1">
+            {b.selectionLabel}
+          </Text>
         </View>
         <StatusChip label={st.label} tone={st.tone} icon={st.icon} />
+      </View>
+      <View className="gap-0.5">
+        <Text variant="h3">{b.planName}</Text>
+        <Text variant="sm" tone="muted">{`${b.slot.label} · ${hhmm(b.slot.startTime)}`}</Text>
       </View>
       <Progress
         value={b.totalPaise ? b.paidPaise / b.totalPaise : 0}
@@ -162,20 +168,27 @@ function RequestCard({ r }: { r: ResidentDemandRequest }) {
       }
       accessibilityLabel={`${r.planName}, ${r.cycleName}, ${st.label}`}
     >
-      <View className="flex-row items-start gap-3">
-        <View className="h-11 w-11 rounded-md bg-info-surface items-center justify-center">
-          <Icon name="time-outline" color={colors.infoText} />
-        </View>
-        <View className="flex-1 gap-0.5">
-          <Text variant="bodyStrong">{r.planName}</Text>
-          <Text variant="sm" tone="muted">{`${r.selectionLabel} · ${r.cycleName}`}</Text>
+      <View className="flex-row items-center justify-between gap-2">
+        <View className="flex-row items-center gap-1.5 flex-1">
+          <Icon name="time-outline" size={16} color={colors.tealAction} />
+          <Text variant="label" tone="brand" numberOfLines={1} className="flex-1">
+            {r.cycleName}
+          </Text>
         </View>
         <StatusChip label={st.label} tone={st.tone} icon={st.icon} />
       </View>
+      <View className="gap-0.5">
+        <Text variant="h3">{r.planName}</Text>
+        <Text variant="sm" tone="muted">
+          {r.selectionLabel}
+        </Text>
+      </View>
+      <View className="h-px bg-line" />
       <Text variant="sm" tone="muted">{`Preferred: ${r.preferredWindows.join(', ')}`}</Text>
       <Text
         variant="sm"
         tone="muted"
+        style={{ fontVariant: ['tabular-nums'] }}
       >{`Joining payment ${rupees(r.initialPaidPaise)} of ${rupees(r.initialDuePaise)} · total ${rupees(r.totalPaise)}`}</Text>
     </Card>
   );

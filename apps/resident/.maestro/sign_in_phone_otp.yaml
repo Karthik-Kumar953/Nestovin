@@ -34,6 +34,9 @@ tags:
     text: "(?i)sign out"
     below:
       text: 'You will need a new code to sign in again\.'
+- tapOn:
+    text: "Skip"
+    optional: true
 - extendedWaitUntil:
     visible: "Sign in or create an account"
     timeout: 15000

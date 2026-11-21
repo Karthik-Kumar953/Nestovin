@@ -97,23 +97,19 @@ export default function HouseholdScreen() {
       refreshing={household.isRefetching || changes.isRefetching}
     >
       {m ? (
-        <Card padded={false}>
+        <Card raised className="flex-row items-center gap-4">
           <Photo
             source={img('community-towers.jpg')}
             fallbackIcon="business-outline"
-            scrim
-            style={{ height: 120 }}
-          >
-            <View className="flex-1 justify-end px-5 pb-3">
-              <Text variant="h3" tone="inverse">
-                {m.communityName}
-              </Text>
-              <Text
-                variant="sm"
-                tone="inverseMuted"
-              >{`${m.towerName} · Flat ${m.flatNumber}`}</Text>
-            </View>
-          </Photo>
+            className="rounded-md"
+            style={{ width: 72, height: 72 }}
+            alt={`${m.communityName} community`}
+          />
+          <View className="flex-1 gap-1">
+            <Text variant="h3">{m.communityName}</Text>
+            <Text variant="body" tone="muted">{`${m.towerName} · Flat ${m.flatNumber}`}</Text>
+            <StatusChip label="Verified residence" tone="success" icon="shield-checkmark" />
+          </View>
         </Card>
       ) : null}
       {household.isLoading ? <SkeletonList count={2} /> : null}
@@ -126,10 +122,8 @@ export default function HouseholdScreen() {
 
       {h ? (
         <Entrance>
-          <Card className="gap-1">
-            <Text variant="h3" className="mb-2">
-              Members
-            </Text>
+          <SectionLabel>Members</SectionLabel>
+          <Card className="gap-1 py-2">
             {h.members.map((x, i) => (
               <View key={x.membershipId}>
                 {i ? <Divider inset={60} /> : null}
@@ -160,20 +154,18 @@ export default function HouseholdScreen() {
 
       {h?.isPrimary ? (
         <Entrance index={1}>
+          <SectionLabel>Family members</SectionLabel>
           <Card className="gap-3">
-            <View className="gap-1">
-              <Text variant="h3">Family members</Text>
-              <Text variant="sm" tone="muted">
-                They sign in with their own number. Our team checks them in person before access
-                starts.
-              </Text>
-            </View>
+            <Text variant="sm" tone="muted">
+              They sign in with their own number. Our team checks them in person before access
+              starts.
+            </Text>
             {h.requests.map((r) => {
               const st = FAMILY_STATUS[r.status];
               return (
                 <View
                   key={r.id}
-                  className="flex-row items-center gap-3 rounded-lg bg-surface-subtle p-3"
+                  className="flex-row items-center gap-3 rounded-md border border-line p-3"
                 >
                   <Avatar name={r.fullName} size={40} />
                   <View className="flex-1 gap-1">
@@ -210,13 +202,11 @@ export default function HouseholdScreen() {
       ) : null}
 
       <Entrance index={2}>
+        <SectionLabel>Residence changes</SectionLabel>
         <Card className="gap-3">
-          <View className="gap-1">
-            <Text variant="h3">Residence changes</Text>
-            <Text variant="sm" tone="muted">
-              Changes to verified details are reviewed by our team.
-            </Text>
-          </View>
+          <Text variant="sm" tone="muted">
+            Changes to verified details are reviewed by our team.
+          </Text>
           {changes.isLoading ? <SkeletonList count={1} /> : null}
           {changes.error && !changes.data ? (
             <ErrorState error={changes.error} onRetry={() => void changes.refetch()} compact />
@@ -230,7 +220,7 @@ export default function HouseholdScreen() {
               tone: 'neutral' as const,
             };
             return (
-              <View key={c.id} className="gap-1 rounded-lg bg-surface-subtle p-3">
+              <View key={c.id} className="gap-1 rounded-md border border-line p-3">
                 <View className="flex-row items-center justify-between gap-2">
                   <Text variant="bodyStrong" className="flex-1">
                     {c.kind === 'MOVE_OUT'
@@ -373,5 +363,13 @@ function AddFamilySheet({
         placeholder="Spouse, parent, child"
       />
     </Sheet>
+  );
+}
+
+function SectionLabel({ children }: { children: string }) {
+  return (
+    <Text variant="label" tone="muted" accessibilityRole="header" className="px-1 mb-2">
+      {children}
+    </Text>
   );
 }
