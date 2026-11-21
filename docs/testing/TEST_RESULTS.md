@@ -1,47 +1,58 @@
 # Test results summary
 
-Run on 21 Nov 2026 by the QA session.
-- **Branch:** `claude/qa-tests-7e2388`
-- **Machine:** Windows 11, Node 24
-- **Database:** shared dev Supabase project
+Latest run: 21 Nov 2026 by the QA session.
 
-| Suite | Command (repo root) | Pass | Fail | Expected fail (known bug) | Skipped | Not run |
-|---|---|---|---|---|---|---|
-| API unit | `corepack pnpm --filter @nestovin/api test` | 1287 | 0 | 2 (BUG-QA-001, -002) | 0 | — |
-| API integration | `corepack pnpm --filter @nestovin/api test:integration` | 118 | 0 | 1 (BUG-QA-003) | 0 | — |
-| Admin E2E (Playwright, signed in) | `corepack pnpm e2e:admin` | 80 | 0 | 0 | 24 (by design, see below) | — |
-| Resident web E2E (Playwright) | `corepack pnpm e2e:resident-web` | — | — | — | — | ⛔ blocked: `apps/resident` has no `react-native-web`; BUG-QA-004 |
-| Maestro (native) | `maestro test apps/resident/.maestro` | — | — | — | — | 🔲 not run: no Maestro or emulator on this machine; Worker app not merged |
+- **Branch:** `claude/qa-tests-7e2388`. It includes `gaps-before-apps` up to 5046085.
+- **Machine:** Windows 11, Node 24.
+- **Database:** the shared dev Supabase project.
 
-Notes:
-- **Unit suite crash.** The first unit run hit the known Windows Vitest worker crash (exit 3221226505) on `route-authz-matrix.test.ts`. One rerun was clean.
-- **Integration duration.** About 17 minutes against the hosted dev database, run sequentially. QA fixtures clean up after themselves; checked by querying for `QA %` rows after a run (0 left).
-- **Admin E2E sign-in.** Uses the E2E Super Admin seeded by the admin-portal session. Its credentials are in the git-ignored `e2e/.env.e2e` and were never printed.
-- **Admin E2E ports.** It runs on its own ports (API 4200, web 3200) so it cannot collide with other sessions' dev servers.
-- **Admin E2E history.** Before the fixes in commit `e692bc4` it failed for test-side reasons only:
-  - label matching of required fields
-  - a form that resets on load
-  - provisioning missing a task
-  - an API dev server restarting in watch mode
-  
-  No admin UI bug reproduced at run time.
+| Suite | Command (repo root) | Pass | Fail | Expected fail (open bug) | Skipped |
+|---|---|---|---|---|---|
+| API unit | `corepack pnpm --filter @nestovin/api test` | 1299 | 0 | 2 (BUG-QA-015 M-17, BUG-QA-017 M-2 race) | 0 |
+| API integration | `corepack pnpm --filter @nestovin/api test:integration` | 131 | 0 | 3 (BUG-QA-016 M-2 grants) | 0 |
+| Admin E2E (Playwright, signed in) | `corepack pnpm e2e:admin` | 80 | 0 | 0 | 24 by design |
+| Resident demo mode (Playwright) | `corepack pnpm e2e:resident-demo` * | 56 | 0 | 7 (BUG-QA-020…024) | 0 |
+| Resident web, mocked auth (Playwright, sign-in + guard) | `corepack pnpm e2e:resident-web` * | 29 | 0 | 2 (BUG-QA-019) | signed-in specs skip without a test phone |
+| Maestro (native) | `maestro test apps/resident/.maestro` | — | — | — | not run yet |
 
-## Admin E2E skips (24): why each one does not run yet
-Most need data that only the mobile apps create. A seeded "demo community" script (lead-owned) would unlock them.
-- Residence verification approve/reject, family request decisions, change-request decisions, resident suspension: these need a real resident from the Resident app.
-- Payments:
-  - refund and resolving an exception need a Razorpay payment;
-  - a booking reminder needs a PENDING_PAYMENT booking;
-  - slot-set "Approve and publish" needs a COMMITTED request.
-- Allocation: assign, cover/replace, and overtime offer/confirm need bookings, visits and the Worker app.
-- Attendance: review, no-show and corrections need Worker-app check-ins.
-- Employees: applicants and leave requests come from the Worker app.
-- Support: reply, note and escalation run only on an open ticket whose subject contains "E2E"; escalating real tickets is avoided.
-- Payroll: approve and pay is opt-in with `E2E_ALLOW_SHARED_WRITES=1`, because approval is irreversible on the shared DB.
-- A few others depend on an earlier serial step, or on no data existing yet.
+\* Until the resident branch is merged, set `E2E_RESIDENT_APP_DIR=<resident-app worktree>/apps/resident`. See `MOBILE_TESTING.md`.
 
-## Known bugs
-See `BUGS.md`.
-- **High:** BUG-QA-003 (webhook pre-emption, API) and BUG-QA-004 (Resident web sign-in).
-- **Medium:** BUG-QA-005 (push tap).
-- **Low:** the rest.
+## Notes
+
+**API integration**
+- 19 files took 32 minutes against the shared database.
+- Every suite now removes its own fixtures. QA suites use `Fixtures.cleanup()` and the older suites use `cleanupSuite()`. Cleanup runs last in `afterAll`, with a 3-minute timeout.
+- After the run, no temporary required checklist item was left active.
+- Run one integration suite per database at a time. See `TEST_STRATEGY.md` → "Running integration suites against the shared dev database".
+
+**Review findings**
+- H-2, H-3 and H-7 are fixed on `gaps-before-apps`, and their tests are now plain assertions.
+- M-17, M-2 (grants) and the M-2 payroll race are still open.
+- None of these tests writes money or payroll data.
+
+**Admin E2E**
+- **Paused:** the signed-in admin specs are paused until the owner confirms the E2E Super Admin. I deleted my copy of its credentials, so they skip again. The 80 / 24 figures above are from the last run while the credentials were present.
+- **Ports:** the suite runs on its own ports (API 4200, web 3200).
+- **Why specs skip:** most of the 24 skipped specs need data only the mobile apps create. Payroll approval only runs when opted in.
+
+**Resident specs**
+- Both projects ran against `claude/resident-app-0932e5` at e539651. Demo mode needs no API and no sign-in, and the web specs mock Supabase and the API. Nothing is written to dev.
+
+**Maestro**
+- The flows are checked against the current app code, and all 28 YAML files pass a static check.
+- They wait for Maestro to be installed and the shared emulator to be free (`MOBILE_TESTING.md`).
+
+**Windows**
+- An occasional Vitest worker crash (exit 3221226505) goes away on a single rerun.
+
+## Bugs
+See `BUGS.md` for every bug's steps, expected vs actual, suspected file:line and test.
+
+| Status | Bugs |
+|---|---|
+| Fixed and merged | 001, 002, 003, 012, 013, 014 |
+| Fixed on the resident branch, merge pending | 004, 005, 006 |
+| Open, API | 015 (M-17), 016 (M-2 grants), 017 (M-2 race) |
+| Open, Resident app | 019 (rate-limit message not shown), 020 (tab bar covers headers on web), 021 (Home cards don't filter), 022–024 (a11y) |
+| Open, Worker app | 018 (push tap re-navigates; found by reading code) |
+| Suspected, admin web (found by reading code) | 007–011 |
