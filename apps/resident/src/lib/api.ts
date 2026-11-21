@@ -1,5 +1,5 @@
 import type { ErrorEnvelope, FieldError } from '@nestovin/contracts';
-import { env } from './env';
+import { demoMode, env } from './env';
 import { supabase } from './supabase';
 
 export class ApiError extends Error {
@@ -18,6 +18,7 @@ export class ApiError extends Error {
 
 /** Calls the Nestovin API with the resident's session. All errors become ApiError. */
 export async function api<T>(path: string, init: { method?: string; body?: unknown; headers?: Record<string, string> } = {}): Promise<T> {
+  if (demoMode) return (await import('./demo')).demoApi<T>(path, init);
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   let res: Response;

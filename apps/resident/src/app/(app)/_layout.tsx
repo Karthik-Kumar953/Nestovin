@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 import { Redirect, Stack, router } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import { useQueryClient } from '@tanstack/react-query';
@@ -15,7 +15,7 @@ export default function AppLayout() {
   const qc = useQueryClient();
 
   useEffect(() => {
-    if (!session) return;
+    if (!session || Platform.OS === 'web') return;
     void registerForPush();
     const open = (resp: Notifications.NotificationResponse | null) => {
       const href = hrefForPush(resp?.notification.request.content.data as Record<string, unknown> | undefined);

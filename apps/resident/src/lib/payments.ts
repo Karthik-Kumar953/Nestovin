@@ -1,5 +1,6 @@
 import type { Checkout, PaymentResult } from '@nestovin/contracts';
 import { api, errorMessage } from './api';
+import { demoMode } from './env';
 
 type RazorpayResult = { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string };
 type RazorpayModule = { open: (options: Record<string, unknown>) => Promise<RazorpayResult> };
@@ -33,6 +34,7 @@ export type PaymentOutcome =
  * (signature plus a server-side fetch). If verification is slow, reconciliation completes it later.
  */
 export async function payWithRazorpay(checkout: Checkout, prefill: { contact?: string; email?: string }): Promise<PaymentOutcome> {
+  if (demoMode) return { state: 'paid', message: 'Demo payment.' };
   const rp = razorpay();
   if (!rp) {
     return { state: 'unavailable', message: 'Payments open in the Nestovin app build, not in Expo Go. Your booking is saved; pay from Bookings in the app build.' };

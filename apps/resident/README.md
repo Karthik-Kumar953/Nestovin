@@ -9,6 +9,15 @@ Expo SDK 58, React Native 0.88, TypeScript and Expo Router (`src/app`). Styling 
 2. Start the API (`corepack pnpm dev:api`). Add your LAN address to `CORS_ORIGINS` only if you use the web preview.
 3. `cd apps/resident && npx expo start`. Scan the QR code with a **development build** (see below) or Expo Go.
 
+## Design review without the API (demo mode, dev only)
+```
+node scripts/demo-web.cjs        # or the "resident-demo" entry in .claude/launch.json
+```
+This runs the app on web at http://localhost:8081 with fixtures from `src/lib/demo.ts`: no API and no sign-in. Add `?demo=new` or `?demo=pending` to see the other Home states.
+- It is gated on `__DEV__ && EXPO_PUBLIC_DEMO=1`, so a release build never serves fixtures.
+- Plan names and prices in the fixtures are placeholders, not the catalogue.
+- On a phone, set `EXPO_PUBLIC_DEMO=1` before `npx expo start` to see the same data.
+
 ## Images
 Photos and illustrations come from `docs/Design/Image_Shot_List.md`. When the owner adds files to `docs/Design/images/`, run:
 ```

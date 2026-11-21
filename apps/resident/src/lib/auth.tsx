@@ -2,6 +2,8 @@ import { createContext, use, useEffect, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
+import { demoMode } from './env';
+import { demoSession } from './demo';
 
 interface AuthState {
   session: Session | null;
@@ -17,6 +19,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    if (demoMode) {
+      setSession(demoSession);
+      setReady(true);
+      return;
+    }
     void supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setReady(true);
