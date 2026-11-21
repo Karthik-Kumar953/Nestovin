@@ -29,9 +29,18 @@ export default function AppLayout() {
   if (!session) return <Redirect href="/sign-in" />;
 
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background }, animation: 'default' }}>
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: colors.background },
+        animation: 'default',
+      }}
+    >
       <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="check-in/[id]" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+      <Stack.Screen
+        name="check-in/[id]"
+        options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+      />
       <Stack.Screen name="payment-result" options={{ animation: 'fade', gestureEnabled: false }} />
     </Stack>
   );

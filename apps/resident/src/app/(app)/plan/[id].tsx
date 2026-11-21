@@ -19,7 +19,12 @@ import {
 } from '@nestovin/ui-native';
 import { useBookingOptions, useCatalogue } from '../../../lib/queries';
 import { daysLabel, rupees, taskFrequency, validity } from '../../../lib/format';
-import { componentSummary, planAvailability, resolveSelection, type ServiceChoice } from '../../../lib/selection';
+import {
+  componentSummary,
+  planAvailability,
+  resolveSelection,
+  type ServiceChoice,
+} from '../../../lib/selection';
 import { SERVICE_VISUAL, img, serviceIcon, serviceKind } from '../../../assets/images';
 import { ErrorState } from '../../../components/common';
 
@@ -34,8 +39,22 @@ export default function PlanDetail() {
     () =>
       plan
         ? [
-            ...(plan.packagePricePaise !== null ? [{ value: 'PACKAGE' as ServiceChoice, label: 'Complete package', detail: 'Every service in this plan', price: plan.packagePricePaise }] : []),
-            ...plan.servicePrices.map((s) => ({ value: s.serviceId as ServiceChoice, label: s.name, detail: null as string | null, price: s.pricePaise })),
+            ...(plan.packagePricePaise !== null
+              ? [
+                  {
+                    value: 'PACKAGE' as ServiceChoice,
+                    label: 'Complete package',
+                    detail: 'Every service in this plan',
+                    price: plan.packagePricePaise,
+                  },
+                ]
+              : []),
+            ...plan.servicePrices.map((s) => ({
+              value: s.serviceId as ServiceChoice,
+              label: s.name,
+              detail: null as string | null,
+              price: s.pricePaise,
+            })),
           ]
         : [],
     [plan],
@@ -47,11 +66,19 @@ export default function PlanDetail() {
   const chosen = serviceId ?? (choices.length === 1 ? choices[0]!.value : null);
   const sel = resolveSelection(catalogue.data, id, chosen, addons);
 
-  if (options.isLoading || catalogue.isLoading) return <Screen title="Plan" onBack={() => router.back()}><SkeletonList count={3} media /></Screen>;
+  if (options.isLoading || catalogue.isLoading)
+    return (
+      <Screen title="Plan" onBack={() => router.back()}>
+        <SkeletonList count={3} media />
+      </Screen>
+    );
   if (!plan || !catalogue.data || !options.data) {
     return (
       <Screen title="Plan" onBack={() => router.back()}>
-        <ErrorState error={options.error ?? catalogue.error ?? new Error('This plan is no longer available.')} onRetry={() => void catalogue.refetch()} />
+        <ErrorState
+          error={options.error ?? catalogue.error ?? new Error('This plan is no longer available.')}
+          onRetry={() => void catalogue.refetch()}
+        />
       </Screen>
     );
   }
@@ -59,12 +86,17 @@ export default function PlanDetail() {
   const avail = planAvailability(catalogue.data, plan, options.data);
   const cycle = avail.cycle;
   const mode = sel.mode ?? avail.mode;
-  const lead = serviceKind(catalogue.data.services.find((s) => s.serviceId === plan.components[0]?.serviceId)?.code);
+  const lead = serviceKind(
+    catalogue.data.services.find((s) => s.serviceId === plan.components[0]?.serviceId)?.code,
+  );
   const visual = SERVICE_VISUAL[lead];
   const shown = sel.base.length ? sel.base : plan.components.filter((c) => !c.isOptionalAddon);
   const tasks = shown.flatMap((c) => c.tasks.map((t) => ({ ...t, key: `${c.id}-${t.name}` })));
   const optional = plan.components.filter((c) => c.isOptionalAddon);
-  const blocked = mode === 'MIXED' || (mode === 'DEMAND_LED' && !cycle) || (mode === 'CONTINUOUS' && !avail.slots.length);
+  const blocked =
+    mode === 'MIXED' ||
+    (mode === 'DEMAND_LED' && !cycle) ||
+    (mode === 'CONTINUOUS' && !avail.slots.length);
   const next = () => {
     if (!chosen) return;
     const params = { planId: plan.id, serviceId: chosen, addons: addons.join(',') };
@@ -76,26 +108,69 @@ export default function PlanDetail() {
       title={plan.name}
       onBack={() => router.back()}
       hero={
-        <Photo source={visual.photo ? img(visual.photo) : null} fallbackIcon={visual.icon} fallbackTone={visual.tone} scrim style={{ height: 300 + insets.top }}>
+        <Photo
+          source={visual.photo ? img(visual.photo) : null}
+          fallbackIcon={visual.icon}
+          fallbackTone={visual.tone}
+          scrim
+          style={{ height: 300 + insets.top }}
+        >
           <View className="flex-1 justify-end px-gutter pb-6 gap-2">
             <View className="flex-row flex-wrap gap-2">
-              <StatusChip label={mode === 'DEMAND_LED' ? 'Booking round' : mode === 'CONTINUOUS' ? 'Start within 14 days' : 'Choose a service'} tone="inverse" icon={mode === 'DEMAND_LED' ? 'time-outline' : 'flash-outline'} />
-              <StatusChip label={validity(plan.validityDays)} tone="inverse" icon="calendar-outline" />
-              {catalogue.data.residenceCategory ? <StatusChip label={catalogue.data.residenceCategory.label} tone="inverse" icon="home-outline" /> : null}
+              <StatusChip
+                label={
+                  mode === 'DEMAND_LED'
+                    ? 'Booking round'
+                    : mode === 'CONTINUOUS'
+                      ? 'Start within 14 days'
+                      : 'Choose a service'
+                }
+                tone="inverse"
+                icon={mode === 'DEMAND_LED' ? 'time-outline' : 'flash-outline'}
+              />
+              <StatusChip
+                label={validity(plan.validityDays)}
+                tone="inverse"
+                icon="calendar-outline"
+              />
+              {catalogue.data.residenceCategory ? (
+                <StatusChip
+                  label={catalogue.data.residenceCategory.label}
+                  tone="inverse"
+                  icon="home-outline"
+                />
+              ) : null}
             </View>
-            <Text variant="display" tone="inverse">{plan.name}</Text>
-            {plan.description ? <Text variant="body" tone="inverseMuted">{plan.description}</Text> : null}
+            <Text variant="display" tone="inverse">
+              {plan.name}
+            </Text>
+            {plan.description ? (
+              <Text variant="body" tone="inverseMuted">
+                {plan.description}
+              </Text>
+            ) : null}
           </View>
         </Photo>
       }
       footer={
         <View className="flex-row items-center gap-4">
           <View className="flex-shrink">
-            <Text variant="caption" tone="muted">{mode === 'DEMAND_LED' ? `Total for ${validity(plan.validityDays)}, incl. taxes` : 'Pay now, incl. taxes'}</Text>
-            <Text variant="h2" className="text-charcoal" style={{ fontVariant: ['tabular-nums'] }}>{sel.total !== null ? rupees(sel.total) : 'Choose'}</Text>
+            <Text variant="caption" tone="muted">
+              {mode === 'DEMAND_LED'
+                ? `Total for ${validity(plan.validityDays)}, incl. taxes`
+                : 'Pay now, incl. taxes'}
+            </Text>
+            <Text variant="h2" className="text-charcoal" style={{ fontVariant: ['tabular-nums'] }}>
+              {sel.total !== null ? rupees(sel.total) : 'Choose'}
+            </Text>
           </View>
           <View className="flex-1">
-            <Button title={mode === 'DEMAND_LED' ? 'Join booking round' : 'Choose a slot'} iconRight="arrow-forward" disabled={!chosen || blocked} onPress={next} />
+            <Button
+              title={mode === 'DEMAND_LED' ? 'Join booking round' : 'Choose a slot'}
+              iconRight="arrow-forward"
+              disabled={!chosen || blocked}
+              onPress={next}
+            />
           </View>
         </View>
       }
@@ -106,9 +181,22 @@ export default function PlanDetail() {
             ? 'Join the round with your preferred times. Your slot and start date are confirmed after the round closes.'
             : 'Pick an available slot and a start date from tomorrow up to 14 days ahead.'}
         </Text>
-        {mode === 'MIXED' ? <Banner tone="warning" title="Book these separately">These services are booked in different ways in your community. Choose one service at a time.</Banner> : null}
-        {mode === 'DEMAND_LED' && !cycle ? <Banner tone="info" title="No booking round is open">We will notify you when the next round for this plan opens.</Banner> : null}
-        {mode === 'CONTINUOUS' && !avail.slots.length ? <Banner tone="info" title="No slots free right now">All slots for this plan are taken. Check back soon.</Banner> : null}
+        {mode === 'MIXED' ? (
+          <Banner tone="warning" title="Book these separately">
+            These services are booked in different ways in your community. Choose one service at a
+            time.
+          </Banner>
+        ) : null}
+        {mode === 'DEMAND_LED' && !cycle ? (
+          <Banner tone="info" title="No booking round is open">
+            We will notify you when the next round for this plan opens.
+          </Banner>
+        ) : null}
+        {mode === 'CONTINUOUS' && !avail.slots.length ? (
+          <Banner tone="info" title="No slots free right now">
+            All slots for this plan are taken. Check back soon.
+          </Banner>
+        ) : null}
 
         {choices.length > 1 ? (
           <View className="gap-3">
@@ -124,7 +212,11 @@ export default function PlanDetail() {
                     setServiceId(c.value);
                     setAddons([]);
                   }}
-                  meta={<Text variant="bodyStrong" style={{ fontVariant: ['tabular-nums'] }}>{rupees(c.price)}</Text>}
+                  meta={
+                    <Text variant="bodyStrong" style={{ fontVariant: ['tabular-nums'] }}>
+                      {rupees(c.price)}
+                    </Text>
+                  }
                 />
               </Entrance>
             ))}
@@ -138,8 +230,15 @@ export default function PlanDetail() {
               <IconTile icon={serviceIcon(c.name)} size={40} />
               <View className="flex-1 gap-0.5">
                 <Text variant="bodyStrong">{c.name}</Text>
-                <Text variant="sm" tone="muted">{componentSummary(c, daysLabel)}</Text>
-                {c.timeWindow ? <Text variant="sm" tone="muted">{`${c.timeWindow.startTime} to ${c.timeWindow.endTime}`}</Text> : null}
+                <Text variant="sm" tone="muted">
+                  {componentSummary(c, daysLabel)}
+                </Text>
+                {c.timeWindow ? (
+                  <Text
+                    variant="sm"
+                    tone="muted"
+                  >{`${c.timeWindow.startTime} to ${c.timeWindow.endTime}`}</Text>
+                ) : null}
               </View>
             </View>
           ))}
@@ -148,13 +247,24 @@ export default function PlanDetail() {
               {(showAllTasks ? tasks : tasks.slice(0, 4)).map((t) => (
                 <View key={t.key} className="flex-row items-center gap-2.5">
                   <Icon name="checkmark-circle" size={18} color={colors.greenAction} />
-                  <Text variant="body" className="flex-1">{t.name}</Text>
-                  <Text variant="sm" tone="muted">{taskFrequency(t.frequency, t.timesPerPeriod)}</Text>
+                  <Text variant="body" className="flex-1">
+                    {t.name}
+                  </Text>
+                  <Text variant="sm" tone="muted">
+                    {taskFrequency(t.frequency, t.timesPerPeriod)}
+                  </Text>
                 </View>
               ))}
               {tasks.length > 4 ? (
-                <Pressable onPress={() => setShowAllTasks(!showAllTasks)} accessibilityRole="button" aria-expanded={showAllTasks} className="min-h-[44px] justify-center">
-                  <Text variant="label" tone="brand">{showAllTasks ? 'Show fewer tasks' : `Show all ${tasks.length} tasks`}</Text>
+                <Pressable
+                  onPress={() => setShowAllTasks(!showAllTasks)}
+                  accessibilityRole="button"
+                  aria-expanded={showAllTasks}
+                  className="min-h-[44px] justify-center"
+                >
+                  <Text variant="label" tone="brand">
+                    {showAllTasks ? 'Show fewer tasks' : `Show all ${tasks.length} tasks`}
+                  </Text>
                 </Pressable>
               ) : null}
             </View>
@@ -172,10 +282,18 @@ export default function PlanDetail() {
                   kind="checkbox"
                   icon={serviceIcon(c.name)}
                   title={`Add ${c.name}`}
-                  description={c.addonHours ? `${c.addonHours} hours a day · ${daysLabel(c.daysOfWeek)}` : componentSummary(c, daysLabel)}
+                  description={
+                    c.addonHours
+                      ? `${c.addonHours} hours a day · ${daysLabel(c.daysOfWeek)}`
+                      : componentSummary(c, daysLabel)
+                  }
                   selected={on}
-                  onPress={() => setAddons(on ? addons.filter((x) => x !== c.id) : [...addons, c.id])}
-                  meta={<Text variant="label" tone="brand">{`+${rupees(c.addonPricePaise ?? 0)}`}</Text>}
+                  onPress={() =>
+                    setAddons(on ? addons.filter((x) => x !== c.id) : [...addons, c.id])
+                  }
+                  meta={
+                    <Text variant="label" tone="brand">{`+${rupees(c.addonPricePaise ?? 0)}`}</Text>
+                  }
                 />
               );
             })}
@@ -183,9 +301,18 @@ export default function PlanDetail() {
         ) : null}
 
         <Card tone="subtle" padded={false}>
-          <Pressable onPress={() => setShowTerms(!showTerms)} accessibilityRole="button" aria-expanded={showTerms} className="flex-row items-center justify-between min-h-[56px] px-5">
+          <Pressable
+            onPress={() => setShowTerms(!showTerms)}
+            accessibilityRole="button"
+            aria-expanded={showTerms}
+            className="flex-row items-center justify-between min-h-[56px] px-5"
+          >
             <Text variant="bodyStrong">Payment conditions</Text>
-            <Icon name={showTerms ? 'chevron-up' : 'chevron-down'} size="sm" color={colors.textSecondary} />
+            <Icon
+              name={showTerms ? 'chevron-up' : 'chevron-down'}
+              size="sm"
+              color={colors.textSecondary}
+            />
           </Pressable>
           {showTerms ? (
             <View className="px-5 pb-5 gap-2">
@@ -194,7 +321,10 @@ export default function PlanDetail() {
                   ? `You pay ${cycle.initialPct}% now to join the round. This part is non-refundable. The balance is due by the deadline shown once your slot is confirmed.`
                   : 'You pay the full amount now. Your service is confirmed only after payment succeeds and the slot is still available.'}
               </Text>
-              <Text variant="sm" tone="muted">Prices include taxes. The plan, tasks and prices are fixed for your booking when you pay.</Text>
+              <Text variant="sm" tone="muted">
+                Prices include taxes. The plan, tasks and prices are fixed for your booking when you
+                pay.
+              </Text>
             </View>
           ) : null}
         </Card>

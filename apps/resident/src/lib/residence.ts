@@ -12,8 +12,16 @@ export const bookingNotOpenReason = (o: BookingOptions): NotOpenReason => o.reas
  * (same document id, fresh storage key and token). The API answers 409 if the review is already
  * decided or the document is already uploaded; that message is shown as is.
  */
-export const requestReupload = (document: { docType: string; fileName: string; mimeType: string; sizeBytes: number }) =>
-  api<ResidenceRegistrationResult>('/v1/resident/residence/document', { method: 'POST', body: { document } });
+export const requestReupload = (document: {
+  docType: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+}) =>
+  api<ResidenceRegistrationResult>('/v1/resident/residence/document', {
+    method: 'POST',
+    body: { document },
+  });
 
 export interface RememberedFlat {
   cityId?: string;
@@ -43,7 +51,8 @@ export async function rejectedFlat(me: ResidentMe | undefined): Promise<Remember
   return local;
 }
 
-export const rememberFlat = (f: RememberedFlat) => AsyncStorage.setItem(KEY, JSON.stringify(f)).catch(() => undefined);
+export const rememberFlat = (f: RememberedFlat) =>
+  AsyncStorage.setItem(KEY, JSON.stringify(f)).catch(() => undefined);
 
 async function recallFlat(): Promise<RememberedFlat | null> {
   try {

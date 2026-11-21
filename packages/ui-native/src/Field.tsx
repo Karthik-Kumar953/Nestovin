@@ -14,16 +14,45 @@ export type FieldProps = TextInputProps & {
 };
 
 /** Text input with a persistent label, helper text and a field-level error (announced). 52 tall; multiline grows. */
-export function Field({ label, helper, error, prefix, optional, multiline, onFocus, onBlur, style, ref, ...input }: FieldProps) {
+export function Field({
+  label,
+  helper,
+  error,
+  prefix,
+  optional,
+  multiline,
+  onFocus,
+  onBlur,
+  style,
+  ref,
+  ...input
+}: FieldProps) {
   const [focused, setFocused] = useState(false);
   const border = error ? 'border-error-text' : focused ? 'border-teal' : 'border-line';
   return (
     <View className="gap-1.5">
       <Text variant="label">
         {label}
-        {optional ? <Text variant="sm" tone="muted"> (optional)</Text> : null}
+        {optional ? (
+          <Text variant="sm" tone="muted">
+            {' '}
+            (optional)
+          </Text>
+        ) : null}
       </Text>
-      <View className={`flex-row items-center rounded-md border-[1.5px] bg-white ${border} ${multiline ? 'items-start' : ''}`} style={focused && !error ? { shadowColor: colors.tealAction, shadowOpacity: 0.12, shadowRadius: 6, shadowOffset: { width: 0, height: 0 } } : undefined}>
+      <View
+        className={`flex-row items-center rounded-md border-[1.5px] bg-white ${border} ${multiline ? 'items-start' : ''}`}
+        style={
+          focused && !error
+            ? {
+                shadowColor: colors.tealAction,
+                shadowOpacity: 0.12,
+                shadowRadius: 6,
+                shadowOffset: { width: 0, height: 0 },
+              }
+            : undefined
+        }
+      >
         {prefix ? <View className="pl-4 pr-1">{prefix}</View> : null}
         <TextInput
           ref={ref}
@@ -41,13 +70,26 @@ export function Field({ label, helper, error, prefix, optional, multiline, onFoc
             onBlur?.(e);
           }}
           style={[
-            { flex: 1, minHeight: multiline ? 120 : 52, paddingHorizontal: 16, paddingVertical: multiline ? 14 : 0, fontFamily: fonts.body, fontSize: 16, color: colors.textPrimary, textAlignVertical: multiline ? 'top' : 'center' },
+            {
+              flex: 1,
+              minHeight: multiline ? 120 : 52,
+              paddingHorizontal: 16,
+              paddingVertical: multiline ? 14 : 0,
+              fontFamily: fonts.body,
+              fontSize: 16,
+              color: colors.textPrimary,
+              textAlignVertical: multiline ? 'top' : 'center',
+            },
             style,
           ]}
         />
       </View>
       {error ? (
-        <View className="flex-row items-center gap-1.5" accessibilityLiveRegion="polite" accessibilityRole="alert">
+        <View
+          className="flex-row items-center gap-1.5"
+          accessibilityLiveRegion="polite"
+          accessibilityRole="alert"
+        >
           <Icon name="alert-circle" size={16} color={colors.errorText} />
           <Text variant="sm" tone="error" className="flex-1">
             {error}

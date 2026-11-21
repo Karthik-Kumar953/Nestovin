@@ -35,13 +35,34 @@ export function Photo({
   const [failed, setFailed] = useState(false);
   const show = source != null && !failed;
   return (
-    <View className={`overflow-hidden ${className}`} style={style} accessible={Boolean(alt)} accessibilityRole={alt ? 'image' : undefined} accessibilityLabel={alt}>
+    <View
+      className={`overflow-hidden ${className}`}
+      style={style}
+      accessible={Boolean(alt)}
+      accessibilityRole={alt ? 'image' : undefined}
+      accessibilityLabel={alt}
+    >
       {show ? (
-        <Image source={source} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition={contentPosition} transition={250} onError={() => setFailed(true)} accessible={false} />
+        <Image
+          source={source}
+          style={StyleSheet.absoluteFill}
+          contentFit="cover"
+          contentPosition={contentPosition}
+          transition={250}
+          onError={() => setFailed(true)}
+          accessible={false}
+        />
       ) : (
         <Fallback icon={fallbackIcon} tone={fallbackTone} />
       )}
-      {scrim ? <LinearGradient colors={gradients.scrimBottom} start={{ x: 0.5, y: 0.25 }} end={{ x: 0.5, y: 1 }} style={StyleSheet.absoluteFill} /> : null}
+      {scrim ? (
+        <LinearGradient
+          colors={gradients.scrimBottom}
+          start={{ x: 0.5, y: 0.25 }}
+          end={{ x: 0.5, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+      ) : null}
       {children}
     </View>
   );
@@ -51,10 +72,46 @@ function Fallback({ icon, tone }: { icon: IconName; tone: 'brand' | 'mint' | 'du
   const light = tone === 'mint';
   return (
     <View style={StyleSheet.absoluteFill} accessible={false}>
-      <LinearGradient colors={gradients[tone]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-      <View style={[styles.ring, { width: 220, height: 220, right: -60, top: -70, borderColor: light ? 'rgba(0,121,107,0.10)' : 'rgba(255,255,255,0.14)' }]} />
-      <View style={[styles.ring, { width: 140, height: 140, right: -10, top: -20, borderColor: light ? 'rgba(0,121,107,0.12)' : 'rgba(255,255,255,0.18)' }]} />
-      <View style={[styles.blob, { left: -40, bottom: -50, backgroundColor: light ? 'rgba(67,160,71,0.10)' : 'rgba(67,160,71,0.28)' }]} />
+      <LinearGradient
+        colors={gradients[tone]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+      <View
+        style={[
+          styles.ring,
+          {
+            width: 220,
+            height: 220,
+            right: -60,
+            top: -70,
+            borderColor: light ? 'rgba(0,121,107,0.10)' : 'rgba(255,255,255,0.14)',
+          },
+        ]}
+      />
+      <View
+        style={[
+          styles.ring,
+          {
+            width: 140,
+            height: 140,
+            right: -10,
+            top: -20,
+            borderColor: light ? 'rgba(0,121,107,0.12)' : 'rgba(255,255,255,0.18)',
+          },
+        ]}
+      />
+      <View
+        style={[
+          styles.blob,
+          {
+            left: -40,
+            bottom: -50,
+            backgroundColor: light ? 'rgba(67,160,71,0.10)' : 'rgba(67,160,71,0.28)',
+          },
+        ]}
+      />
       <View style={styles.icon}>
         <Icon name={icon} size={40} color={light ? colors.tealAction : 'rgba(255,255,255,0.9)'} />
       </View>
@@ -63,7 +120,15 @@ function Fallback({ icon, tone }: { icon: IconName; tone: 'brand' | 'mint' | 'du
 }
 
 /** Round avatar: photo when available, else initials on mint. */
-export function Avatar({ source, name, size = 48 }: { source?: ImageSource | number | null; name?: string | null; size?: number }) {
+export function Avatar({
+  source,
+  name,
+  size = 48,
+}: {
+  source?: ImageSource | number | null;
+  name?: string | null;
+  size?: number;
+}) {
   const [failed, setFailed] = useState(false);
   const initials = (name ?? '')
     .split(/\s+/)
@@ -72,11 +137,24 @@ export function Avatar({ source, name, size = 48 }: { source?: ImageSource | num
     .map((p) => p[0]?.toUpperCase())
     .join('');
   return (
-    <View style={{ width: size, height: size, borderRadius: size / 2 }} className="overflow-hidden bg-teal-100 items-center justify-center border-2 border-white" accessible={false}>
+    <View
+      style={{ width: size, height: size, borderRadius: size / 2 }}
+      className="overflow-hidden bg-teal-100 items-center justify-center border-2 border-white"
+      accessible={false}
+    >
       {source != null && !failed ? (
-        <Image source={source} style={StyleSheet.absoluteFill} contentFit="cover" onError={() => setFailed(true)} />
+        <Image
+          source={source}
+          style={StyleSheet.absoluteFill}
+          contentFit="cover"
+          onError={() => setFailed(true)}
+        />
       ) : initials ? (
-        <Text variant="label" tone="brand" style={{ fontSize: size * 0.36, lineHeight: size * 0.44 }}>
+        <Text
+          variant="label"
+          tone="brand"
+          style={{ fontSize: size * 0.36, lineHeight: size * 0.44 }}
+        >
           {initials}
         </Text>
       ) : (

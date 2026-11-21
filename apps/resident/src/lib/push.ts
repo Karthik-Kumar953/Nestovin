@@ -7,7 +7,12 @@ import { api } from './api';
 import { hrefForPush } from './deeplinks';
 
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: false, shouldSetBadge: false }),
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
 });
 
 /**
@@ -20,14 +25,21 @@ export async function registerForPush(): Promise<'registered' | 'denied' | 'unav
     if (!Device.isDevice) return 'unavailable';
     if (Platform.OS === 'android') {
       // Android 13+: the channel must exist before asking, or no prompt appears.
-      await Notifications.setNotificationChannelAsync('default', { name: 'Updates', importance: Notifications.AndroidImportance.DEFAULT });
+      await Notifications.setNotificationChannelAsync('default', {
+        name: 'Updates',
+        importance: Notifications.AndroidImportance.DEFAULT,
+      });
     }
     const current = await Notifications.getPermissionsAsync();
-    let granted = current.granted || current.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
+    let granted =
+      current.granted || current.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
     if (!granted) granted = (await Notifications.requestPermissionsAsync()).granted;
     if (!granted) return 'denied';
     const token = await Notifications.getDevicePushTokenAsync();
-    await api('/v1/resident/devices', { method: 'POST', body: { token: String(token.data), platform: Platform.OS === 'ios' ? 'ios' : 'android' } });
+    await api('/v1/resident/devices', {
+      method: 'POST',
+      body: { token: String(token.data), platform: Platform.OS === 'ios' ? 'ios' : 'android' },
+    });
     return 'registered';
   } catch {
     // Missing Firebase config (google-services.json) or Expo Go: in-app inbox still works.
@@ -44,7 +56,9 @@ function openFromResponse(resp: Notifications.NotificationResponse | null) {
   if (handled.has(id)) return;
   handled.add(id);
   // The API sends `eventType` plus the event's own fields (all strings) in the push data.
-  const href = hrefForPush(resp.notification.request.content.data as Record<string, unknown> | undefined);
+  const href = hrefForPush(
+    resp.notification.request.content.data as Record<string, unknown> | undefined,
+  );
   if (href) router.push(href);
 }
 
@@ -55,7 +69,9 @@ function openFromResponse(resp: Notifications.NotificationResponse | null) {
 export function usePushNavigation(enabled: boolean, onReceived?: () => void) {
   useEffect(() => {
     if (!enabled || Platform.OS === 'web') return;
-    void Notifications.getLastNotificationResponseAsync().then(openFromResponse).catch(() => undefined);
+    void Notifications.getLastNotificationResponseAsync()
+      .then(openFromResponse)
+      .catch(() => undefined);
     const tap = Notifications.addNotificationResponseReceivedListener(openFromResponse);
     const recv = Notifications.addNotificationReceivedListener(() => onReceived?.());
     return () => {

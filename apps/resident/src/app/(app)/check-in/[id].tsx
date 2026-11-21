@@ -4,9 +4,26 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useMutation } from '@tanstack/react-query';
 import QRCode from 'react-native-qrcode-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { Easing, FadeIn, ZoomIn, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, {
+  Easing,
+  FadeIn,
+  ZoomIn,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import type { VisitCode } from '@nestovin/contracts';
-import { Banner, Button, IconButton, Illustration, Skeleton, Text, colors, haptics } from '@nestovin/ui-native';
+import {
+  Banner,
+  Button,
+  IconButton,
+  Illustration,
+  Skeleton,
+  Text,
+  colors,
+  haptics,
+} from '@nestovin/ui-native';
 import { api, errorMessage } from '../../../lib/api';
 import { useVisit } from '../../../lib/queries';
 import { time } from '../../../lib/format';
@@ -37,18 +54,30 @@ export default function CheckIn() {
   }, [issue]);
 
   return (
-    <View className="flex-1 bg-white" style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 16 }}>
+    <View
+      className="flex-1 bg-white"
+      style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 16 }}
+    >
       <View className="flex-row items-center justify-between px-4">
         <View className="w-11" />
-        <Text variant="bodyStrong" className="text-charcoal">Check-in code</Text>
+        <Text variant="bodyStrong" className="text-charcoal">
+          Check-in code
+        </Text>
         <IconButton icon="close" label="Close" onPress={() => router.back()} tone="plain" />
       </View>
 
       <View className="flex-1 px-gutter pt-4 gap-6">
         <View className="items-center gap-1">
-          <Text variant="h2" className="text-center">{visit.data?.workerName ? `Show this to ${visit.data.workerName}` : 'Show this to your worker'}</Text>
+          <Text variant="h2" className="text-center">
+            {visit.data?.workerName
+              ? `Show this to ${visit.data.workerName}`
+              : 'Show this to your worker'}
+          </Text>
           <Text variant="body" tone="muted" className="text-center">
-            {visit.data ? `${visit.data.serviceName}${visit.data.startsAt ? ` · ${time(visit.data.startsAt)}` : ''}. ` : ''}They type the code or scan the QR when they arrive.
+            {visit.data
+              ? `${visit.data.serviceName}${visit.data.startsAt ? ` · ${time(visit.data.startsAt)}` : ''}. `
+              : ''}
+            They type the code or scan the QR when they arrive.
           </Text>
         </View>
 
@@ -63,33 +92,65 @@ export default function CheckIn() {
           </View>
         ) : issue.error && !code ? (
           <View className="items-center gap-4">
-            <Illustration source={img('ill-checkin-phone.png')} icon="qr-code-outline" tone="error" size={140} />
-            <Banner tone="error" title="We could not get a code">{errorMessage(issue.error)}</Banner>
-            <Button title="Try again" variant="secondary" icon="refresh" onPress={() => issue.mutate()} />
+            <Illustration
+              source={img('ill-checkin-phone.png')}
+              icon="qr-code-outline"
+              tone="error"
+              size={140}
+            />
+            <Banner tone="error" title="We could not get a code">
+              {errorMessage(issue.error)}
+            </Banner>
+            <Button
+              title="Try again"
+              variant="secondary"
+              icon="refresh"
+              onPress={() => issue.mutate()}
+            />
           </View>
         ) : code ? (
-          <CodeView key={code.otp + code.expiresAt} code={code} onRenew={() => issue.mutate()} renewing={issue.isPending} />
+          <CodeView
+            key={code.otp + code.expiresAt}
+            code={code}
+            onRenew={() => issue.mutate()}
+            renewing={issue.isPending}
+          />
         ) : null}
       </View>
 
       <View className="px-gutter gap-2">
-        <Text variant="sm" tone="muted" className="text-center">Never share this code by phone or message. It works once, only for this visit.</Text>
+        <Text variant="sm" tone="muted" className="text-center">
+          Never share this code by phone or message. It works once, only for this visit.
+        </Text>
         <Button title="Done" variant="secondary" onPress={() => router.back()} />
       </View>
     </View>
   );
 }
 
-function CodeView({ code, onRenew, renewing }: { code: VisitCode; onRenew: () => void; renewing: boolean }) {
+function CodeView({
+  code,
+  onRenew,
+  renewing,
+}: {
+  code: VisitCode;
+  onRenew: () => void;
+  renewing: boolean;
+}) {
   const reduce = useReducedMotion();
   const total = useRef(Math.max(1, new Date(code.expiresAt).getTime() - Date.now())).current;
-  const [left, setLeft] = useState(() => Math.max(0, new Date(code.expiresAt).getTime() - Date.now()));
+  const [left, setLeft] = useState(() =>
+    Math.max(0, new Date(code.expiresAt).getTime() - Date.now()),
+  );
   const bar = useSharedValue(1);
   const initial = useRef(left).current;
   useEffect(() => {
     bar.value = initial / total;
     bar.value = withTiming(0, { duration: initial, easing: Easing.linear });
-    const t = setInterval(() => setLeft(Math.max(0, new Date(code.expiresAt).getTime() - Date.now())), 1000);
+    const t = setInterval(
+      () => setLeft(Math.max(0, new Date(code.expiresAt).getTime() - Date.now())),
+      1000,
+    );
     return () => clearInterval(t);
   }, [code.expiresAt, bar, initial, total]);
   const barStyle = useAnimatedStyle(() => ({ transform: [{ scaleX: bar.value }] }));
@@ -99,31 +160,84 @@ function CodeView({ code, onRenew, renewing }: { code: VisitCode; onRenew: () =>
 
   return (
     <View className="items-center gap-6">
-      <View className="flex-row gap-2" accessible accessibilityLabel={`Code ${code.otp.split('').join(' ')}`} accessibilityLiveRegion="polite">
+      <View
+        className="flex-row gap-2"
+        accessible
+        accessibilityLabel={`Code ${code.otp.split('').join(' ')}`}
+        accessibilityLiveRegion="polite"
+      >
         {code.otp.split('').map((d, i) => (
-          <Animated.View key={i} entering={reduce ? FadeIn.duration(150) : ZoomIn.delay(80 + i * 70).springify().damping(12)}>
-            <View className={`h-[64px] w-[46px] rounded-md items-center justify-center ${expired ? 'bg-surface-subtle' : 'bg-teal-50 border-[1.5px] border-teal-200'}`}>
-            <Text variant="title" className={expired ? 'text-ink-3' : 'text-charcoal'} style={{ fontVariant: ['tabular-nums'] }}>{d}</Text>
+          <Animated.View
+            key={i}
+            entering={
+              reduce
+                ? FadeIn.duration(150)
+                : ZoomIn.delay(80 + i * 70)
+                    .springify()
+                    .damping(12)
+            }
+          >
+            <View
+              className={`h-[64px] w-[46px] rounded-md items-center justify-center ${expired ? 'bg-surface-subtle' : 'bg-teal-50 border-[1.5px] border-teal-200'}`}
+            >
+              <Text
+                variant="title"
+                className={expired ? 'text-ink-3' : 'text-charcoal'}
+                style={{ fontVariant: ['tabular-nums'] }}
+              >
+                {d}
+              </Text>
             </View>
           </Animated.View>
         ))}
       </View>
 
-      <Animated.View entering={reduce ? FadeIn.duration(150) : ZoomIn.delay(560).duration(320)} style={{ opacity: expired ? 0.25 : 1 }}>
-        <View className="rounded-xl border border-line bg-white p-4" accessible accessibilityLabel="QR code for the worker to scan">
-        <QRCode value={code.qr} size={196} color={colors.charcoal} backgroundColor="#FFFFFF" />
+      <Animated.View
+        entering={reduce ? FadeIn.duration(150) : ZoomIn.delay(560).duration(320)}
+        style={{ opacity: expired ? 0.25 : 1 }}
+      >
+        <View
+          className="rounded-xl border border-line bg-white p-4"
+          accessible
+          accessibilityLabel="QR code for the worker to scan"
+        >
+          <QRCode value={code.qr} size={196} color={colors.charcoal} backgroundColor="#FFFFFF" />
         </View>
       </Animated.View>
 
       <View className="self-stretch gap-2">
         <View className="h-1.5 rounded-full bg-teal-100 overflow-hidden">
-          <Animated.View style={[barStyle, { width: '100%', height: '100%', borderRadius: 999, transformOrigin: 'left', backgroundColor: secs < 60 ? colors.warning : colors.tealAction }]} />
+          <Animated.View
+            style={[
+              barStyle,
+              {
+                width: '100%',
+                height: '100%',
+                borderRadius: 999,
+                transformOrigin: 'left',
+                backgroundColor: secs < 60 ? colors.warning : colors.tealAction,
+              },
+            ]}
+          />
         </View>
-        <Text variant="label" tone={expired ? 'error' : secs < 60 ? 'warning' : 'muted'} className="text-center" accessibilityLiveRegion="polite">
+        <Text
+          variant="label"
+          tone={expired ? 'error' : secs < 60 ? 'warning' : 'muted'}
+          className="text-center"
+          accessibilityLiveRegion="polite"
+        >
           {expired ? 'This code has expired' : `Valid for ${mmss}`}
         </Text>
       </View>
-      {expired || secs < 60 ? <Button title="Get a new code" icon="refresh" variant={expired ? 'primary' : 'secondary'} loading={renewing} onPress={onRenew} /> : null}
+      {expired || secs < 60 ? (
+        <Button
+          title="Get a new code"
+          icon="refresh"
+          variant={expired ? 'primary' : 'secondary'}
+          loading={renewing}
+          onPress={onRenew}
+        />
+      ) : null}
     </View>
   );
 }

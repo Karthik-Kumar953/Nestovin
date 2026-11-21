@@ -25,7 +25,11 @@ export function Entrance({
   const wait = delay + Math.min(index, 10) * motion.stagger;
   const entering = reduce
     ? FadeIn.duration(motion.fast)
-    : FadeInDown.delay(wait).springify().damping(motion.spring.damping).stiffness(motion.spring.stiffness).mass(motion.spring.mass);
+    : FadeInDown.delay(wait)
+        .springify()
+        .damping(motion.spring.damping)
+        .stiffness(motion.spring.stiffness)
+        .mass(motion.spring.mass);
   return (
     <Animated.View entering={entering} exiting={FadeOut.duration(motion.fast)} style={style}>
       {className ? <View className={className}>{children}</View> : children}

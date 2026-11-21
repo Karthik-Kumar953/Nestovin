@@ -2,13 +2,25 @@
 
 // Formatters are created once (Intl objects are expensive to build per render).
 const INR_WHOLE = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
-const INR_PAISE = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const F_DAY = new Intl.DateTimeFormat('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+const INR_PAISE = new Intl.NumberFormat('en-IN', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+const F_DAY = new Intl.DateTimeFormat('en-IN', {
+  weekday: 'short',
+  day: 'numeric',
+  month: 'short',
+});
 const F_SHORT = new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short' });
 const F_LONG = new Intl.DateTimeFormat('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
 const F_WEEKDAY = new Intl.DateTimeFormat('en-IN', { weekday: 'short' });
 const F_MONTH_SHORT = new Intl.DateTimeFormat('en-IN', { month: 'short' });
-const F_DATETIME = new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+const F_DATETIME = new Intl.DateTimeFormat('en-IN', {
+  day: 'numeric',
+  month: 'short',
+  hour: 'numeric',
+  minute: '2-digit',
+});
 const F_TIME = new Intl.DateTimeFormat('en-IN', { hour: 'numeric', minute: '2-digit' });
 const F_MONTH = new Intl.DateTimeFormat('en-IN', { month: 'long', year: 'numeric' });
 
@@ -19,7 +31,8 @@ export function rupees(paise: number): string {
 /** Parses a calendar date (YYYY-MM-DD) as a local date, never shifting a day across time zones. */
 export const localDate = (ymd: string) => new Date(`${ymd.slice(0, 10)}T00:00:00`);
 
-export const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+export const ymd = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 export const today = () => ymd(new Date());
 export const addDays = (d: Date, n: number) => {
   const x = new Date(d);
@@ -62,28 +75,50 @@ export const relative = (iso: string) => {
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 /** Bitmask Mon=1 … Sun=64 → "Every day", "Mon to Sat", "Mon, Wed, Fri". */
-export const daysLabel = (m: number) => (m === 127 ? 'Every day' : m === 63 ? 'Mon to Sat' : m === 31 ? 'Mon to Fri' : DAYS.filter((_, i) => m & (1 << i)).join(', '));
+export const daysLabel = (m: number) =>
+  m === 127
+    ? 'Every day'
+    : m === 63
+      ? 'Mon to Sat'
+      : m === 31
+        ? 'Mon to Fri'
+        : DAYS.filter((_, i) => m & (1 << i)).join(', ');
 
 export const greeting = () => {
   const h = new Date().getHours();
   return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
 };
 
-export const firstName = (full: string | null | undefined) => (full ?? '').trim().split(/\s+/)[0] || null;
+export const firstName = (full: string | null | undefined) =>
+  (full ?? '').trim().split(/\s+/)[0] || null;
 
-export const validity = (days: number) => (days % 30 === 0 ? `${days / 30} month${days > 30 ? 's' : ''}` : `${days} days`);
+export const validity = (days: number) =>
+  days % 30 === 0 ? `${days / 30} month${days > 30 ? 's' : ''}` : `${days} days`;
 
-export const bytes = (n: number) => (n > 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
+export const bytes = (n: number) =>
+  n > 1024 * 1024
+    ? `${(n / 1024 / 1024).toFixed(1)} MB`
+    : `${Math.max(1, Math.round(n / 1024))} KB`;
 
 /** Task cadence from the catalogue: PER_VISIT, DAILY, WEEKLY, MONTHLY with a count per period. */
 export const taskFrequency = (f: string, times: number) => {
   if (f === 'PER_VISIT') return 'Every visit';
-  const period = f === 'DAILY' ? 'day' : f === 'WEEKLY' ? 'week' : f === 'MONTHLY' ? 'month' : f.toLowerCase();
-  return times > 1 ? `${times} times a ${period}` : f === 'DAILY' ? 'Daily' : f === 'WEEKLY' ? 'Weekly' : f === 'MONTHLY' ? 'Monthly' : period;
+  const period =
+    f === 'DAILY' ? 'day' : f === 'WEEKLY' ? 'week' : f === 'MONTHLY' ? 'month' : f.toLowerCase();
+  return times > 1
+    ? `${times} times a ${period}`
+    : f === 'DAILY'
+      ? 'Daily'
+      : f === 'WEEKLY'
+        ? 'Weekly'
+        : f === 'MONTHLY'
+          ? 'Monthly'
+          : period;
 };
 
 /** "+919876543210" → "+91 98765 43210"; other numbers are returned unchanged. */
-export const phone = (e164: string) => (/^\+91\d{10}$/.test(e164) ? `+91 ${e164.slice(3, 8)} ${e164.slice(8)}` : e164);
+export const phone = (e164: string) =>
+  /^\+91\d{10}$/.test(e164) ? `+91 ${e164.slice(3, 8)} ${e164.slice(8)}` : e164;
 
 /** Joins parts into sentences for screen readers without doubling punctuation ("a reply." + "2 hours ago" → "a reply. 2 hours ago"). */
 export const sentences = (...parts: (string | null | undefined | false)[]) =>

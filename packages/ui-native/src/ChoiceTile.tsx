@@ -41,21 +41,39 @@ export function ChoiceTile({
       haptic="select"
       scaleTo={0.985}
       accessibilityRole={kind}
-      aria-checked={selected} aria-disabled={disabled}
-      accessibilityLabel={[title, description, rank ? `choice ${rank}` : null].filter(Boolean).join(', ')}
+      aria-checked={selected}
+      aria-disabled={disabled}
+      accessibilityLabel={[title, description, rank ? `choice ${rank}` : null]
+        .filter(Boolean)
+        .join(', ')}
     >
-      <View style={{ borderWidth: 1.5, borderColor: selected ? colors.tealAction : colors.border, backgroundColor: selected ? colors.teal50 : colors.white }} className={`flex-row items-center gap-3 rounded-lg ${compact ? 'px-4 py-3 min-h-[52px]' : 'p-4 min-h-[64px]'} ${disabled ? 'opacity-45' : ''}`}>
+      <View
+        style={{
+          borderWidth: 1.5,
+          borderColor: selected ? colors.tealAction : colors.border,
+          backgroundColor: selected ? colors.teal50 : colors.white,
+        }}
+        className={`flex-row items-center gap-3 rounded-lg ${compact ? 'px-4 py-3 min-h-[52px]' : 'p-4 min-h-[64px]'} ${disabled ? 'opacity-45' : ''}`}
+      >
         {icon ? (
-          <View className={`h-10 w-10 rounded-md items-center justify-center ${selected ? 'bg-teal' : 'bg-teal-100'}`}>
+          <View
+            className={`h-10 w-10 rounded-md items-center justify-center ${selected ? 'bg-teal' : 'bg-teal-100'}`}
+          >
             <Icon name={icon} size={20} color={selected ? colors.white : colors.tealDeep} />
           </View>
         ) : null}
         <View className="flex-1 gap-0.5">
           <Text variant="bodyStrong">{title}</Text>
-          {description ? <Text variant="sm" tone="muted">{description}</Text> : null}
+          {description ? (
+            <Text variant="sm" tone="muted">
+              {description}
+            </Text>
+          ) : null}
         </View>
         {meta}
-        <View className={`h-6 w-6 items-center justify-center border-2 ${indicator} ${selected ? 'bg-teal border-teal' : 'border-line bg-white'}`}>
+        <View
+          className={`h-6 w-6 items-center justify-center border-2 ${indicator} ${selected ? 'bg-teal border-teal' : 'border-line bg-white'}`}
+        >
           {selected ? (
             rank ? (
               <Text variant="caption" tone="inverse" className="font-bold">

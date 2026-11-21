@@ -16,7 +16,17 @@ const MAP: Record<StatusTone, { bg: string; fg: string; icon: IconName }> = {
 };
 
 /** Status = colour + icon + text (never colour alone). */
-export function StatusChip({ label, tone = 'neutral', icon, align = 'start' }: { label: string; tone?: StatusTone; icon?: IconName | null; align?: 'start' | 'center' }) {
+export function StatusChip({
+  label,
+  tone = 'neutral',
+  icon,
+  align = 'start',
+}: {
+  label: string;
+  tone?: StatusTone;
+  icon?: IconName | null;
+  align?: 'start' | 'center';
+}) {
   const t = MAP[tone];
   return (
     <View

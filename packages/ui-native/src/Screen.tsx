@@ -1,6 +1,13 @@
 import { useState, type ReactNode, type ReactElement } from 'react';
 import { Platform, RefreshControl, View, type ScrollViewProps } from 'react-native';
-import Animated, { interpolate, Extrapolation, useAnimatedReaction, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import Animated, {
+  interpolate,
+  Extrapolation,
+  useAnimatedReaction,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+} from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IconButton } from './Button';
@@ -58,7 +65,9 @@ export function Screen({
     y.value = e.contentOffset.y;
   });
   const threshold = hero ? 180 : 44;
-  const bar = useAnimatedStyle(() => ({ opacity: interpolate(y.value, [threshold - 20, threshold + 10], [0, 1], Extrapolation.CLAMP) }));
+  const bar = useAnimatedStyle(() => ({
+    opacity: interpolate(y.value, [threshold - 20, threshold + 10], [0, 1], Extrapolation.CLAMP),
+  }));
   // While the compact bar is faded out it must not take taps or be read out (BUG-QA-022).
   const [barShown, setBarShown] = useState(false);
   useAnimatedReaction(
@@ -69,7 +78,14 @@ export function Screen({
     [threshold],
   );
   const bg = background === 'mint' ? colors.background : colors.white;
-  const back = onBack ? <IconButton icon={Platform.OS === 'ios' ? 'chevron-back' : 'arrow-back'} label="Back" onPress={onBack} tone={hero ? 'inverse' : 'default'} /> : null;
+  const back = onBack ? (
+    <IconButton
+      icon={Platform.OS === 'ios' ? 'chevron-back' : 'arrow-back'}
+      label="Back"
+      onPress={onBack}
+      tone={hero ? 'inverse' : 'default'}
+    />
+  ) : null;
 
   const header = hero ?? (
     <View className="px-gutter pt-2 pb-4 gap-3">
@@ -81,13 +97,28 @@ export function Screen({
       ) : null}
       <View className="flex-row items-end justify-between gap-3">
         <View className="flex-1 gap-0.5">
-          {eyebrow ? <Text variant="label" tone="muted">{eyebrow}</Text> : null}
+          {eyebrow ? (
+            <Text variant="label" tone="muted">
+              {eyebrow}
+            </Text>
+          ) : null}
           {title ? (
-            <Text variant="title" style={Platform.OS === 'android' ? { fontFamily: 'Manrope_600SemiBold', fontSize: 28, lineHeight: 36 } : undefined}>
+            <Text
+              variant="title"
+              style={
+                Platform.OS === 'android'
+                  ? { fontFamily: 'Manrope_600SemiBold', fontSize: 28, lineHeight: 36 }
+                  : undefined
+              }
+            >
               {title}
             </Text>
           ) : null}
-          {subtitle ? <Text variant="body" tone="muted" className="mt-1">{subtitle}</Text> : null}
+          {subtitle ? (
+            <Text variant="body" tone="muted" className="mt-1">
+              {subtitle}
+            </Text>
+          ) : null}
         </View>
         {!onBack && actions ? <View className="flex-row gap-2 pb-0.5">{actions}</View> : null}
       </View>
@@ -105,8 +136,21 @@ export function Screen({
           scrollEventThrottle={16}
           keyboardShouldPersistTaps={keyboardShouldPersistTaps}
           contentInsetAdjustmentBehavior="never"
-          contentContainerStyle={{ paddingTop: hero ? 0 : insets.top, paddingBottom: insets.bottom + 32 + bottomInset + footerSpace }}
-          refreshControl={onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.tealAction} colors={[colors.tealAction]} progressViewOffset={insets.top} /> : undefined}
+          contentContainerStyle={{
+            paddingTop: hero ? 0 : insets.top,
+            paddingBottom: insets.bottom + 32 + bottomInset + footerSpace,
+          }}
+          refreshControl={
+            onRefresh ? (
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={colors.tealAction}
+                colors={[colors.tealAction]}
+                progressViewOffset={insets.top}
+              />
+            ) : undefined
+          }
         >
           {header}
           {body}
@@ -128,10 +172,31 @@ export function Screen({
           importantForAccessibility={barShown ? 'auto' : 'no-hide-descendants'}
           aria-hidden={!barShown}
         >
-          <GlassSurface style={{ paddingTop: insets.top, borderWidth: 0, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+          <GlassSurface
+            style={{
+              paddingTop: insets.top,
+              borderWidth: 0,
+              borderBottomWidth: 1,
+              borderBottomColor: colors.border,
+            }}
+          >
             <View className="flex-row items-center gap-2 px-3 h-[52px]">
-              {onBack ? <IconButton icon={Platform.OS === 'ios' ? 'chevron-back' : 'arrow-back'} label="Back" onPress={onBack} tone="plain" /> : <View className="w-2" />}
-              <Text variant="bodyStrong" className="flex-1 text-charcoal" numberOfLines={1} accessibilityRole="none">
+              {onBack ? (
+                <IconButton
+                  icon={Platform.OS === 'ios' ? 'chevron-back' : 'arrow-back'}
+                  label="Back"
+                  onPress={onBack}
+                  tone="plain"
+                />
+              ) : (
+                <View className="w-2" />
+              )}
+              <Text
+                variant="bodyStrong"
+                className="flex-1 text-charcoal"
+                numberOfLines={1}
+                accessibilityRole="none"
+              >
                 {title}
               </Text>
               {actions ? <View className="flex-row gap-2">{actions}</View> : null}
@@ -140,10 +205,24 @@ export function Screen({
         </Animated.View>
       ) : null}
 
-      {hero && onBack ? <View style={{ position: 'absolute', top: insets.top + 8, left: 16 }}>{back}</View> : null}
+      {hero && onBack ? (
+        <View style={{ position: 'absolute', top: insets.top + 8, left: 16 }}>{back}</View>
+      ) : null}
 
       {footer ? (
-        <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingBottom: Math.max(insets.bottom, 12) + bottomInset, backgroundColor: 'rgba(255,255,255,0.97)', borderTopWidth: 1, borderTopColor: colors.border }} className="px-gutter pt-3 gap-2">
+        <View
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            paddingBottom: Math.max(insets.bottom, 12) + bottomInset,
+            backgroundColor: 'rgba(255,255,255,0.97)',
+            borderTopWidth: 1,
+            borderTopColor: colors.border,
+          }}
+          className="px-gutter pt-3 gap-2"
+        >
           {footer}
         </View>
       ) : null}

@@ -34,6 +34,18 @@ export const motion = {
 
 /** Low, warm elevation for genuinely floating surfaces only. */
 export const elevation = {
-  card: { shadowColor: '#0B3B36', shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
-  float: { shadowColor: '#0B3B36', shadowOpacity: 0.16, shadowRadius: 24, shadowOffset: { width: 0, height: 10 }, elevation: 8 },
+  card: {
+    shadowColor: '#0B3B36',
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  float: {
+    shadowColor: '#0B3B36',
+    shadowOpacity: 0.16,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 8,
+  },
 } as const;

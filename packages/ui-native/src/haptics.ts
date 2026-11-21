@@ -6,10 +6,23 @@ const safe = (p: Promise<void>) => void p.catch(() => undefined);
 
 export const haptics = {
   tap: () => safe(Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)),
-  select: () => safe(Platform.OS === 'android' ? Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Segment_Tick) : Haptics.selectionAsync()),
+  select: () =>
+    safe(
+      Platform.OS === 'android'
+        ? Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Segment_Tick)
+        : Haptics.selectionAsync(),
+    ),
   success: () =>
-    safe(Platform.OS === 'android' ? Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm) : Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)),
+    safe(
+      Platform.OS === 'android'
+        ? Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm)
+        : Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success),
+    ),
   error: () =>
-    safe(Platform.OS === 'android' ? Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Reject) : Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)),
+    safe(
+      Platform.OS === 'android'
+        ? Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Reject)
+        : Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error),
+    ),
   warning: () => safe(Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning)),
 };

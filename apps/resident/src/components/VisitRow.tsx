@@ -8,7 +8,13 @@ import { visitStatus } from '../lib/status';
 import { serviceIcon } from '../assets/images';
 
 /** A visit as a row: calendar tile, service and time, worker, status. Opens the visit. */
-export const VisitRow = memo(function VisitRow({ v, highlight = false }: { v: ResidentVisit; highlight?: boolean }) {
+export const VisitRow = memo(function VisitRow({
+  v,
+  highlight = false,
+}: {
+  v: ResidentVisit;
+  highlight?: boolean;
+}) {
   const st = visitStatus(v.status, v.noShow);
   const at = v.startsAt ? time(v.startsAt) : null;
   return (
@@ -20,11 +26,21 @@ export const VisitRow = memo(function VisitRow({ v, highlight = false }: { v: Re
       accessibilityLabel={`${v.serviceName}, ${weekday(v.scheduledDate)} ${dayOfMonth(v.scheduledDate)}${at ? ` at ${at}` : ''}${v.workerName ? `, ${v.workerName}` : ''}, ${st.label}`}
       className={`flex-row items-center gap-4 rounded-xl p-4 border ${highlight ? 'bg-teal-50 border-teal-200' : 'bg-white border-line/70'}`}
     >
-      <View className={`w-[52px] items-center rounded-lg py-2 ${highlight ? 'bg-teal' : 'bg-teal-100'}`}>
-        <Text variant="caption" tone={highlight ? 'inverse' : 'brand'} className="font-semibold uppercase">
+      <View
+        className={`w-[52px] items-center rounded-lg py-2 ${highlight ? 'bg-teal' : 'bg-teal-100'}`}
+      >
+        <Text
+          variant="caption"
+          tone={highlight ? 'inverse' : 'brand'}
+          className="font-semibold uppercase"
+        >
           {weekday(v.scheduledDate)}
         </Text>
-        <Text variant="h3" tone={highlight ? 'inverse' : 'default'} className={highlight ? '' : 'text-charcoal'}>
+        <Text
+          variant="h3"
+          tone={highlight ? 'inverse' : 'default'}
+          className={highlight ? '' : 'text-charcoal'}
+        >
           {dayOfMonth(v.scheduledDate)}
         </Text>
       </View>

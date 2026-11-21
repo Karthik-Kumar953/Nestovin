@@ -3,7 +3,23 @@ import { Alert, View } from 'react-native';
 import { router } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Household } from '@nestovin/contracts';
-import { Avatar, Banner, Button, Card, Divider, Entrance, Field, ListRow, Photo, Screen, Sheet, SkeletonList, StatusChip, Text, haptics } from '@nestovin/ui-native';
+import {
+  Avatar,
+  Banner,
+  Button,
+  Card,
+  Divider,
+  Entrance,
+  Field,
+  ListRow,
+  Photo,
+  Screen,
+  Sheet,
+  SkeletonList,
+  StatusChip,
+  Text,
+  haptics,
+} from '@nestovin/ui-native';
 import { api, ApiError, errorMessage } from '../../lib/api';
 import { toE164 } from '../../lib/auth';
 import { keys, useChangeRequests, useHousehold, useMe } from '../../lib/queries';
@@ -27,8 +43,16 @@ export default function HouseholdScreen() {
   const changes = useChangeRequests();
   const [adding, setAdding] = useState(false);
   const set = (h: Household) => qc.setQueryData(keys.household, h);
-  const cancelReq = useMutation({ mutationFn: (id: string) => api<Household>(`/v1/resident/household/family-requests/${id}`, { method: 'DELETE' }), onSuccess: set });
-  const remove = useMutation({ mutationFn: (id: string) => api<Household>(`/v1/resident/household/members/${id}`, { method: 'DELETE' }), onSuccess: set });
+  const cancelReq = useMutation({
+    mutationFn: (id: string) =>
+      api<Household>(`/v1/resident/household/family-requests/${id}`, { method: 'DELETE' }),
+    onSuccess: set,
+  });
+  const remove = useMutation({
+    mutationFn: (id: string) =>
+      api<Household>(`/v1/resident/household/members/${id}`, { method: 'DELETE' }),
+    onSuccess: set,
+  });
   const m = me.data?.membership;
   const h = household.data;
   const confirmRemove = (id: string, name: string) =>
@@ -38,25 +62,46 @@ export default function HouseholdScreen() {
     ]);
 
   return (
-    <Screen title="Household" onBack={() => router.back()} onRefresh={() => void Promise.all([household.refetch(), changes.refetch()])} refreshing={household.isRefetching}>
+    <Screen
+      title="Household"
+      onBack={() => router.back()}
+      onRefresh={() => void Promise.all([household.refetch(), changes.refetch()])}
+      refreshing={household.isRefetching}
+    >
       {m ? (
         <Card padded={false}>
-          <Photo source={img('community-towers.jpg')} fallbackIcon="business-outline" scrim style={{ height: 120 }}>
+          <Photo
+            source={img('community-towers.jpg')}
+            fallbackIcon="business-outline"
+            scrim
+            style={{ height: 120 }}
+          >
             <View className="flex-1 justify-end px-5 pb-3">
-              <Text variant="h3" tone="inverse">{m.communityName}</Text>
-              <Text variant="sm" tone="inverseMuted">{`${m.towerName} · Flat ${m.flatNumber}`}</Text>
+              <Text variant="h3" tone="inverse">
+                {m.communityName}
+              </Text>
+              <Text
+                variant="sm"
+                tone="inverseMuted"
+              >{`${m.towerName} · Flat ${m.flatNumber}`}</Text>
             </View>
           </Photo>
         </Card>
       ) : null}
       {household.isLoading ? <SkeletonList count={2} /> : null}
-      {household.error ? <ErrorState error={household.error} onRetry={() => void household.refetch()} compact /> : null}
-      {remove.error || cancelReq.error ? <Banner tone="error">{errorMessage(remove.error ?? cancelReq.error)}</Banner> : null}
+      {household.error ? (
+        <ErrorState error={household.error} onRetry={() => void household.refetch()} compact />
+      ) : null}
+      {remove.error || cancelReq.error ? (
+        <Banner tone="error">{errorMessage(remove.error ?? cancelReq.error)}</Banner>
+      ) : null}
 
       {h ? (
         <Entrance>
           <Card className="gap-1">
-            <Text variant="h3" className="mb-2">Members</Text>
+            <Text variant="h3" className="mb-2">
+              Members
+            </Text>
             {h.members.map((x, i) => (
               <View key={x.membershipId}>
                 {i ? <Divider inset={60} /> : null}
@@ -65,7 +110,17 @@ export default function HouseholdScreen() {
                   title={x.fullName ?? phone(x.phone)}
                   subtitle={x.kind === 'PRIMARY' ? 'Primary resident' : 'Family member'}
                   chevron={false}
-                  trailing={h.isPrimary && x.kind === 'FAMILY' ? <Button title="Remove" variant="tertiary" size="sm" block={false} onPress={() => confirmRemove(x.membershipId, x.fullName ?? x.phone)} /> : undefined}
+                  trailing={
+                    h.isPrimary && x.kind === 'FAMILY' ? (
+                      <Button
+                        title="Remove"
+                        variant="tertiary"
+                        size="sm"
+                        block={false}
+                        onPress={() => confirmRemove(x.membershipId, x.fullName ?? x.phone)}
+                      />
+                    ) : undefined
+                  }
                 />
               </View>
             ))}
@@ -78,23 +133,46 @@ export default function HouseholdScreen() {
           <Card className="gap-3">
             <View className="gap-1">
               <Text variant="h3">Family members</Text>
-              <Text variant="sm" tone="muted">They sign in with their own number. Our team checks them in person before access starts.</Text>
+              <Text variant="sm" tone="muted">
+                They sign in with their own number. Our team checks them in person before access
+                starts.
+              </Text>
             </View>
             {h.requests.map((r) => {
               const st = FAMILY_STATUS[r.status];
               return (
-                <View key={r.id} className="flex-row items-center gap-3 rounded-lg bg-surface-subtle p-3">
+                <View
+                  key={r.id}
+                  className="flex-row items-center gap-3 rounded-lg bg-surface-subtle p-3"
+                >
                   <Avatar name={r.fullName} size={40} />
                   <View className="flex-1 gap-1">
                     <Text variant="bodyStrong">{`${r.fullName} · ${r.relationship}`}</Text>
                     <StatusChip label={st.label} tone={st.tone} />
-                    {r.reason ? <Text variant="sm" tone="muted">{r.reason}</Text> : null}
+                    {r.reason ? (
+                      <Text variant="sm" tone="muted">
+                        {r.reason}
+                      </Text>
+                    ) : null}
                   </View>
-                  {r.status === 'PENDING' ? <Button title="Cancel" variant="tertiary" size="sm" block={false} onPress={() => cancelReq.mutate(r.id)} /> : null}
+                  {r.status === 'PENDING' ? (
+                    <Button
+                      title="Cancel"
+                      variant="tertiary"
+                      size="sm"
+                      block={false}
+                      onPress={() => cancelReq.mutate(r.id)}
+                    />
+                  ) : null}
                 </View>
               );
             })}
-            <Button title="Add a family member" variant="secondary" icon="person-add-outline" onPress={() => setAdding(true)} />
+            <Button
+              title="Add a family member"
+              variant="secondary"
+              icon="person-add-outline"
+              onPress={() => setAdding(true)}
+            />
           </Card>
         </Entrance>
       ) : null}
@@ -103,21 +181,39 @@ export default function HouseholdScreen() {
         <Card className="gap-3">
           <View className="gap-1">
             <Text variant="h3">Residence changes</Text>
-            <Text variant="sm" tone="muted">Changes to verified details are reviewed by our team.</Text>
+            <Text variant="sm" tone="muted">
+              Changes to verified details are reviewed by our team.
+            </Text>
           </View>
           {(changes.data ?? []).map((c) => {
-            const st = CHANGE_STATUS[c.status] ?? { label: c.status.toLowerCase(), tone: 'neutral' as const };
+            const st = CHANGE_STATUS[c.status] ?? {
+              label: c.status.toLowerCase(),
+              tone: 'neutral' as const,
+            };
             return (
               <View key={c.id} className="gap-1 rounded-lg bg-surface-subtle p-3">
                 <View className="flex-row items-center justify-between gap-2">
-                  <Text variant="bodyStrong" className="flex-1">{c.kind === 'MOVE_OUT' ? `Moving out on ${c.requested.moveOutDate ? shortDate(c.requested.moveOutDate) : ''}` : `Change to ${String(c.requested.occupancy ?? '').toLowerCase()}`}</Text>
+                  <Text variant="bodyStrong" className="flex-1">
+                    {c.kind === 'MOVE_OUT'
+                      ? `Moving out on ${c.requested.moveOutDate ? shortDate(c.requested.moveOutDate) : ''}`
+                      : `Change to ${String(c.requested.occupancy ?? '').toLowerCase()}`}
+                  </Text>
                   <StatusChip label={st.label} tone={st.tone} />
                 </View>
-                {c.reviewNote ? <Text variant="sm" tone="muted">{c.reviewNote}</Text> : null}
+                {c.reviewNote ? (
+                  <Text variant="sm" tone="muted">
+                    {c.reviewNote}
+                  </Text>
+                ) : null}
               </View>
             );
           })}
-          <Button title="Request a change" variant="secondary" icon="swap-horizontal-outline" onPress={() => router.push('/change-request')} />
+          <Button
+            title="Request a change"
+            variant="secondary"
+            icon="swap-horizontal-outline"
+            onPress={() => router.push('/change-request')}
+          />
         </Card>
       </Entrance>
 
@@ -126,13 +222,29 @@ export default function HouseholdScreen() {
   );
 }
 
-function AddFamilySheet({ visible, onClose, onDone }: { visible: boolean; onClose: () => void; onDone: (h: Household) => void }) {
+function AddFamilySheet({
+  visible,
+  onClose,
+  onDone,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onDone: (h: Household) => void;
+}) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [relationship, setRelationship] = useState('');
   const [touched, setTouched] = useState(false);
   const invite = useMutation({
-    mutationFn: () => api<Household>('/v1/resident/household/family-requests', { method: 'POST', body: { fullName: name.trim(), phone: toE164(phone) ?? phone, relationship: relationship.trim() } }),
+    mutationFn: () =>
+      api<Household>('/v1/resident/household/family-requests', {
+        method: 'POST',
+        body: {
+          fullName: name.trim(),
+          phone: toE164(phone) ?? phone,
+          relationship: relationship.trim(),
+        },
+      }),
     onSuccess: (h) => {
       haptics.success();
       onDone(h);
@@ -148,7 +260,10 @@ function AddFamilySheet({ visible, onClose, onDone }: { visible: boolean; onClos
   const e = {
     name: touched && name.trim().length < 2 ? 'Enter their full name' : err('fullName'),
     phone: touched && !toE164(phone) ? 'Enter a 10-digit mobile number' : err('phone'),
-    rel: touched && relationship.trim().length < 2 ? 'For example: spouse, parent, child' : err('relationship'),
+    rel:
+      touched && relationship.trim().length < 2
+        ? 'For example: spouse, parent, child'
+        : err('relationship'),
   };
   return (
     <Sheet
@@ -158,21 +273,49 @@ function AddFamilySheet({ visible, onClose, onDone }: { visible: boolean; onClos
       subtitle="We verify them in person before they get access."
       footer={
         <>
-          {invite.error && !e.name && !e.phone && !e.rel ? <Banner tone="error">{errorMessage(invite.error)}</Banner> : null}
+          {invite.error && !e.name && !e.phone && !e.rel ? (
+            <Banner tone="error">{errorMessage(invite.error)}</Banner>
+          ) : null}
           <Button
             title="Send request"
             loading={invite.isPending}
             onPress={() => {
               setTouched(true);
-              if (name.trim().length >= 2 && toE164(phone) && relationship.trim().length >= 2) invite.mutate();
+              if (name.trim().length >= 2 && toE164(phone) && relationship.trim().length >= 2)
+                invite.mutate();
             }}
           />
         </>
       }
     >
-      <Field label="Full name" value={name} onChangeText={setName} maxLength={120} error={e.name} autoComplete="name" />
-      <Field label="Mobile number" value={phone} onChangeText={setPhone} keyboardType="phone-pad" error={e.phone} prefix={<Text variant="bodyStrong" tone="muted">+91</Text>} />
-      <Field label="Relationship" value={relationship} onChangeText={setRelationship} maxLength={40} error={e.rel} placeholder="Spouse, parent, child" />
+      <Field
+        label="Full name"
+        value={name}
+        onChangeText={setName}
+        maxLength={120}
+        error={e.name}
+        autoComplete="name"
+      />
+      <Field
+        label="Mobile number"
+        value={phone}
+        onChangeText={setPhone}
+        keyboardType="phone-pad"
+        error={e.phone}
+        prefix={
+          <Text variant="bodyStrong" tone="muted">
+            +91
+          </Text>
+        }
+      />
+      <Field
+        label="Relationship"
+        value={relationship}
+        onChangeText={setRelationship}
+        maxLength={40}
+        error={e.rel}
+        placeholder="Spouse, parent, child"
+      />
     </Sheet>
   );
 }

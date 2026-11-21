@@ -10,10 +10,12 @@
  */
 
 /** 8–100 characters from letters, digits, '-' and '_' (the API's format). */
-export const newIdempotencyKey = () => `rn-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12).padEnd(10, '0')}`;
+export const newIdempotencyKey = () =>
+  `rn-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12).padEnd(10, '0')}`;
 
 /** Identifies one action by what it sends: the same path and body are the same action. */
-export const actionSignature = (path: string, body?: unknown) => `${path}|${body === undefined ? '' : JSON.stringify(body)}`;
+export const actionSignature = (path: string, body?: unknown) =>
+  `${path}|${body === undefined ? '' : JSON.stringify(body)}`;
 
 export class ActionKey {
   private signature: string | null = null;
@@ -38,4 +40,5 @@ export class ActionKey {
 }
 
 /** Payment outcomes after which the same order must not be reused (anything else keeps the key for a retry). */
-export const isFinalOutcome = (state: string) => state === 'paid' || state === 'processing' || state === 'review' || state === 'failed';
+export const isFinalOutcome = (state: string) =>
+  state === 'paid' || state === 'processing' || state === 'review' || state === 'failed';

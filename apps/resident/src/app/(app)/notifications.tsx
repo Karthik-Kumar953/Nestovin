@@ -1,7 +1,18 @@
 import { View } from 'react-native';
 import { router } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Button, EmptyState, Entrance, Icon, PressScale, Screen, SkeletonList, Text, colors, type IconName } from '@nestovin/ui-native';
+import {
+  Button,
+  EmptyState,
+  Entrance,
+  Icon,
+  PressScale,
+  Screen,
+  SkeletonList,
+  Text,
+  colors,
+  type IconName,
+} from '@nestovin/ui-native';
 import { api } from '../../lib/api';
 import { hrefForEvent } from '../../lib/deeplinks';
 import { relative, sentences, today } from '../../lib/format';
@@ -19,7 +30,8 @@ const ICON: [string, IconName][] = [
   ['booking.', 'calendar-outline'],
   ['visit.', 'home-outline'],
 ];
-const iconFor = (t: string): IconName => ICON.find(([k]) => t.startsWith(k))?.[1] ?? 'notifications-outline';
+const iconFor = (t: string): IconName =>
+  ICON.find(([k]) => t.startsWith(k))?.[1] ?? 'notifications-outline';
 
 /** RES-13: in-app Updates (always delivered, push or not). Each update opens its screen. */
 export default function Notifications() {
@@ -49,32 +61,78 @@ export default function Notifications() {
     <Screen
       title="Updates"
       onBack={() => router.back()}
-      actions={inbox.data?.unread ? <Button title="Mark all read" variant="tertiary" size="sm" block={false} loading={readAll.isPending} onPress={() => readAll.mutate()} /> : undefined}
+      actions={
+        inbox.data?.unread ? (
+          <Button
+            title="Mark all read"
+            variant="tertiary"
+            size="sm"
+            block={false}
+            loading={readAll.isPending}
+            onPress={() => readAll.mutate()}
+          />
+        ) : undefined
+      }
       onRefresh={() => void inbox.refetch()}
       refreshing={inbox.isRefetching}
     >
       {inbox.isLoading ? <SkeletonList count={4} /> : null}
-      {inbox.error ? <ErrorState error={inbox.error} onRetry={() => void inbox.refetch()} compact /> : null}
-      {!inbox.isLoading && !inbox.error && !items.length ? <EmptyState illustration={img('ill-empty-support.png')} icon="notifications-outline" title="No updates yet" body="Verification results, booking news and replies from support appear here." /> : null}
+      {inbox.error ? (
+        <ErrorState error={inbox.error} onRetry={() => void inbox.refetch()} compact />
+      ) : null}
+      {!inbox.isLoading && !inbox.error && !items.length ? (
+        <EmptyState
+          illustration={img('ill-empty-support.png')}
+          icon="notifications-outline"
+          title="No updates yet"
+          body="Verification results, booking news and replies from support appear here."
+        />
+      ) : null}
       {[
         ['Today', todays],
         ['Earlier', earlier],
       ].map(([label, list]) =>
         (list as InboxItem[]).length ? (
           <View key={label as string} className="gap-2">
-            <Text variant="overline" tone="muted" accessibilityRole="header">{label as string}</Text>
+            <Text variant="overline" tone="muted" accessibilityRole="header">
+              {label as string}
+            </Text>
             {(list as InboxItem[]).map((n, i) => (
               <Entrance key={n.id} index={i}>
-                <PressScale onPress={() => open(n)} haptic="tap" scaleTo={0.985} accessibilityRole="button" accessibilityLabel={sentences(n.readAt ? null : 'Unread', n.title, n.body, relative(n.createdAt))} className={`flex-row gap-3 rounded-xl p-4 border ${n.readAt ? 'bg-white border-line/70' : 'bg-teal-50 border-teal-200'}`}>
-                  <View className={`h-10 w-10 rounded-full items-center justify-center ${n.readAt ? 'bg-surface-subtle' : 'bg-teal'}`}>
-                    <Icon name={iconFor(n.eventType)} size={20} color={n.readAt ? colors.textSecondary : colors.white} />
+                <PressScale
+                  onPress={() => open(n)}
+                  haptic="tap"
+                  scaleTo={0.985}
+                  accessibilityRole="button"
+                  accessibilityLabel={sentences(
+                    n.readAt ? null : 'Unread',
+                    n.title,
+                    n.body,
+                    relative(n.createdAt),
+                  )}
+                  className={`flex-row gap-3 rounded-xl p-4 border ${n.readAt ? 'bg-white border-line/70' : 'bg-teal-50 border-teal-200'}`}
+                >
+                  <View
+                    className={`h-10 w-10 rounded-full items-center justify-center ${n.readAt ? 'bg-surface-subtle' : 'bg-teal'}`}
+                  >
+                    <Icon
+                      name={iconFor(n.eventType)}
+                      size={20}
+                      color={n.readAt ? colors.textSecondary : colors.white}
+                    />
                   </View>
                   <View className="flex-1 gap-0.5">
                     <View className="flex-row items-start justify-between gap-2">
-                      <Text variant="bodyStrong" className="flex-1">{n.title}</Text>
-                      <Text variant="caption" tone="muted">{relative(n.createdAt)}</Text>
+                      <Text variant="bodyStrong" className="flex-1">
+                        {n.title}
+                      </Text>
+                      <Text variant="caption" tone="muted">
+                        {relative(n.createdAt)}
+                      </Text>
                     </View>
-                    <Text variant="sm" tone="muted">{n.body}</Text>
+                    <Text variant="sm" tone="muted">
+                      {n.body}
+                    </Text>
                   </View>
                   <View className="justify-center">
                     <Icon name="chevron-forward" size="sm" color={colors.textSecondary} />

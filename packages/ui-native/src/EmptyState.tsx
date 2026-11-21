@@ -51,21 +51,97 @@ const TONES = {
   info: { a: colors.infoSurface, b: '#EFF6FF', fg: colors.infoText },
 } as const;
 
-export function Illustration({ source, icon, tone = 'teal', size = 148 }: { source?: ImageSource | number | null; icon: IconName; tone?: keyof typeof TONES; size?: number }) {
+export function Illustration({
+  source,
+  icon,
+  tone = 'teal',
+  size = 148,
+}: {
+  source?: ImageSource | number | null;
+  icon: IconName;
+  tone?: keyof typeof TONES;
+  size?: number;
+}) {
   if (source != null) {
-    return <Image source={source} style={{ width: size, height: size }} contentFit="contain" accessible={false} transition={200} />;
+    return (
+      <Image
+        source={source}
+        style={{ width: size, height: size }}
+        contentFit="contain"
+        accessible={false}
+        transition={200}
+      />
+    );
   }
   const t = TONES[tone];
   return (
-    <View style={{ width: size, height: size }} className="items-center justify-center" accessible={false}>
-      <View style={{ position: 'absolute', width: size, height: size, borderRadius: size, borderWidth: 1, borderColor: t.a }} />
-      <LinearGradient colors={[t.a, t.b]} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={{ width: size * 0.74, height: size * 0.74, borderRadius: size, alignItems: 'center', justifyContent: 'center' }}>
-        <View style={{ width: size * 0.42, height: size * 0.42, borderRadius: size * 0.14, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', shadowColor: t.fg, shadowOpacity: 0.15, shadowRadius: 10, shadowOffset: { width: 0, height: 6 }, elevation: 3 }}>
+    <View
+      style={{ width: size, height: size }}
+      className="items-center justify-center"
+      accessible={false}
+    >
+      <View
+        style={{
+          position: 'absolute',
+          width: size,
+          height: size,
+          borderRadius: size,
+          borderWidth: 1,
+          borderColor: t.a,
+        }}
+      />
+      <LinearGradient
+        colors={[t.a, t.b]}
+        start={{ x: 0.2, y: 0 }}
+        end={{ x: 0.8, y: 1 }}
+        style={{
+          width: size * 0.74,
+          height: size * 0.74,
+          borderRadius: size,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <View
+          style={{
+            width: size * 0.42,
+            height: size * 0.42,
+            borderRadius: size * 0.14,
+            backgroundColor: '#fff',
+            alignItems: 'center',
+            justifyContent: 'center',
+            shadowColor: t.fg,
+            shadowOpacity: 0.15,
+            shadowRadius: 10,
+            shadowOffset: { width: 0, height: 6 },
+            elevation: 3,
+          }}
+        >
           <Icon name={icon} size={size * 0.22} color={t.fg} />
         </View>
       </LinearGradient>
-      <View style={{ position: 'absolute', right: size * 0.1, top: size * 0.14, width: 10, height: 10, borderRadius: 5, backgroundColor: colors.warning }} />
-      <View style={{ position: 'absolute', left: size * 0.12, bottom: size * 0.2, width: 7, height: 7, borderRadius: 4, backgroundColor: colors.secondary }} />
+      <View
+        style={{
+          position: 'absolute',
+          right: size * 0.1,
+          top: size * 0.14,
+          width: 10,
+          height: 10,
+          borderRadius: 5,
+          backgroundColor: colors.warning,
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          left: size * 0.12,
+          bottom: size * 0.2,
+          width: 7,
+          height: 7,
+          borderRadius: 4,
+          backgroundColor: colors.secondary,
+        }}
+      />
     </View>
   );
 }

@@ -11,7 +11,11 @@ interface AuthState {
   signOut: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthState>({ session: null, ready: false, signOut: async () => undefined });
+const AuthContext = createContext<AuthState>({
+  session: null,
+  ready: false,
+  signOut: async () => undefined,
+});
 
 /** Phone-OTP session (RES-01). Token refresh runs only while the app is in the foreground. */
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -40,7 +44,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ session, ready, signOut: async () => void (await supabase.auth.signOut()) }}>
+    <AuthContext.Provider
+      value={{ session, ready, signOut: async () => void (await supabase.auth.signOut()) }}
+    >
       {children}
     </AuthContext.Provider>
   );

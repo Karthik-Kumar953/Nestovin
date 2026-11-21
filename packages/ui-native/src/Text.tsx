@@ -1,8 +1,29 @@
 import type { ReactNode } from 'react';
 import { Text as RNText, type TextProps } from 'react-native';
 
-export type TextVariant = 'display' | 'title' | 'h2' | 'h3' | 'lead' | 'body' | 'bodyStrong' | 'label' | 'sm' | 'caption' | 'overline' | 'metric';
-export type TextTone = 'default' | 'muted' | 'inverse' | 'inverseMuted' | 'brand' | 'success' | 'warning' | 'error' | 'info';
+export type TextVariant =
+  | 'display'
+  | 'title'
+  | 'h2'
+  | 'h3'
+  | 'lead'
+  | 'body'
+  | 'bodyStrong'
+  | 'label'
+  | 'sm'
+  | 'caption'
+  | 'overline'
+  | 'metric';
+export type TextTone =
+  | 'default'
+  | 'muted'
+  | 'inverse'
+  | 'inverseMuted'
+  | 'brand'
+  | 'success'
+  | 'warning'
+  | 'error'
+  | 'info';
 
 const VARIANT: Record<TextVariant, string> = {
   display: 'font-display-x text-[34px] leading-[40px] tracking-tight',
@@ -38,7 +59,12 @@ export function Text({
   className = '',
   children,
   ...rest
-}: TextProps & { variant?: TextVariant; tone?: TextTone; className?: string; children?: ReactNode }) {
+}: TextProps & {
+  variant?: TextVariant;
+  tone?: TextTone;
+  className?: string;
+  children?: ReactNode;
+}) {
   return (
     <RNText
       accessibilityRole={HEADINGS.includes(variant) ? 'header' : rest.accessibilityRole}

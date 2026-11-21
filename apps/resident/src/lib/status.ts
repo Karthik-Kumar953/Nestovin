@@ -2,7 +2,8 @@ import type { IconName, StatusTone } from '@nestovin/ui-native';
 
 type Status = { label: string; tone: StatusTone; icon?: IconName };
 
-const pick = (map: Record<string, Status>, key: string): Status => map[key] ?? { label: key.replace(/_/g, ' ').toLowerCase(), tone: 'neutral' };
+const pick = (map: Record<string, Status>, key: string): Status =>
+  map[key] ?? { label: key.replace(/_/g, ' ').toLowerCase(), tone: 'neutral' };
 
 const VISIT: Record<string, Status> = {
   SCHEDULED: { label: 'Scheduled', tone: 'neutral', icon: 'calendar-outline' },
@@ -14,7 +15,11 @@ const VISIT: Record<string, Status> = {
   CANCELLED: { label: 'Cancelled', tone: 'neutral', icon: 'close-circle-outline' },
 };
 export const visitStatus = (s: string, noShow?: string | null): Status =>
-  s === 'NO_SHOW' && noShow === 'RESIDENT_ABSENT' ? { label: 'Missed: no one home', tone: 'warning' } : s === 'NO_SHOW' && noShow === 'WORKER_ABSENT' ? { label: 'Missed by us', tone: 'error' } : pick(VISIT, s);
+  s === 'NO_SHOW' && noShow === 'RESIDENT_ABSENT'
+    ? { label: 'Missed: no one home', tone: 'warning' }
+    : s === 'NO_SHOW' && noShow === 'WORKER_ABSENT'
+      ? { label: 'Missed by us', tone: 'error' }
+      : pick(VISIT, s);
 
 const BOOKING: Record<string, Status> = {
   PENDING_PAYMENT: { label: 'Awaiting payment', tone: 'warning' },
@@ -24,7 +29,9 @@ const BOOKING: Record<string, Status> = {
   REVIEW_REQUIRED: { label: 'Under review', tone: 'info', icon: 'shield-outline' },
 };
 export const bookingStatus = (s: string, mode?: string, outstanding?: number) =>
-  s === 'PENDING_PAYMENT' && mode === 'DEMAND_LED' && outstanding ? { label: 'Balance due', tone: 'warning' as const } : pick(BOOKING, s);
+  s === 'PENDING_PAYMENT' && mode === 'DEMAND_LED' && outstanding
+    ? { label: 'Balance due', tone: 'warning' as const }
+    : pick(BOOKING, s);
 
 /** A demand request is never shown as a confirmed booking (DESIGN.md guardrail). */
 const REQUEST: Record<string, Status> = {

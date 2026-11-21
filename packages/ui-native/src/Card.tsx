@@ -61,7 +61,15 @@ export function Card({
 }
 
 /** Square tinted tile holding an icon (leading element of rows and cards). */
-export function IconTile({ icon, tone = 'teal', size = 44 }: { icon: IconName; tone?: 'teal' | 'success' | 'warning' | 'error' | 'info' | 'inverse'; size?: number }) {
+export function IconTile({
+  icon,
+  tone = 'teal',
+  size = 44,
+}: {
+  icon: IconName;
+  tone?: 'teal' | 'success' | 'warning' | 'error' | 'info' | 'inverse';
+  size?: number;
+}) {
   const map = {
     teal: [colors.teal100, colors.tealDeep],
     success: [colors.successSurface, colors.successText],
@@ -72,7 +80,10 @@ export function IconTile({ icon, tone = 'teal', size = 44 }: { icon: IconName; t
   } as const;
   const [bg, fg] = map[tone];
   return (
-    <View style={{ width: size, height: size, borderRadius: size * 0.32, backgroundColor: bg }} className="items-center justify-center">
+    <View
+      style={{ width: size, height: size, borderRadius: size * 0.32, backgroundColor: bg }}
+      className="items-center justify-center"
+    >
       <Icon name={icon} color={fg} size={size * 0.5} />
     </View>
   );
@@ -102,12 +113,17 @@ export function ListRow({
 }) {
   const body = (
     <View className="flex-row items-center gap-3 min-h-[56px] py-2">
-      {leading ?? (icon ? <IconTile icon={icon} tone={destructive ? 'error' : 'teal'} size={40} /> : null)}
+      {leading ??
+        (icon ? <IconTile icon={icon} tone={destructive ? 'error' : 'teal'} size={40} /> : null)}
       <View className="flex-1 gap-0.5">
         <Text variant="bodyStrong" tone={destructive ? 'error' : 'default'}>
           {title}
         </Text>
-        {subtitle ? <Text variant="sm" tone="muted">{subtitle}</Text> : null}
+        {subtitle ? (
+          <Text variant="sm" tone="muted">
+            {subtitle}
+          </Text>
+        ) : null}
       </View>
       {trailing}
       {chevron ? <Icon name="chevron-forward" size="sm" color={colors.textSecondary} /> : null}
@@ -115,7 +131,13 @@ export function ListRow({
   );
   if (!onPress) return body;
   return (
-    <PressScale onPress={onPress} haptic="tap" scaleTo={0.985} accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? (subtitle ? `${title}, ${subtitle}` : title)}>
+    <PressScale
+      onPress={onPress}
+      haptic="tap"
+      scaleTo={0.985}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? (subtitle ? `${title}, ${subtitle}` : title)}
+    >
       {body}
     </PressScale>
   );
@@ -126,12 +148,26 @@ export function Divider({ inset = 0 }: { inset?: number }) {
 }
 
 /** Section heading with an optional trailing text action. */
-export function SectionHeader({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
+export function SectionHeader({
+  title,
+  action,
+  onAction,
+}: {
+  title: string;
+  action?: string;
+  onAction?: () => void;
+}) {
   return (
     <View className="flex-row items-end justify-between mt-2">
       <Text variant="h3">{title}</Text>
       {action && onAction ? (
-        <PressScale onPress={onAction} accessibilityRole="button" accessibilityLabel={action} hitSlop={10} className="min-h-[44px] justify-center">
+        <PressScale
+          onPress={onAction}
+          accessibilityRole="button"
+          accessibilityLabel={action}
+          hitSlop={10}
+          className="min-h-[44px] justify-center"
+        >
           <Text variant="label" tone="brand">
             {action}
           </Text>

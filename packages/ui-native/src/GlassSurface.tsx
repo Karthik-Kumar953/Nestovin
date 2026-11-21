@@ -52,13 +52,25 @@ export function GlassSurface({
   const glass = useLiquidGlass();
   if (glass) {
     return (
-      <GlassView glassEffectStyle="regular" tintColor={tint} isInteractive={interactive} colorScheme="light" style={[{ overflow: 'hidden' }, style]}>
+      <GlassView
+        glassEffectStyle="regular"
+        tintColor={tint}
+        isInteractive={interactive}
+        colorScheme="light"
+        style={[{ overflow: 'hidden' }, style]}
+      >
         {children}
       </GlassView>
     );
   }
   return (
-    <View style={[{ backgroundColor: tint ?? '#FFFFFF', borderWidth: tint ? 0 : 1, borderColor: '#E5E7EB' }, style]} className={className}>
+    <View
+      style={[
+        { backgroundColor: tint ?? '#FFFFFF', borderWidth: tint ? 0 : 1, borderColor: '#E5E7EB' },
+        style,
+      ]}
+      className={className}
+    >
       {children}
     </View>
   );

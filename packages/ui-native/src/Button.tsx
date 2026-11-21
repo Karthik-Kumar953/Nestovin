@@ -4,7 +4,8 @@ import { Text } from './Text';
 import { PressScale } from './motion/PressScale';
 import { colors } from './tokens';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'tertiary' | 'destructive' | 'inverse' | 'soft';
+export type ButtonVariant =
+  'primary' | 'secondary' | 'tertiary' | 'destructive' | 'inverse' | 'soft';
 
 const BG: Record<ButtonVariant, string> = {
   primary: 'bg-teal',
@@ -66,15 +67,26 @@ export function Button({
       accessibilityRole="button"
       accessibilityLabel={title}
       accessibilityHint={accessibilityHint}
-      aria-disabled={off} aria-busy={loading}
-      android_ripple={variant === 'tertiary' ? undefined : { color: 'rgba(255,255,255,0.18)', borderless: false }}
+      aria-disabled={off}
+      aria-busy={loading}
+      android_ripple={
+        variant === 'tertiary' ? undefined : { color: 'rgba(255,255,255,0.18)', borderless: false }
+      }
       testID={testID}
       hitSlop={size === 'sm' ? 4 : 0}
       className={`${BG[variant]} ${radius} ${height} ${block ? 'self-stretch' : 'self-start'} items-center justify-center overflow-hidden ${off && !loading ? 'opacity-45' : ''}`}
     >
       <View className="flex-row items-center justify-center gap-2">
-        {loading ? <ActivityIndicator color={fg} /> : icon ? <Icon name={icon} size="sm" color={fg} /> : null}
-        <Text variant={size === 'md' ? 'bodyStrong' : 'label'} style={{ color: fg }} numberOfLines={1}>
+        {loading ? (
+          <ActivityIndicator color={fg} />
+        ) : icon ? (
+          <Icon name={icon} size="sm" color={fg} />
+        ) : null}
+        <Text
+          variant={size === 'md' ? 'bodyStrong' : 'label'}
+          style={{ color: fg }}
+          numberOfLines={1}
+        >
           {title}
         </Text>
         {iconRight && !loading ? <Icon name={iconRight} size="sm" color={fg} /> : null}
@@ -97,7 +109,12 @@ export function IconButton({
   badge?: number;
   tone?: 'default' | 'inverse' | 'plain';
 }) {
-  const bg = tone === 'inverse' ? 'bg-white/20' : tone === 'plain' ? 'bg-transparent' : 'bg-white border border-line';
+  const bg =
+    tone === 'inverse'
+      ? 'bg-white/20'
+      : tone === 'plain'
+        ? 'bg-transparent'
+        : 'bg-white border border-line';
   return (
     <PressScale
       onPress={onPress}

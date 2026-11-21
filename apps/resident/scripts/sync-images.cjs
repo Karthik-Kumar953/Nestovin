@@ -35,5 +35,12 @@ const out = [
   'export default images;',
   '',
 ].join('\n');
-fs.writeFileSync(path.join(app, 'src/assets/images.generated.ts'), found.length ? out : out.replace("/* eslint-disable @typescript-eslint/no-require-imports */\n", ''));
-console.warn(`images: ${found.length} of ${names.length} shot-list files present (${names.length - found.length} use designed fallbacks).`);
+fs.writeFileSync(
+  path.join(app, 'src/assets/images.generated.ts'),
+  found.length
+    ? out
+    : out.replace('/* eslint-disable @typescript-eslint/no-require-imports */\n', ''),
+);
+console.warn(
+  `images: ${found.length} of ${names.length} shot-list files present (${names.length - found.length} use designed fallbacks).`,
+);

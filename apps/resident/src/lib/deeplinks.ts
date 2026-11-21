@@ -18,16 +18,30 @@ export function hrefForEvent(eventType: string, data: Record<string, unknown> = 
       return '/household';
     case 'ticket.replied':
     case 'ticket.status_changed':
-      return id('ticketId') ? { pathname: '/ticket/[id]', params: { id: id('ticketId')! } } : '/support';
+      return id('ticketId')
+        ? { pathname: '/ticket/[id]', params: { id: id('ticketId')! } }
+        : '/support';
     case 'booking.confirmed':
-      return id('refId') ? { pathname: '/bookings/[id]', params: { id: id('refId')!, kind: 'booking' } } : '/bookings';
+      return id('refId')
+        ? { pathname: '/bookings/[id]', params: { id: id('refId')!, kind: 'booking' } }
+        : '/bookings';
     case 'payment.verified':
-      return id('refId') ? { pathname: '/bookings/[id]', params: { id: id('refId')!, kind: 'request' } } : '/bookings';
+      return id('refId')
+        ? { pathname: '/bookings/[id]', params: { id: id('refId')!, kind: 'request' } }
+        : '/bookings';
     case 'payment.review':
       return '/bookings';
     default:
-      if (eventType.startsWith('visit.')) return id('occurrenceId') ? { pathname: '/visit/[id]', params: { id: id('occurrenceId')! } } : '/visits';
-      if (eventType.startsWith('booking.') || eventType.startsWith('demand.') || eventType.startsWith('cycle.')) return '/bookings';
+      if (eventType.startsWith('visit.'))
+        return id('occurrenceId')
+          ? { pathname: '/visit/[id]', params: { id: id('occurrenceId')! } }
+          : '/visits';
+      if (
+        eventType.startsWith('booking.') ||
+        eventType.startsWith('demand.') ||
+        eventType.startsWith('cycle.')
+      )
+        return '/bookings';
       return '/notifications';
   }
 }

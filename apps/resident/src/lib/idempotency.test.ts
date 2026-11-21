@@ -13,7 +13,9 @@ describe('idempotency keys for booking and payment POSTs', () => {
     const sig = actionSignature('/v1/resident/bookings', { slotId: 's1', startDate: '2026-11-23' });
     const first = k.for(sig);
     expect(k.for(sig)).toBe(first); // network failure, retry
-    expect(k.for(actionSignature('/v1/resident/bookings', { slotId: 's1', startDate: '2026-11-23' }))).toBe(first); // equal body, new object
+    expect(
+      k.for(actionSignature('/v1/resident/bookings', { slotId: 's1', startDate: '2026-11-23' })),
+    ).toBe(first); // equal body, new object
   });
 
   it('makes a new key when the request changes, so a key never carries a different body', () => {

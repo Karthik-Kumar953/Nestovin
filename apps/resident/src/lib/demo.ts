@@ -39,7 +39,28 @@ const at = (d: number, h: number, m = 0) => {
   return x.toISOString();
 };
 
-const ids = { community: uuid(), flat: uuid(), maid: uuid(), cook: uuid(), care: uuid(), planA: uuid(), planB: uuid(), cycle: uuid(), w1: uuid(), w2: uuid(), w3: uuid(), slot1: uuid(), slot2: uuid(), b1: uuid(), b2: uuid(), r1: uuid(), t1: uuid(), cat1: uuid(), cat2: uuid(), cat3: uuid() };
+const ids = {
+  community: uuid(),
+  flat: uuid(),
+  maid: uuid(),
+  cook: uuid(),
+  care: uuid(),
+  planA: uuid(),
+  planB: uuid(),
+  cycle: uuid(),
+  w1: uuid(),
+  w2: uuid(),
+  w3: uuid(),
+  slot1: uuid(),
+  slot2: uuid(),
+  b1: uuid(),
+  b2: uuid(),
+  r1: uuid(),
+  t1: uuid(),
+  cat1: uuid(),
+  cat2: uuid(),
+  cat3: uuid(),
+};
 
 const membership = (status: 'VERIFIED' | 'PENDING') => ({
   id: uuid(),
@@ -65,12 +86,21 @@ function me(): ResidentMe {
     email: null,
     status: 'ACTIVE',
     membership: s === 'new' ? null : membership(s === 'pending' ? 'PENDING' : 'VERIFIED'),
-    verification: s === 'pending' ? { decision: 'PENDING', reason: null, documentUploaded: true, flat: null } : null,
+    verification:
+      s === 'pending'
+        ? { decision: 'PENDING', reason: null, documentUploaded: true, flat: null }
+        : null,
     version: 1,
   };
 }
 
-const visit = (d: number, svc: string, h: number, status: string, extra: Partial<ResidentVisit> = {}): ResidentVisit => ({
+const visit = (
+  d: number,
+  svc: string,
+  h: number,
+  status: string,
+  extra: Partial<ResidentVisit> = {},
+): ResidentVisit => ({
   occurrenceId: uuid(),
   scheduledDate: day(d),
   startsAt: at(d, h, 30),
@@ -86,18 +116,43 @@ const visit = (d: number, svc: string, h: number, status: string, extra: Partial
 });
 
 function visits(from: string, to: string): ResidentVisit[] {
-  const all: ResidentVisit[] = [visit(0, 'Cook', 7, 'ASSIGNED', { canShowCode: true }), visit(0, 'Cook', 18, 'ASSIGNED'), visit(1, 'Cook', 7, 'ASSIGNED'), visit(2, 'Cook', 7, 'SCHEDULED'), visit(3, 'Maid', 9, 'SCHEDULED')];
+  const all: ResidentVisit[] = [
+    visit(0, 'Cook', 7, 'ASSIGNED', { canShowCode: true }),
+    visit(0, 'Cook', 18, 'ASSIGNED'),
+    visit(1, 'Cook', 7, 'ASSIGNED'),
+    visit(2, 'Cook', 7, 'SCHEDULED'),
+    visit(3, 'Maid', 9, 'SCHEDULED'),
+  ];
   for (let d = -1; d > -75; d -= 1) {
     if (d % 6 === 0) continue;
-    all.push(visit(d, 'Cook', 7, 'COMPLETED', d === -1 ? {} : { feedback: d % 4 ? { rating: 5, comment: null } : null }));
+    all.push(
+      visit(
+        d,
+        'Cook',
+        7,
+        'COMPLETED',
+        d === -1 ? {} : { feedback: d % 4 ? { rating: 5, comment: null } : null },
+      ),
+    );
   }
-  all.push(visit(-9, 'Cook', 7, 'NO_SHOW', { noShow: 'RESIDENT_ABSENT', checkedInAt: null, completedAt: null }));
+  all.push(
+    visit(-9, 'Cook', 7, 'NO_SHOW', {
+      noShow: 'RESIDENT_ABSENT',
+      checkedInAt: null,
+      completedAt: null,
+    }),
+  );
   return all.filter((v) => v.scheduledDate >= from && v.scheduledDate <= to);
 }
 
 const options = (): BookingOptions => ({
   eligible: state() === 'active',
-  reason: state() === 'active' ? null : state() === 'new' ? 'Register your flat to book a service.' : 'Your residence is waiting for verification.',
+  reason:
+    state() === 'active'
+      ? null
+      : state() === 'new'
+        ? 'Register your flat to book a service.'
+        : 'Your residence is waiting for verification.',
   reasonCode: state() === 'active' ? null : state() === 'new' ? 'NOT_REGISTERED' : 'NOT_VERIFIED',
   communityName: 'Green Meadows',
   openCycles: [
@@ -115,14 +170,31 @@ const options = (): BookingOptions => ({
     },
   ],
   continuousSlots: [
-    { id: ids.slot1, label: 'Breakfast', serviceId: ids.cook, startTime: '07:30', durationMinutes: 90, daysOfWeek: 127, available: true },
-    { id: ids.slot2, label: 'Dinner', serviceId: ids.cook, startTime: '18:00', durationMinutes: 90, daysOfWeek: 127, available: true },
+    {
+      id: ids.slot1,
+      label: 'Breakfast',
+      serviceId: ids.cook,
+      startTime: '07:30',
+      durationMinutes: 90,
+      daysOfWeek: 127,
+      available: true,
+    },
+    {
+      id: ids.slot2,
+      label: 'Dinner',
+      serviceId: ids.cook,
+      startTime: '18:00',
+      durationMinutes: 90,
+      daysOfWeek: 127,
+      available: true,
+    },
   ],
   startDateRange: { from: day(1), to: day(14) },
   disclosure: { ...NON_REFUNDABLE_DISCLOSURE },
 });
 
-const tasks = (names: string[]) => names.map((name, i) => ({ name, frequency: i < 3 ? 'PER_VISIT' : 'WEEKLY', timesPerPeriod: 1 }));
+const tasks = (names: string[]) =>
+  names.map((name, i) => ({ name, frequency: i < 3 ? 'PER_VISIT' : 'WEEKLY', timesPerPeriod: 1 }));
 const catalogue = (): ResidentCatalogue => ({
   communityId: ids.community,
   residenceCategory: { id: uuid(), label: '2 BHK' },
@@ -141,7 +213,25 @@ const catalogue = (): ResidentCatalogue => ({
       packagePricePaise: null,
       servicePrices: [{ serviceId: ids.maid, name: 'Maid', pricePaise: 450000 }],
       components: [
-        { id: uuid(), serviceId: ids.maid, name: 'Maid', isOptionalAddon: false, visitsPerDay: 1, daysOfWeek: 63, durationMinutes: 60, timeWindow: null, addonHours: null, addonPricePaise: null, tasks: tasks(['Sweeping and mopping', 'Dishes', 'Dusting', 'Laundry folding', 'Bathroom cleaning']) },
+        {
+          id: uuid(),
+          serviceId: ids.maid,
+          name: 'Maid',
+          isOptionalAddon: false,
+          visitsPerDay: 1,
+          daysOfWeek: 63,
+          durationMinutes: 60,
+          timeWindow: null,
+          addonHours: null,
+          addonPricePaise: null,
+          tasks: tasks([
+            'Sweeping and mopping',
+            'Dishes',
+            'Dusting',
+            'Laundry folding',
+            'Bathroom cleaning',
+          ]),
+        },
       ],
     },
     {
@@ -152,8 +242,37 @@ const catalogue = (): ResidentCatalogue => ({
       packagePricePaise: null,
       servicePrices: [{ serviceId: ids.cook, name: 'Cook', pricePaise: 650000 }],
       components: [
-        { id: uuid(), serviceId: ids.cook, name: 'Cook', isOptionalAddon: false, visitsPerDay: 2, daysOfWeek: 127, durationMinutes: 90, timeWindow: null, addonHours: null, addonPricePaise: null, tasks: tasks(['Meal preparation', 'Kitchen counter cleaning', 'Utensil washing', 'Refrigerator wipe-down']) },
-        { id: uuid(), serviceId: ids.care, name: 'Caretaker', isOptionalAddon: true, visitsPerDay: 1, daysOfWeek: 127, durationMinutes: 120, timeWindow: null, addonHours: 2, addonPricePaise: 300000, tasks: [] },
+        {
+          id: uuid(),
+          serviceId: ids.cook,
+          name: 'Cook',
+          isOptionalAddon: false,
+          visitsPerDay: 2,
+          daysOfWeek: 127,
+          durationMinutes: 90,
+          timeWindow: null,
+          addonHours: null,
+          addonPricePaise: null,
+          tasks: tasks([
+            'Meal preparation',
+            'Kitchen counter cleaning',
+            'Utensil washing',
+            'Refrigerator wipe-down',
+          ]),
+        },
+        {
+          id: uuid(),
+          serviceId: ids.care,
+          name: 'Caretaker',
+          isOptionalAddon: true,
+          visitsPerDay: 1,
+          daysOfWeek: 127,
+          durationMinutes: 120,
+          timeWindow: null,
+          addonHours: 2,
+          addonPricePaise: 300000,
+          tasks: [],
+        },
       ],
     },
   ],
@@ -174,7 +293,13 @@ const bookings = (): BookingView[] => [
     paidPaise: 650000,
     outstandingPaise: 0,
     balanceDueAt: null,
-    subscription: { id: uuid(), periodStart: day(-20), periodEnd: day(10), status: 'ACTIVE', renewable: true },
+    subscription: {
+      id: uuid(),
+      periodStart: day(-20),
+      periodEnd: day(10),
+      status: 'ACTIVE',
+      renewable: true,
+    },
     createdAt: at(-22, 11),
   },
   {
@@ -227,26 +352,89 @@ const ticket = (): TicketDetail => ({
   updatedAt: at(0, 8),
   description: 'Can the Saturday breakfast visit start at 8:00 instead of 7:30?',
   updates: [
-    { id: uuid(), authorKind: 'system', authorName: null, visibility: 'RESIDENT', body: 'Assigned to the Green Meadows team', createdAt: at(-1, 10) },
-    { id: uuid(), authorKind: 'admin', authorName: 'Priya, Nestovin Support', visibility: 'RESIDENT', body: 'We can move Saturdays to 8:00 from next week. Shall we go ahead?', createdAt: at(0, 8) },
+    {
+      id: uuid(),
+      authorKind: 'system',
+      authorName: null,
+      visibility: 'RESIDENT',
+      body: 'Assigned to the Green Meadows team',
+      createdAt: at(-1, 10),
+    },
+    {
+      id: uuid(),
+      authorKind: 'admin',
+      authorName: 'Priya, Nestovin Support',
+      visibility: 'RESIDENT',
+      body: 'We can move Saturdays to 8:00 from next week. Shall we go ahead?',
+      createdAt: at(0, 8),
+    },
   ],
 });
 
 const household = (): Household => ({
   isPrimary: true,
   members: [
-    { membershipId: uuid(), residentId: uuid(), fullName: 'Ananya Rao', phone: '+919800000000', kind: 'PRIMARY', status: 'VERIFIED' },
-    { membershipId: uuid(), residentId: uuid(), fullName: 'Vikram Rao', phone: '+919800000001', kind: 'FAMILY', status: 'VERIFIED' },
+    {
+      membershipId: uuid(),
+      residentId: uuid(),
+      fullName: 'Ananya Rao',
+      phone: '+919800000000',
+      kind: 'PRIMARY',
+      status: 'VERIFIED',
+    },
+    {
+      membershipId: uuid(),
+      residentId: uuid(),
+      fullName: 'Vikram Rao',
+      phone: '+919800000001',
+      kind: 'FAMILY',
+      status: 'VERIFIED',
+    },
   ],
-  requests: [{ id: uuid(), fullName: 'Sushma Rao', phone: '+919800000002', relationship: 'Mother', status: 'PENDING', reason: null, createdAt: at(-2, 12), reviewedAt: null }],
+  requests: [
+    {
+      id: uuid(),
+      fullName: 'Sushma Rao',
+      phone: '+919800000002',
+      relationship: 'Mother',
+      status: 'PENDING',
+      reason: null,
+      createdAt: at(-2, 12),
+      reviewedAt: null,
+    },
+  ],
 });
 
 const inbox = (): Inbox => ({
   unread: 2,
   items: [
-    { id: uuid(), eventType: 'ticket.replied', title: 'Support replied', body: 'Your request NV-T-1042 has a new reply.', data: { ticketId: ids.t1 }, readAt: null, createdAt: at(0, 8) },
-    { id: uuid(), eventType: 'payment.verified', title: 'You joined the booking round', body: 'We will confirm your slot after the round closes.', data: { refId: ids.r1 }, readAt: null, createdAt: at(-1, 20, 5) },
-    { id: uuid(), eventType: 'booking.confirmed', title: 'Cook service confirmed', body: 'Visits start tomorrow at 7:30.', data: { refId: ids.b1 }, readAt: at(-20, 9), createdAt: at(-21, 18) },
+    {
+      id: uuid(),
+      eventType: 'ticket.replied',
+      title: 'Support replied',
+      body: 'Your request NV-T-1042 has a new reply.',
+      data: { ticketId: ids.t1 },
+      readAt: null,
+      createdAt: at(0, 8),
+    },
+    {
+      id: uuid(),
+      eventType: 'payment.verified',
+      title: 'You joined the booking round',
+      body: 'We will confirm your slot after the round closes.',
+      data: { refId: ids.r1 },
+      readAt: null,
+      createdAt: at(-1, 20, 5),
+    },
+    {
+      id: uuid(),
+      eventType: 'booking.confirmed',
+      title: 'Cook service confirmed',
+      body: 'Visits start tomorrow at 7:30.',
+      data: { refId: ids.b1 },
+      readAt: at(-20, 9),
+      createdAt: at(-21, 18),
+    },
   ],
 });
 
@@ -256,20 +444,47 @@ const detail = (b: BookingView): BookingDetail => ({
     components: catalogue()
       .plans.flatMap((p) => p.components)
       .filter((c) => c.name === b.selectionLabel)
-      .map((c) => ({ serviceName: c.name, isAddon: c.isOptionalAddon, visitsPerDay: c.visitsPerDay, daysOfWeek: c.daysOfWeek, durationMinutes: c.durationMinutes, addonHours: c.addonHours, tasks: c.tasks })),
+      .map((c) => ({
+        serviceName: c.name,
+        isAddon: c.isOptionalAddon,
+        visitsPerDay: c.visitsPerDay,
+        daysOfWeek: c.daysOfWeek,
+        durationMinutes: c.durationMinutes,
+        addonHours: c.addonHours,
+        tasks: c.tasks,
+      })),
     initialPct: b.mode === 'DEMAND_LED' ? 30 : null,
-    taxPaise: Math.round(b.totalPaise * 0.18 / 1.18),
+    taxPaise: Math.round((b.totalPaise * 0.18) / 1.18),
     validityDays: 30,
     disclosureVersion: b.mode === 'DEMAND_LED' ? NON_REFUNDABLE_DISCLOSURE.version : null,
     disclosureAcceptedAt: b.mode === 'DEMAND_LED' ? at(-10, 9) : null,
   },
-  payments: [{ id: uuid(), purpose: b.mode === 'DEMAND_LED' ? 'INITIAL' : 'FULL', amountPaise: b.paidPaise, status: 'PAID', createdAt: b.createdAt, paidAt: b.createdAt }],
+  payments: [
+    {
+      id: uuid(),
+      purpose: b.mode === 'DEMAND_LED' ? 'INITIAL' : 'FULL',
+      amountPaise: b.paidPaise,
+      status: 'PAID',
+      createdAt: b.createdAt,
+      paidAt: b.createdAt,
+    },
+  ],
 });
 
-const checkout = (amountPaise: number) => ({ paymentOrderId: uuid(), providerOrderId: 'order_demo', keyId: 'rzp_test_demo', amountPaise, currency: 'INR', description: 'Demo order' });
+const checkout = (amountPaise: number) => ({
+  paymentOrderId: uuid(),
+  providerOrderId: 'order_demo',
+  keyId: 'rzp_test_demo',
+  amountPaise,
+  currency: 'INR',
+  description: 'Demo order',
+});
 
 /** Answers the routes the app calls, from the fixtures above. Unknown routes fail like a 404. */
-export async function demoApi<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
+export async function demoApi<T>(
+  path: string,
+  init: { method?: string; body?: unknown } = {},
+): Promise<T> {
   await new Promise((r) => setTimeout(r, 350));
   const [route, qs = ''] = path.replace('/v1/resident', '').split('?');
   const q = new URLSearchParams(qs);
@@ -277,29 +492,54 @@ export async function demoApi<T>(path: string, init: { method?: string; body?: u
   const m = (re: RegExp) => route!.match(re);
   let out: unknown;
   if (route === '/me') out = me();
-  else if (route === '/notifications') out = q.get('unread') === 'true' ? { ...inbox(), items: [] } : inbox();
+  else if (route === '/notifications')
+    out = q.get('unread') === 'true' ? { ...inbox(), items: [] } : inbox();
   else if (route?.startsWith('/notifications')) out = { ...inbox(), unread: 0 };
-  else if (route === '/visits') out = { items: visits(q.get('from') ?? day(-30), q.get('to') ?? day(14)) };
-  else if (m(/^\/visits\/[^/]+\/code$/)) out = { occurrenceId: route!.split('/')[2], otp: '482915', qr: 'nestovin-demo-qr', expiresAt: new Date(Date.now() + 10 * 60_000).toISOString() } satisfies VisitCode;
+  else if (route === '/visits')
+    out = { items: visits(q.get('from') ?? day(-30), q.get('to') ?? day(14)) };
+  else if (m(/^\/visits\/[^/]+\/code$/))
+    out = {
+      occurrenceId: route!.split('/')[2],
+      otp: '482915',
+      qr: 'nestovin-demo-qr',
+      expiresAt: new Date(Date.now() + 10 * 60_000).toISOString(),
+    } satisfies VisitCode;
   else if (m(/^\/visits\/[^/]+\/feedback$/)) out = {};
   else if (route === '/booking-options') out = options();
-  else if (route === '/bookings' && method === 'POST') out = { booking: bookings()[0], checkout: checkout(650000) };
-  else if (route === '/demand-requests' && method === 'POST') out = { request: requests()[0], checkout: checkout(135000) };
+  else if (route === '/bookings' && method === 'POST')
+    out = { booking: bookings()[0], checkout: checkout(650000) };
+  else if (route === '/demand-requests' && method === 'POST')
+    out = { request: requests()[0], checkout: checkout(135000) };
   else if (m(/^\/(bookings|demand-requests)\/[^/]+\/pay$/)) out = checkout(315000);
-  else if (m(/^\/subscriptions\/[^/]+\/renew$/)) out = { booking: bookings()[0], checkout: checkout(650000) };
+  else if (m(/^\/subscriptions\/[^/]+\/renew$/))
+    out = { booking: bookings()[0], checkout: checkout(650000) };
   else if (m(/^\/demand-requests\/[^/]+\/cancel$/)) out = { items: [] };
   else if (route === '/tickets' && method === 'POST') out = ticket();
   else if (m(/^\/tickets\/[^/]+\/replies$/)) out = ticket();
   else if (route === '/catalogue') out = catalogue();
   else if (route === '/bookings' && method === 'GET') out = { items: bookings() };
-  else if (m(/^\/bookings\/[^/]+$/)) out = detail(bookings().find((b) => b.id === route!.split('/')[2]) ?? bookings()[0]!);
+  else if (m(/^\/bookings\/[^/]+$/))
+    out = detail(bookings().find((b) => b.id === route!.split('/')[2]) ?? bookings()[0]!);
   else if (route === '/demand-requests' && method === 'GET') out = { items: requests() };
   else if (route === '/tickets' && method === 'GET') out = { items: [ticket()] };
   else if (m(/^\/tickets\/[^/]+$/)) out = ticket();
-  else if (route === '/ticket-categories') out = { items: [{ id: ids.cat1, name: 'Visit quality' }, { id: ids.cat2, name: 'Visit timing' }, { id: ids.cat3, name: 'Payments and billing' }] };
+  else if (route === '/ticket-categories')
+    out = {
+      items: [
+        { id: ids.cat1, name: 'Visit quality' },
+        { id: ids.cat2, name: 'Visit timing' },
+        { id: ids.cat3, name: 'Payments and billing' },
+      ],
+    };
   else if (route === '/household') out = household();
   else if (route === '/change-requests' && method === 'GET') out = { items: [] };
-  else if (route === '/cities') out = { items: [{ id: uuid(), name: 'Bengaluru', state: 'Karnataka' }, { id: uuid(), name: 'Hyderabad', state: 'Telangana' }] };
+  else if (route === '/cities')
+    out = {
+      items: [
+        { id: uuid(), name: 'Bengaluru', state: 'Karnataka' },
+        { id: uuid(), name: 'Hyderabad', state: 'Telangana' },
+      ],
+    };
   else {
     const { ApiError } = await import('./api');
     throw new ApiError(404, 'NOT_FOUND', 'Not available in demo mode.');

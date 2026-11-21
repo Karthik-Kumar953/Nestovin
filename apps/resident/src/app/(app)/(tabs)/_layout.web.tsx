@@ -6,7 +6,15 @@ import { colors, fonts } from '@nestovin/ui-native';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 const icon = (outline: IconName, filled: IconName) =>
-  function TabIcon({ focused, color, size }: { focused: boolean; color: ColorValue; size: number }) {
+  function TabIcon({
+    focused,
+    color,
+    size,
+  }: {
+    focused: boolean;
+    color: ColorValue;
+    size: number;
+  }) {
     return <Ionicons name={focused ? filled : outline} color={String(color)} size={size} />;
   };
 
@@ -26,11 +34,26 @@ export default function TabsLayoutWeb() {
         tabBarStyle: { backgroundColor: colors.white, borderTopColor: colors.border },
       }}
     >
-      <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: icon('home-outline', 'home') }} />
-      <Tabs.Screen name="book" options={{ title: 'Book', tabBarIcon: icon('add-circle-outline', 'add-circle') }} />
-      <Tabs.Screen name="visits" options={{ title: 'Visits', tabBarIcon: icon('calendar-outline', 'calendar') }} />
-      <Tabs.Screen name="support" options={{ title: 'Support', tabBarIcon: icon('chatbubbles-outline', 'chatbubbles') }} />
-      <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: icon('person-circle-outline', 'person-circle') }} />
+      <Tabs.Screen
+        name="index"
+        options={{ title: 'Home', tabBarIcon: icon('home-outline', 'home') }}
+      />
+      <Tabs.Screen
+        name="book"
+        options={{ title: 'Book', tabBarIcon: icon('add-circle-outline', 'add-circle') }}
+      />
+      <Tabs.Screen
+        name="visits"
+        options={{ title: 'Visits', tabBarIcon: icon('calendar-outline', 'calendar') }}
+      />
+      <Tabs.Screen
+        name="support"
+        options={{ title: 'Support', tabBarIcon: icon('chatbubbles-outline', 'chatbubbles') }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{ title: 'Profile', tabBarIcon: icon('person-circle-outline', 'person-circle') }}
+      />
     </Tabs>
   );
 }

@@ -18,7 +18,14 @@ module.exports = {
     extend: {
       colors: {
         brand: { DEFAULT: c.primary, green: c.secondary },
-        teal: { DEFAULT: c.tealAction, deep: c.tealDeep, 50: x.tints.teal50, 100: x.tints.teal100, 200: x.tints.teal200, 300: x.tints.teal300 },
+        teal: {
+          DEFAULT: c.tealAction,
+          deep: c.tealDeep,
+          50: x.tints.teal50,
+          100: x.tints.teal100,
+          200: x.tints.teal200,
+          300: x.tints.teal300,
+        },
         green: { action: c.greenAction },
         charcoal: c.charcoal,
         mint: c.background,
@@ -50,7 +57,13 @@ module.exports = {
         caption: ['12px', { lineHeight: '16px' }],
         metric: ['28px', { lineHeight: '36px' }],
       },
-      borderRadius: { sm: px(t.radius.sm), md: px(t.radius.md), lg: px(t.radius.lg), xl: px(t.radius.xl), '2xl': px(x.radius2xl) },
+      borderRadius: {
+        sm: px(t.radius.sm),
+        md: px(t.radius.md),
+        lg: px(t.radius.lg),
+        xl: px(t.radius.xl),
+        '2xl': px(x.radius2xl),
+      },
       spacing: { gutter: px(x.gutter) },
     },
   },

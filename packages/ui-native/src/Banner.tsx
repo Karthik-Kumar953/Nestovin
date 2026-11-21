@@ -7,9 +7,24 @@ import { colors } from './tokens';
 
 type Tone = 'info' | 'success' | 'warning' | 'error' | 'brand';
 const MAP: Record<Tone, { bg: string; border: string; fg: string; icon: IconName }> = {
-  info: { bg: colors.infoSurface, border: '#BFDBFE', fg: colors.infoText, icon: 'information-circle' },
-  success: { bg: colors.successSurface, border: '#BBF7D0', fg: colors.successText, icon: 'checkmark-circle' },
-  warning: { bg: colors.warningSurface, border: '#FDE68A', fg: colors.warningText, icon: 'warning' },
+  info: {
+    bg: colors.infoSurface,
+    border: '#BFDBFE',
+    fg: colors.infoText,
+    icon: 'information-circle',
+  },
+  success: {
+    bg: colors.successSurface,
+    border: '#BBF7D0',
+    fg: colors.successText,
+    icon: 'checkmark-circle',
+  },
+  warning: {
+    bg: colors.warningSurface,
+    border: '#FDE68A',
+    fg: colors.warningText,
+    icon: 'warning',
+  },
   error: { bg: colors.errorSurface, border: '#FECACA', fg: colors.errorText, icon: 'alert-circle' },
   brand: { bg: colors.teal100, border: colors.teal200, fg: colors.tealDeep, icon: 'sparkles' },
 };
@@ -57,7 +72,13 @@ export function Banner({
           children
         )}
         {action && onAction ? (
-          <PressScale onPress={onAction} accessibilityRole="button" accessibilityLabel={action} hitSlop={10} className="self-start min-h-[32px] justify-center">
+          <PressScale
+            onPress={onAction}
+            accessibilityRole="button"
+            accessibilityLabel={action}
+            hitSlop={10}
+            className="self-start min-h-[32px] justify-center"
+          >
             <Text variant="label" style={{ color: t.fg }} className="underline">
               {action}
             </Text>
@@ -69,10 +90,16 @@ export function Banner({
   );
   if (!onPress) return content;
   return (
-    <PressScale onPress={onPress} haptic="tap" scaleTo={0.985} accessibilityRole="button" accessibilityLabel={[title, typeof children === 'string' ? children : '']
+    <PressScale
+      onPress={onPress}
+      haptic="tap"
+      scaleTo={0.985}
+      accessibilityRole="button"
+      accessibilityLabel={[title, typeof children === 'string' ? children : '']
         .filter(Boolean)
         .map((p) => p!.trim().replace(/[.!?]+$/, ''))
-        .join('. ')}>
+        .join('. ')}
+    >
       {content}
     </PressScale>
   );

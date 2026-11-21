@@ -2,7 +2,11 @@ import type { Checkout, PaymentResult } from '@nestovin/contracts';
 import { api, errorMessage } from './api';
 import { demoMode } from './env';
 
-type RazorpayResult = { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string };
+type RazorpayResult = {
+  razorpay_payment_id: string;
+  razorpay_order_id: string;
+  razorpay_signature: string;
+};
 type RazorpayModule = { open: (options: Record<string, unknown>) => Promise<RazorpayResult> };
 
 function razorpay(): RazorpayModule | null {
@@ -33,11 +37,18 @@ export type PaymentOutcome =
  * Opens Razorpay Checkout for a server-created order, then asks the API to verify the payment
  * (signature plus a server-side fetch). If verification is slow, reconciliation completes it later.
  */
-export async function payWithRazorpay(checkout: Checkout, prefill: { contact?: string; email?: string }): Promise<PaymentOutcome> {
+export async function payWithRazorpay(
+  checkout: Checkout,
+  prefill: { contact?: string; email?: string },
+): Promise<PaymentOutcome> {
   if (demoMode) return { state: 'paid', message: 'Demo payment.' };
   const rp = razorpay();
   if (!rp) {
-    return { state: 'unavailable', message: 'Payments open in the Nestovin app build, not in Expo Go. Your booking is saved; pay from Bookings in the app build.' };
+    return {
+      state: 'unavailable',
+      message:
+        'Payments open in the Nestovin app build, not in Expo Go. Your booking is saved; pay from Bookings in the app build.',
+    };
   }
   let result: RazorpayResult;
   try {
@@ -52,17 +63,27 @@ export async function payWithRazorpay(checkout: Checkout, prefill: { contact?: s
       theme: { color: '#00796B' },
     });
   } catch {
-    return { state: 'cancelled', message: 'No money was taken. Your booking is saved, so you can try again.' };
+    return {
+      state: 'cancelled',
+      message: 'No money was taken. Your booking is saved, so you can try again.',
+    };
   }
   try {
     const v = await api<PaymentResult>('/v1/resident/payments/verify', {
       method: 'POST',
-      body: { paymentOrderId: checkout.paymentOrderId, providerPaymentId: result.razorpay_payment_id, signature: result.razorpay_signature },
+      body: {
+        paymentOrderId: checkout.paymentOrderId,
+        providerPaymentId: result.razorpay_payment_id,
+        signature: result.razorpay_signature,
+      },
     });
     return toOutcome(v);
   } catch (e) {
     // Paid at Razorpay but verification did not reach us: reconciliation will confirm it.
-    return { state: 'processing', message: `We are confirming your payment with the bank. ${errorMessage(e)}` };
+    return {
+      state: 'processing',
+      message: `We are confirming your payment with the bank. ${errorMessage(e)}`,
+    };
   }
 }
 

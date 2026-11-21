@@ -2,9 +2,24 @@ import { View, type DimensionValue } from 'react-native';
 import { Shimmer } from './motion/Shimmer';
 
 /** Placeholder block with a light sweep. Hidden from screen readers; pair with one `accessibilityLabel="Loading"` container. */
-export function Skeleton({ width = '100%', height = 16, radius = 8, className = '' }: { width?: DimensionValue; height?: number; radius?: number; className?: string }) {
+export function Skeleton({
+  width = '100%',
+  height = 16,
+  radius = 8,
+  className = '',
+}: {
+  width?: DimensionValue;
+  height?: number;
+  radius?: number;
+  className?: string;
+}) {
   return (
-    <View style={{ width, height, borderRadius: radius }} className={`bg-teal-100/70 overflow-hidden ${className}`} accessible={false} importantForAccessibility="no-hide-descendants">
+    <View
+      style={{ width, height, borderRadius: radius }}
+      className={`bg-teal-100/70 overflow-hidden ${className}`}
+      accessible={false}
+      importantForAccessibility="no-hide-descendants"
+    >
       <Shimmer />
     </View>
   );

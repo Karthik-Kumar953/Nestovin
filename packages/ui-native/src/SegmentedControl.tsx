@@ -1,6 +1,11 @@
 import { useState } from 'react';
 import { Platform, Pressable, View } from 'react-native';
-import Animated, { useAnimatedStyle, useReducedMotion, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, {
+  useAnimatedStyle,
+  useReducedMotion,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { haptics } from './haptics';
 import { Text } from './Text';
 
@@ -21,10 +26,19 @@ export function SegmentedControl<T extends string>({
 }) {
   const reduce = useReducedMotion();
   const [w, setW] = useState(0);
-  const idx = Math.max(0, options.findIndex((o) => o.value === value));
+  const idx = Math.max(
+    0,
+    options.findIndex((o) => o.value === value),
+  );
   const seg = options.length ? (w - 8) / options.length : 0;
   const thumb = useAnimatedStyle(() => ({
-    transform: [{ translateX: reduce ? withTiming(idx * seg, { duration: 0 }) : withSpring(idx * seg, { damping: 20, stiffness: 260 }) }],
+    transform: [
+      {
+        translateX: reduce
+          ? withTiming(idx * seg, { duration: 0 })
+          : withSpring(idx * seg, { damping: 20, stiffness: 260 }),
+      },
+    ],
   }));
   const android = Platform.OS === 'android';
   return (
@@ -32,9 +46,33 @@ export function SegmentedControl<T extends string>({
       accessibilityRole="tablist"
       accessibilityLabel={label}
       onLayout={(e) => setW(e.nativeEvent.layout.width)}
-      className={android ? 'flex-row rounded-full border border-line bg-white overflow-hidden' : 'flex-row rounded-[14px] bg-surface-subtle p-1'}
+      className={
+        android
+          ? 'flex-row rounded-full border border-line bg-white overflow-hidden'
+          : 'flex-row rounded-[14px] bg-surface-subtle p-1'
+      }
     >
-      {!android && w ? <Animated.View style={[thumb, { width: seg, position: 'absolute', top: 4, bottom: 4, left: 4, borderRadius: 10, backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 1 }]} /> : null}
+      {!android && w ? (
+        <Animated.View
+          style={[
+            thumb,
+            {
+              width: seg,
+              position: 'absolute',
+              top: 4,
+              bottom: 4,
+              left: 4,
+              borderRadius: 10,
+              backgroundColor: '#fff',
+              shadowColor: '#000',
+              shadowOpacity: 0.08,
+              shadowRadius: 4,
+              shadowOffset: { width: 0, height: 1 },
+              elevation: 1,
+            },
+          ]}
+        />
+      ) : null}
       {options.map((o, i) => {
         const on = o.value === value;
         return (
@@ -51,7 +89,12 @@ export function SegmentedControl<T extends string>({
             accessibilityLabel={o.label}
             className={`flex-1 min-h-[44px] items-center justify-center px-2 ${android && on ? 'bg-teal-100' : ''} ${android && i > 0 ? 'border-l border-line' : ''}`}
           >
-            <Text variant="label" tone={on ? 'default' : 'muted'} className={on ? 'text-charcoal' : ''} numberOfLines={1}>
+            <Text
+              variant="label"
+              tone={on ? 'default' : 'muted'}
+              className={on ? 'text-charcoal' : ''}
+              numberOfLines={1}
+            >
               {o.label}
             </Text>
           </Pressable>

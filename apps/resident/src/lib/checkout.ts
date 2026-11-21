@@ -28,21 +28,37 @@ export function useCheckout() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const start = async (opts: { purpose: PayPurpose; path: string; body?: unknown; create: (idempotencyKey: string) => Promise<Created> }) => {
+  const start = async (opts: {
+    purpose: PayPurpose;
+    path: string;
+    body?: unknown;
+    create: (idempotencyKey: string) => Promise<Created>;
+  }) => {
     if (busy) return;
     setBusy(true);
     setError(null);
     const key = keys.current.for(actionSignature(opts.path, opts.body));
     try {
       const { checkout, id, kind, reference } = await opts.create(key);
-      const outcome = await payWithRazorpay(checkout, { contact: me.data?.phone, email: me.data?.email ?? undefined });
+      const outcome = await payWithRazorpay(checkout, {
+        contact: me.data?.phone,
+        email: me.data?.email ?? undefined,
+      });
       if (isFinalOutcome(outcome.state)) keys.current.settle();
       await refreshAfterPayment(qc);
       if (outcome.state === 'paid') haptics.success();
       else if (outcome.state === 'failed') haptics.error();
       router.push({
         pathname: '/payment-result',
-        params: { state: outcome.state, message: outcome.message, purpose: opts.purpose, amount: String(checkout.amountPaise), id, kind, reference: reference ?? '' },
+        params: {
+          state: outcome.state,
+          message: outcome.message,
+          purpose: opts.purpose,
+          amount: String(checkout.amountPaise),
+          id,
+          kind,
+          reference: reference ?? '',
+        },
       });
     } catch (e) {
       // Keep the key: tapping again retries the same action and the API replays its first answer.
@@ -57,7 +73,7 @@ export function useCheckout() {
 }
 
 /** POST with the action's Idempotency-Key and no body (pay again, renew); returns the server's response. */
-export const postWithKey = <T,>(path: string, idempotencyKey: string, body?: unknown) =>
+export const postWithKey = <T>(path: string, idempotencyKey: string, body?: unknown) =>
   api<T>(path, { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey }, body });
 
 /** Pay an existing booking or request: the server reuses or creates the order. */

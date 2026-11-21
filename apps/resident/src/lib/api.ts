@@ -17,7 +17,10 @@ export class ApiError extends Error {
 }
 
 /** Calls the Nestovin API with the resident's session. All errors become ApiError. */
-export async function api<T>(path: string, init: { method?: string; body?: unknown; headers?: Record<string, string> } = {}): Promise<T> {
+export async function api<T>(
+  path: string,
+  init: { method?: string; body?: unknown; headers?: Record<string, string> } = {},
+): Promise<T> {
   if (demoMode) return (await import('./demo')).demoApi<T>(path, init);
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
@@ -41,10 +44,15 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
   const json = text ? (JSON.parse(text) as unknown) : undefined;
   if (!res.ok) {
     const e = json as ErrorEnvelope | undefined;
-    throw new ApiError(res.status, e?.error?.code ?? 'INTERNAL', e?.error?.message ?? 'Something went wrong. Please try again.', e?.error?.fields ?? []);
+    throw new ApiError(
+      res.status,
+      e?.error?.code ?? 'INTERNAL',
+      e?.error?.message ?? 'Something went wrong. Please try again.',
+      e?.error?.fields ?? [],
+    );
   }
   return json as T;
 }
 
-export const errorMessage = (e: unknown) => (e instanceof Error ? e.message : 'Something went wrong. Please try again.');
-
+export const errorMessage = (e: unknown) =>
+  e instanceof Error ? e.message : 'Something went wrong. Please try again.';

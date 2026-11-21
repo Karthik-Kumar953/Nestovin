@@ -2,7 +2,19 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
 import type { BookingView, ResidentDemandRequest } from '@nestovin/contracts';
-import { Button, Card, EmptyState, Entrance, Icon, Screen, SegmentedControl, SkeletonList, StatusChip, Text, colors } from '@nestovin/ui-native';
+import {
+  Button,
+  Card,
+  EmptyState,
+  Entrance,
+  Icon,
+  Screen,
+  SegmentedControl,
+  SkeletonList,
+  StatusChip,
+  Text,
+  colors,
+} from '@nestovin/ui-native';
 import { useBookings, useRequests } from '../../../lib/queries';
 import { dateTime, hhmm, rupees, shortDate } from '../../../lib/format';
 import { bookingStatus, requestStatus } from '../../../lib/status';
@@ -18,7 +30,8 @@ export default function Bookings() {
 
   const all = bookings.data ?? [];
   const reqs = (requests.data ?? []).filter((r) => r.status !== 'CONVERTED');
-  const isPast = (b: BookingView) => ['CANCELLED', 'EXPIRED'].includes(b.status) || b.subscription?.status === 'ENDED';
+  const isPast = (b: BookingView) =>
+    ['CANCELLED', 'EXPIRED'].includes(b.status) || b.subscription?.status === 'ENDED';
   const current = all.filter((b) => !isPast(b));
   const past = all.filter(isPast);
   const openReqs = reqs.filter((r) => !['EXPIRED', 'CANCELLED'].includes(r.status));
@@ -27,10 +40,25 @@ export default function Bookings() {
   const shownReqs = tab === 'current' ? openReqs : pastReqs;
 
   return (
-    <Screen title="Bookings" onBack={() => router.back()} onRefresh={() => void refresh()} refreshing={bookings.isRefetching}>
-      <SegmentedControl label="Show" value={tab} onChange={setTab} options={[{ value: 'current', label: 'Current' }, { value: 'past', label: 'Past' }]} />
+    <Screen
+      title="Bookings"
+      onBack={() => router.back()}
+      onRefresh={() => void refresh()}
+      refreshing={bookings.isRefetching}
+    >
+      <SegmentedControl
+        label="Show"
+        value={tab}
+        onChange={setTab}
+        options={[
+          { value: 'current', label: 'Current' },
+          { value: 'past', label: 'Past' },
+        ]}
+      />
       {bookings.isLoading || requests.isLoading ? <SkeletonList count={3} /> : null}
-      {bookings.error ? <ErrorState error={bookings.error} onRetry={() => void refresh()} compact /> : null}
+      {bookings.error ? (
+        <ErrorState error={bookings.error} onRetry={() => void refresh()} compact />
+      ) : null}
 
       {shownReqs.length ? (
         <View className="gap-3">
@@ -54,9 +82,24 @@ export default function Bookings() {
         </View>
       ) : null}
 
-      {!bookings.isLoading && !requests.isLoading && !bookings.error && !shownBookings.length && !shownReqs.length ? (
-        <EmptyState illustration={img('ill-empty-visits.png')} icon="receipt-outline" title={tab === 'current' ? 'No bookings yet' : 'Nothing here yet'} body={tab === 'current' ? 'Plans you book or booking rounds you join appear here.' : 'Ended, expired and cancelled bookings appear here.'}>
-          {tab === 'current' ? <Button title="Explore plans" onPress={() => router.push('/book')} /> : null}
+      {!bookings.isLoading &&
+      !requests.isLoading &&
+      !bookings.error &&
+      !shownBookings.length &&
+      !shownReqs.length ? (
+        <EmptyState
+          illustration={img('ill-empty-visits.png')}
+          icon="receipt-outline"
+          title={tab === 'current' ? 'No bookings yet' : 'Nothing here yet'}
+          body={
+            tab === 'current'
+              ? 'Plans you book or booking rounds you join appear here.'
+              : 'Ended, expired and cancelled bookings appear here.'
+          }
+        >
+          {tab === 'current' ? (
+            <Button title="Explore plans" onPress={() => router.push('/book')} />
+          ) : null}
         </EmptyState>
       ) : null}
     </Screen>
@@ -66,22 +109,44 @@ export default function Bookings() {
 function BookingCard({ b }: { b: BookingView }) {
   const st = bookingStatus(b.status, b.mode, b.outstandingPaise);
   return (
-    <Card onPress={() => router.push({ pathname: '/bookings/[id]', params: { id: b.id, kind: 'booking' } })} accessibilityLabel={`${b.planName}, ${b.selectionLabel}, ${st.label}`}>
+    <Card
+      onPress={() =>
+        router.push({ pathname: '/bookings/[id]', params: { id: b.id, kind: 'booking' } })
+      }
+      accessibilityLabel={`${b.planName}, ${b.selectionLabel}, ${st.label}`}
+    >
       <View className="flex-row items-start gap-3">
         <View className="h-11 w-11 rounded-md bg-teal-100 items-center justify-center">
           <Icon name={serviceIcon(b.selectionLabel)} color={colors.tealDeep} />
         </View>
         <View className="flex-1 gap-0.5">
           <Text variant="bodyStrong">{b.planName}</Text>
-          <Text variant="sm" tone="muted">{`${b.selectionLabel} · ${b.slot.label} ${hhmm(b.slot.startTime)}`}</Text>
+          <Text
+            variant="sm"
+            tone="muted"
+          >{`${b.selectionLabel} · ${b.slot.label} ${hhmm(b.slot.startTime)}`}</Text>
         </View>
         <StatusChip label={st.label} tone={st.tone} icon={st.icon} />
       </View>
-      <Progress value={b.totalPaise ? b.paidPaise / b.totalPaise : 0} label={`Paid ${rupees(b.paidPaise)} of ${rupees(b.totalPaise)}`} />
+      <Progress
+        value={b.totalPaise ? b.paidPaise / b.totalPaise : 0}
+        label={`Paid ${rupees(b.paidPaise)} of ${rupees(b.totalPaise)}`}
+      />
       <View className="flex-row justify-between">
-        <Text variant="sm" tone="muted">{`Paid ${rupees(b.paidPaise)} of ${rupees(b.totalPaise)}`}</Text>
-        <Text variant="sm" tone={b.outstandingPaise ? 'warning' : 'muted'} className={b.outstandingPaise ? 'font-semibold' : ''}>
-          {b.outstandingPaise && b.balanceDueAt ? `Due ${dateTime(b.balanceDueAt)}` : b.subscription ? `${shortDate(b.subscription.periodStart)} to ${shortDate(b.subscription.periodEnd)}` : `Starts ${shortDate(b.startDate)}`}
+        <Text
+          variant="sm"
+          tone="muted"
+        >{`Paid ${rupees(b.paidPaise)} of ${rupees(b.totalPaise)}`}</Text>
+        <Text
+          variant="sm"
+          tone={b.outstandingPaise ? 'warning' : 'muted'}
+          className={b.outstandingPaise ? 'font-semibold' : ''}
+        >
+          {b.outstandingPaise && b.balanceDueAt
+            ? `Due ${dateTime(b.balanceDueAt)}`
+            : b.subscription
+              ? `${shortDate(b.subscription.periodStart)} to ${shortDate(b.subscription.periodEnd)}`
+              : `Starts ${shortDate(b.startDate)}`}
         </Text>
       </View>
     </Card>
@@ -91,7 +156,12 @@ function BookingCard({ b }: { b: BookingView }) {
 function RequestCard({ r }: { r: ResidentDemandRequest }) {
   const st = requestStatus(r.status);
   return (
-    <Card onPress={() => router.push({ pathname: '/bookings/[id]', params: { id: r.id, kind: 'request' } })} accessibilityLabel={`${r.planName}, ${r.cycleName}, ${st.label}`}>
+    <Card
+      onPress={() =>
+        router.push({ pathname: '/bookings/[id]', params: { id: r.id, kind: 'request' } })
+      }
+      accessibilityLabel={`${r.planName}, ${r.cycleName}, ${st.label}`}
+    >
       <View className="flex-row items-start gap-3">
         <View className="h-11 w-11 rounded-md bg-info-surface items-center justify-center">
           <Icon name="time-outline" color={colors.infoText} />
@@ -103,7 +173,10 @@ function RequestCard({ r }: { r: ResidentDemandRequest }) {
         <StatusChip label={st.label} tone={st.tone} icon={st.icon} />
       </View>
       <Text variant="sm" tone="muted">{`Preferred: ${r.preferredWindows.join(', ')}`}</Text>
-      <Text variant="sm" tone="muted">{`Joining payment ${rupees(r.initialPaidPaise)} of ${rupees(r.initialDuePaise)} · total ${rupees(r.totalPaise)}`}</Text>
+      <Text
+        variant="sm"
+        tone="muted"
+      >{`Joining payment ${rupees(r.initialPaidPaise)} of ${rupees(r.initialDuePaise)} · total ${rupees(r.totalPaise)}`}</Text>
     </Card>
   );
 }

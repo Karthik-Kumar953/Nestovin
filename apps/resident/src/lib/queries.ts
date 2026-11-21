@@ -1,4 +1,9 @@
-import { useInfiniteQuery, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from '@tanstack/react-query';
 import type {
   BookingOptions,
   BookingView,
@@ -50,12 +55,20 @@ export const keys = {
   changes: ['change-requests'] as const,
 };
 
-export const useMe = () => useQuery({ queryKey: keys.me, queryFn: () => api<ResidentMe>('/v1/resident/me') });
+export const useMe = () =>
+  useQuery({ queryKey: keys.me, queryFn: () => api<ResidentMe>('/v1/resident/me') });
 
 export const useUnread = (enabled = true) =>
-  useQuery({ queryKey: keys.inboxCount, enabled, queryFn: () => api<Inbox>('/v1/resident/notifications?unread=true'), select: (d) => d.unread, refetchInterval: 60_000 });
+  useQuery({
+    queryKey: keys.inboxCount,
+    enabled,
+    queryFn: () => api<Inbox>('/v1/resident/notifications?unread=true'),
+    select: (d) => d.unread,
+    refetchInterval: 60_000,
+  });
 
-export const useInbox = () => useQuery({ queryKey: keys.inbox, queryFn: () => api<Inbox>('/v1/resident/notifications') });
+export const useInbox = () =>
+  useQuery({ queryKey: keys.inbox, queryFn: () => api<Inbox>('/v1/resident/notifications') });
 
 const visitsPath = (from: string, to: string) => `/v1/resident/visits?from=${from}&to=${to}`;
 
@@ -67,7 +80,10 @@ export const useUpcomingVisits = (enabled: boolean, days = 14) => {
     queryKey: [...keys.visits, 'upcoming', from, to],
     enabled,
     queryFn: () => api<{ items: ResidentVisit[] }>(visitsPath(from, to)),
-    select: (d) => [...d.items].sort((a, b) => (a.scheduledDate + (a.startsAt ?? '')).localeCompare(b.scheduledDate + (b.startsAt ?? ''))),
+    select: (d) =>
+      [...d.items].sort((a, b) =>
+        (a.scheduledDate + (a.startsAt ?? '')).localeCompare(b.scheduledDate + (b.startsAt ?? '')),
+      ),
   });
 };
 
@@ -80,9 +96,16 @@ export const useVisitHistory = (enabled: boolean) =>
     queryFn: async ({ pageParam }) => {
       const now = new Date();
       const first = new Date(now.getFullYear(), now.getMonth() - pageParam, 1);
-      const last = pageParam === 0 ? addDays(now, -1) : new Date(first.getFullYear(), first.getMonth() + 1, 0);
-      const items = last < first ? [] : (await api<{ items: ResidentVisit[] }>(visitsPath(ymd(first), ymd(last)))).items;
-      return { month: first.toISOString(), items: items.sort((a, b) => b.scheduledDate.localeCompare(a.scheduledDate)) };
+      const last =
+        pageParam === 0 ? addDays(now, -1) : new Date(first.getFullYear(), first.getMonth() + 1, 0);
+      const items =
+        last < first
+          ? []
+          : (await api<{ items: ResidentVisit[] }>(visitsPath(ymd(first), ymd(last)))).items;
+      return {
+        month: first.toISOString(),
+        items: items.sort((a, b) => b.scheduledDate.localeCompare(a.scheduledDate)),
+      };
     },
     // Twelve months back is plenty for a household; the API accepts any range.
     getNextPageParam: (_last, pages) => (pages.length < 12 ? pages.length : undefined),
@@ -92,8 +115,10 @@ export const useVisitHistory = (enabled: boolean) =>
 export function findCachedVisit(qc: QueryClient, id: string): ResidentVisit | undefined {
   for (const [, data] of qc.getQueriesData<unknown>({ queryKey: keys.visits })) {
     const lists: ResidentVisit[][] = [];
-    if (data && typeof data === 'object' && 'items' in data) lists.push((data as { items: ResidentVisit[] }).items);
-    if (data && typeof data === 'object' && 'pages' in data) for (const p of (data as { pages: { items: ResidentVisit[] }[] }).pages) lists.push(p.items);
+    if (data && typeof data === 'object' && 'items' in data)
+      lists.push((data as { items: ResidentVisit[] }).items);
+    if (data && typeof data === 'object' && 'pages' in data)
+      for (const p of (data as { pages: { items: ResidentVisit[] }[] }).pages) lists.push(p.items);
     for (const l of lists) {
       const hit = l.find((v) => v.occurrenceId === id);
       if (hit) return hit;
@@ -110,28 +135,74 @@ export const useVisit = (id: string) => {
     queryFn: async () => {
       const from = ymd(addDays(new Date(), -62));
       const to = ymd(addDays(new Date(), 14));
-      const hit = (await api<{ items: ResidentVisit[] }>(visitsPath(from, to))).items.find((v) => v.occurrenceId === id);
+      const hit = (await api<{ items: ResidentVisit[] }>(visitsPath(from, to))).items.find(
+        (v) => v.occurrenceId === id,
+      );
       if (!hit) throw new Error('This visit is no longer available.');
       return hit;
     },
   });
 };
 
-export const useBookingOptions = () => useQuery({ queryKey: keys.options, queryFn: () => api<BookingOptions>('/v1/resident/booking-options') });
-export const useCatalogue = (enabled: boolean) => useQuery({ queryKey: keys.catalogue, enabled, queryFn: () => api<ResidentCatalogue>('/v1/resident/catalogue') });
-export const useBookings = (enabled = true) => useQuery({ queryKey: keys.bookings, enabled, queryFn: () => api<{ items: BookingView[] }>('/v1/resident/bookings'), select: (d) => d.items });
+export const useBookingOptions = () =>
+  useQuery({
+    queryKey: keys.options,
+    queryFn: () => api<BookingOptions>('/v1/resident/booking-options'),
+  });
+export const useCatalogue = (enabled: boolean) =>
+  useQuery({
+    queryKey: keys.catalogue,
+    enabled,
+    queryFn: () => api<ResidentCatalogue>('/v1/resident/catalogue'),
+  });
+export const useBookings = (enabled = true) =>
+  useQuery({
+    queryKey: keys.bookings,
+    enabled,
+    queryFn: () => api<{ items: BookingView[] }>('/v1/resident/bookings'),
+    select: (d) => d.items,
+  });
 export const useRequests = (enabled = true) =>
-  useQuery({ queryKey: keys.requests, enabled, queryFn: () => api<{ items: ResidentDemandRequest[] }>('/v1/resident/demand-requests'), select: (d) => d.items });
+  useQuery({
+    queryKey: keys.requests,
+    enabled,
+    queryFn: () => api<{ items: ResidentDemandRequest[] }>('/v1/resident/demand-requests'),
+    select: (d) => d.items,
+  });
 
-export const useTickets = () => useQuery({ queryKey: keys.tickets, queryFn: () => api<{ items: TicketSummary[] }>('/v1/resident/tickets'), select: (d) => d.items });
-export const useTicket = (id: string) => useQuery({ queryKey: ['ticket', id], queryFn: () => api<TicketDetail>(`/v1/resident/tickets/${id}`) });
+export const useTickets = () =>
+  useQuery({
+    queryKey: keys.tickets,
+    queryFn: () => api<{ items: TicketSummary[] }>('/v1/resident/tickets'),
+    select: (d) => d.items,
+  });
+export const useTicket = (id: string) =>
+  useQuery({
+    queryKey: ['ticket', id],
+    queryFn: () => api<TicketDetail>(`/v1/resident/tickets/${id}`),
+  });
 export const useTicketCategories = () =>
-  useQuery({ queryKey: ['ticket-categories'], staleTime: 10 * 60_000, queryFn: () => api<{ items: { id: string; name: string }[] }>('/v1/resident/ticket-categories'), select: (d) => d.items });
+  useQuery({
+    queryKey: ['ticket-categories'],
+    staleTime: 10 * 60_000,
+    queryFn: () => api<{ items: { id: string; name: string }[] }>('/v1/resident/ticket-categories'),
+    select: (d) => d.items,
+  });
 
-export const useHousehold = () => useQuery({ queryKey: keys.household, queryFn: () => api<Household>('/v1/resident/household') });
-export const useChangeRequests = () => useQuery({ queryKey: keys.changes, queryFn: () => api<{ items: ChangeRequest[] }>('/v1/resident/change-requests'), select: (d) => d.items });
+export const useHousehold = () =>
+  useQuery({ queryKey: keys.household, queryFn: () => api<Household>('/v1/resident/household') });
+export const useChangeRequests = () =>
+  useQuery({
+    queryKey: keys.changes,
+    queryFn: () => api<{ items: ChangeRequest[] }>('/v1/resident/change-requests'),
+    select: (d) => d.items,
+  });
 
 /** Refreshes everything that a payment can change. */
 export async function refreshAfterPayment(qc: QueryClient) {
-  await Promise.all([keys.bookings, keys.requests, keys.visits, keys.inbox].map((k) => qc.invalidateQueries({ queryKey: k })));
+  await Promise.all(
+    [keys.bookings, keys.requests, keys.visits, keys.inbox].map((k) =>
+      qc.invalidateQueries({ queryKey: k }),
+    ),
+  );
 }
