@@ -668,6 +668,18 @@ export interface PaymentOrdersTable extends Stamped {
   check_count: Generated<number>;
 }
 
+export interface IdempotencyKeysTable {
+  actor_kind: 'admin' | 'resident' | 'employee';
+  actor_id: string;
+  key: string;
+  route: string;
+  request_hash: string;
+  status_code: number | null;
+  response: Json | null;
+  created_at: Generated<Date>;
+  expires_at: Generated<Date>;
+}
+
 export interface ProviderEventsTable {
   id: Generated<string>;
   provider: Generated<string>;
@@ -1166,6 +1178,7 @@ export interface DB {
   'app.subscription_components': SubscriptionComponentsTable;
   'app.payment_orders': PaymentOrdersTable;
   'app.provider_events': ProviderEventsTable;
+  'app.idempotency_keys': IdempotencyKeysTable;
   'app.payment_transactions': PaymentTransactionsTable;
   'app.refund_records': RefundRecordsTable;
   'app.payment_exceptions': PaymentExceptionsTable;
