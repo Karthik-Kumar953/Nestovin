@@ -58,11 +58,13 @@ npx eas-cli@latest build --profile development --platform android
   - Household: members, family requests (Primary only), residence changes.
   - Change residence: owner or tenant, or move-out with the native date picker.
 
-## API changes waiting on the lead
-Coded against typed stubs in `src/lib/api-stubs.ts` (marked `TODO(api)`):
-1. `booking-options.reasonCode`, to show "community not live" reliably. Today it is mapped from the reason text.
-2. `POST /v1/resident/residence/document`, to re-upload for a PENDING membership whose upload failed. Until it exists, the app offers a prefilled support request.
-3. `me.verification.flat`, to prefill the proof step after a rejection on any device. Today the flat is remembered on the device that submitted it.
+## API pieces the app relies on (added for the redesign)
+- `booking-options.reasonCode` and `communityName`: the "booking not open" states.
+- `POST /v1/resident/residence/document`: re-upload for a PENDING registration whose upload failed.
+- `me.verification.flat`: prefills the proof step after a rejection (`src/lib/residence.ts`).
+- `GET /v1/resident/bookings/:id`: agreed terms and payment history on booking detail.
+
+Not available: worker photos. Visit cards show initials until photo storage exists.
 
 ## Checks
 ```

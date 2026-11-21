@@ -10,7 +10,7 @@ import { api, errorMessage } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
 import { keys, useMe } from '../../lib/queries';
 import { bytes } from '../../lib/format';
-import { recallFlat, rejectedFlat, rememberFlat, requestReupload } from '../../lib/api-stubs';
+import { rejectedFlat, rememberFlat, requestReupload } from '../../lib/residence';
 import { Progress } from '../../components/common';
 
 const BUCKET = 'resident-documents';
@@ -49,20 +49,20 @@ export default function Register() {
       return;
     }
     void (async () => {
-      const server = rejectedFlat(me.data);
-      const local = await recallFlat();
-      const f = server?.flatId ? server : local;
-      if (f?.flatId && f.occupancy) {
-        setSel({
-          ...(local?.cityId ? { city: { id: local.cityId, label: local.cityName } } : {}),
-          community: { id: local?.communityId ?? '', label: f.communityName ?? '' },
-          tower: { id: local?.towerId ?? '', label: f.towerName ?? '' },
-          flat: { id: f.flatId, label: `Flat ${f.flatNumber ?? ''}` },
-        });
+      const f = await rejectedFlat(me.data);
+      if (!f) return setPrefilled('missing');
+      setSel({
+        ...(f.cityId && f.cityName ? { city: { id: f.cityId, label: f.cityName } } : {}),
+        community: { id: f.communityId, label: f.communityName },
+        tower: { id: f.towerId ?? '', label: f.towerName },
+        flat: { id: f.flatId, label: `Flat ${f.flatNumber}` },
+      });
+      // A family member's registration has no owner/tenant choice to reuse; ask again.
+      if (f.occupancy === 'OWNER' || f.occupancy === 'TENANT') {
         setOccupancy(f.occupancy);
         setStep(2);
-        setPrefilled('rejected');
-      } else setPrefilled('missing');
+      } else setStep(1);
+      setPrefilled('rejected');
     })();
   }, [params.step, me.data, pending, prefilled]);
 
@@ -110,19 +110,17 @@ export default function Register() {
   };
 
   const submit = useMutation({
-    mutationFn: async (): Promise<ResidentMe | 'REUPLOAD_UNAVAILABLE'> => {
+    mutationFn: async (): Promise<ResidentMe> => {
       if (!sel.flat || !occupancy || !docType || !file) throw new Error('Complete every step first');
       const data = await (await fetch(file.uri)).arrayBuffer();
       const document = { docType, fileName: file.name.slice(0, 255), mimeType: file.mimeType, sizeBytes: file.size || data.byteLength };
       let reg: ResidenceRegistrationResult;
       if (prefilled === 'pending') {
-        const r = await requestReupload(document);
-        if (r === 'NOT_AVAILABLE') return 'REUPLOAD_UNAVAILABLE';
-        reg = r;
+        reg = await requestReupload(document);
       } else {
         reg = await api<ResidenceRegistrationResult>('/v1/resident/residence', { method: 'POST', body: { flatId: sel.flat.id, occupancy, document } });
-        if (sel.city && sel.community && sel.tower) {
-          void rememberFlat({ cityId: sel.city.id, cityName: sel.city.label, communityId: sel.community.id, communityName: sel.community.label, towerId: sel.tower.id, towerName: sel.tower.label, flatId: sel.flat.id, flatNumber: sel.flat.label.replace(/^Flat /, ''), occupancy });
+        if (sel.community && sel.tower) {
+          void rememberFlat({ cityId: sel.city?.id, cityName: sel.city?.label, communityId: sel.community.id, communityName: sel.community.label, towerId: sel.tower.id, towerName: sel.tower.label, flatId: sel.flat.id, flatNumber: sel.flat.label.replace(/^Flat /, ''), occupancy });
         }
       }
       const { error: upErr } = await supabase.storage.from(BUCKET).uploadToSignedUrl(reg.upload.path, reg.upload.token, data, { contentType: file.mimeType });
@@ -130,7 +128,6 @@ export default function Register() {
       return api<ResidentMe>(`/v1/resident/documents/${reg.upload.documentId}/complete`, { method: 'POST' });
     },
     onSuccess: async (r) => {
-      if (r === 'REUPLOAD_UNAVAILABLE') return;
       haptics.success();
       qc.setQueryData(keys.me, r);
       await qc.invalidateQueries({ queryKey: keys.options });
@@ -173,11 +170,6 @@ export default function Register() {
 
       {prefilled === 'rejected' && step === 2 ? <Banner tone="info" title="Same flat, new document">Choose a clearer or different document. Go back to change the flat.</Banner> : null}
       {prefilled === 'missing' ? <Banner tone="info">Choose your flat again, then add a new document.</Banner> : null}
-      {submit.data === 'REUPLOAD_UNAVAILABLE' ? (
-        <Banner tone="warning" title="Upload again is not available yet" action="Contact support" onAction={() => router.push({ pathname: '/ticket/new', params: { subject: 'My residence document did not upload' } })}>
-          Our team can reset your registration so you can upload again.
-        </Banner>
-      ) : null}
 
       {step === 0 ? (
         <Entrance key="s0" className="gap-3">

@@ -19,7 +19,7 @@ import {
   colors,
 } from '@nestovin/ui-native';
 import { useBookingOptions, useCatalogue, useMe } from '../../../lib/queries';
-import { bookingNotOpenReason } from '../../../lib/api-stubs';
+import { bookingNotOpenReason } from '../../../lib/residence';
 import { dateTime, rupees, validity } from '../../../lib/format';
 import { lowestPrice, planAvailability, type Plan } from '../../../lib/selection';
 import { SERVICE_VISUAL, img, serviceKind, type ServiceKind } from '../../../assets/images';
@@ -59,7 +59,7 @@ export default function Book() {
   if (!options.data?.eligible) {
     return (
       <Screen {...header}>
-        <NotOpen options={options.data!} community={m?.communityName} />
+        <NotOpen options={options.data!} community={options.data?.communityName ?? m?.communityName} />
       </Screen>
     );
   }

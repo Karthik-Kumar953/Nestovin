@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { Alert, Pressable, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { BookingView, Checkout, ResidentDemandRequest } from '@nestovin/contracts';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { BookingDetail, BookingView, Checkout, ResidentDemandRequest } from '@nestovin/contracts';
 import { Banner, Button, Card, Entrance, Icon, Screen, SkeletonList, StatusChip, Text, colors } from '@nestovin/ui-native';
 import { api, errorMessage, idempotencyKey } from '../../../lib/api';
 import { payExisting, useCheckout } from '../../../lib/checkout';
-import { dateTime, daysLabel, hhmm, longDate, rupees, shortDate, today } from '../../../lib/format';
+import { dateTime, daysLabel, hhmm, longDate, rupees, shortDate, taskFrequency, today, validity } from '../../../lib/format';
 import { keys, useBookings, useRequests } from '../../../lib/queries';
 import { bookingStatus, requestStatus, subscriptionStatus } from '../../../lib/status';
 import { ErrorState, KeyValue, Timeline } from '../../../components/common';
+import { serviceIcon } from '../../../assets/images';
 
 /** Booking detail: progress timeline, amounts, the terms agreed, and the one action that is due. */
 export default function BookingDetail() {
@@ -35,6 +36,7 @@ export default function BookingDetail() {
 function BookingDetailView({ b, request }: { b: BookingView; request?: ResidentDemandRequest }) {
   const st = bookingStatus(b.status, b.mode, b.outstandingPaise);
   const pay = useCheckout();
+  const detail = useQuery({ queryKey: [...keys.bookings, 'detail', b.id], queryFn: () => api<BookingDetail>(`/v1/resident/bookings/${b.id}`) });
   const started = b.startDate <= today();
   const demand = b.mode === 'DEMAND_LED';
   const steps = demand
@@ -108,6 +110,7 @@ function BookingDetailView({ b, request }: { b: BookingView; request?: ResidentD
         <Card className="gap-3">
           <Text variant="h3">Amounts</Text>
           <KeyValue label="Plan total, incl. taxes" value={rupees(b.totalPaise)} />
+          {detail.data?.terms.taxPaise ? <KeyValue label="Of which taxes" value={rupees(detail.data.terms.taxPaise)} /> : null}
           <KeyValue label="Paid" value={rupees(b.paidPaise)} />
           <View className="h-px bg-line" />
           <KeyValue label="Balance" value={rupees(b.outstandingPaise)} strong tone={b.outstandingPaise ? 'warning' : undefined} />
@@ -115,7 +118,8 @@ function BookingDetailView({ b, request }: { b: BookingView; request?: ResidentD
         </Card>
       </Entrance>
 
-      <Terms demand={demand} pct={request?.initialPct} />
+      {detail.data?.payments.length ? <Payments items={detail.data.payments} /> : null}
+      {detail.data ? <AgreedTerms terms={detail.data.terms} /> : <Terms demand={demand} pct={request?.initialPct} />}
       <Button title="Get help with this booking" variant="tertiary" icon="chatbubbles-outline" onPress={() => router.push({ pathname: '/ticket/new', params: { subject: `Booking ${b.reference}` } })} />
     </Screen>
   );
@@ -199,6 +203,76 @@ function Terms({ demand, pct }: { demand: boolean; pct?: number }) {
         <View className="px-5 pb-5 gap-2">
           <Text variant="body" tone="muted">Plan, tasks, prices{demand ? ' and payment split' : ''} as they were when you paid. Later catalogue changes do not affect this booking.</Text>
           {demand && pct ? <Text variant="body" tone="muted">{`The ${pct}% paid to join is non-refundable if the balance is not paid by the deadline.`}</Text> : null}
+        </View>
+      ) : null}
+    </Card>
+  );
+}
+
+const PURPOSE = { INITIAL: 'Joining payment', BALANCE: 'Balance', FULL: 'Full payment' } as const;
+const PAY_STATUS = {
+  CREATED: { label: 'Not completed', tone: 'neutral' as const },
+  PAID: { label: 'Paid', tone: 'success' as const },
+  FAILED: { label: 'Failed', tone: 'error' as const },
+  EXPIRED: { label: 'Expired', tone: 'neutral' as const },
+  REVIEW_REQUIRED: { label: 'Under review', tone: 'warning' as const },
+};
+
+/** Every payment attempt on this booking, oldest first (from GET /bookings/:id). */
+function Payments({ items }: { items: BookingDetail['payments'] }) {
+  return (
+    <Card className="gap-3">
+      <Text variant="h3">Payments</Text>
+      {items.map((p) => {
+        const st = PAY_STATUS[p.status];
+        return (
+          <View key={p.id} className="flex-row items-center gap-3" accessible accessibilityLabel={`${PURPOSE[p.purpose]}, ${rupees(p.amountPaise)}, ${st.label}`}>
+            <View className="flex-1 gap-0.5">
+              <Text variant="bodyStrong">{`${PURPOSE[p.purpose]} · ${rupees(p.amountPaise)}`}</Text>
+              <Text variant="sm" tone="muted">{dateTime(p.paidAt ?? p.createdAt)}</Text>
+            </View>
+            <StatusChip label={st.label} tone={st.tone} />
+          </View>
+        );
+      })}
+    </Card>
+  );
+}
+
+/** The plan as it was when the resident paid: services, cadence, tasks and payment terms (snapshot). */
+function AgreedTerms({ terms }: { terms: BookingDetail['terms'] }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Card tone="subtle" padded={false}>
+      <Pressable onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityState={{ expanded: open }} className="flex-row items-center justify-between min-h-[56px] px-5">
+        <Text variant="bodyStrong">What you agreed to</Text>
+        <Icon name={open ? 'chevron-up' : 'chevron-down'} size="sm" color={colors.textSecondary} />
+      </Pressable>
+      {open ? (
+        <View className="px-5 pb-5 gap-4">
+          {terms.components.map((c, i) => (
+            <View key={`${c.serviceName}-${i}`} className="gap-1.5">
+              <View className="flex-row items-center gap-2">
+                <Icon name={serviceIcon(c.serviceName)} size="sm" color={colors.tealDeep} />
+                <Text variant="bodyStrong" className="flex-1">{c.isAddon ? `${c.serviceName} (add-on)` : c.serviceName}</Text>
+              </View>
+              <Text variant="sm" tone="muted">
+                {[`${c.visitsPerDay} visit${c.visitsPerDay > 1 ? 's' : ''} a day`, `${c.durationMinutes} min`, daysLabel(c.daysOfWeek), c.addonHours ? `${c.addonHours} hours a day` : null].filter(Boolean).join(' · ')}
+              </Text>
+              {c.tasks.map((t) => (
+                <View key={t.name} className="flex-row items-center gap-2 pl-6">
+                  <Icon name="checkmark" size={14} color={colors.greenAction} />
+                  <Text variant="sm" className="flex-1">{t.name}</Text>
+                  <Text variant="caption" tone="muted">{taskFrequency(t.frequency, t.timesPerPeriod)}</Text>
+                </View>
+              ))}
+            </View>
+          ))}
+          <View className="h-px bg-line" />
+          <KeyValue label="Plan length" value={validity(terms.validityDays)} />
+          {terms.initialPct !== null ? <KeyValue label="Paid to join" value={`${terms.initialPct}%, non-refundable`} /> : null}
+          {terms.disclosureAcceptedAt ? <Text variant="sm" tone="muted">{`Payment terms accepted ${dateTime(terms.disclosureAcceptedAt)}.`}</Text> : null}
+          <Text variant="sm" tone="muted">Later catalogue changes do not affect this booking.</Text>
         </View>
       ) : null}
     </Card>
