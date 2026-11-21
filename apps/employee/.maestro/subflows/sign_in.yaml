@@ -1,0 +1,35 @@
+# Reusable: EMP-02 Employee ID + password sign-in.
+# TODO(app): confirm labels; prefer testIDs "employee-id-input" and "password-input".
+appId: in.nestovin.employee # PLACEHOLDER until apps/employee/app.json exists
+---
+- extendedWaitUntil:
+    visible: "Employee ID"
+    timeout: 30000
+- tapOn:
+    text: "Employee ID"
+    index: 1
+- inputText: ${E2E_EMPLOYEE_ID}
+- tapOn:
+    text: "Password"
+    index: 1
+- inputText: ${E2E_EMPLOYEE_PASSWORD}
+- hideKeyboard
+- tapOn: "Sign in"
+# A temporary password issued by HR may force a change on first login (open decision in EMP-02).
+- runFlow:
+    when:
+      visible: "Set a new password|Change password"
+    commands:
+      - tapOn:
+          text: "New password"
+          index: 1
+      - inputText: ${E2E_EMPLOYEE_PASSWORD}
+      - tapOn:
+          text: "Confirm password"
+          index: 1
+      - inputText: ${E2E_EMPLOYEE_PASSWORD}
+      - hideKeyboard
+      - tapOn: "Save|Continue"
+- extendedWaitUntil:
+    visible: "Today|My schedule|Schedule"
+    timeout: 30000

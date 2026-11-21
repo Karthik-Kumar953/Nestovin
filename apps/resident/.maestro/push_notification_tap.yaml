@@ -1,0 +1,31 @@
+# RES-13: tapping a push notification opens the related screen.
+# Needs a development build with Firebase (google-services.json) and the API's
+# FCM_* keys. Run this flow, then within E2E_PUSH_WAIT_MS trigger a resident
+# notification (e.g. reply to the resident's ticket from /admin, or approve a
+# residence). Pass the notification title and the text expected on the target
+# screen:
+#   -e E2E_PUSH_TITLE="Your ticket has a reply" -e E2E_PUSH_EXPECT="Send reply"
+# KNOWN GAP: the app registers no notification-response handler
+# (no addNotificationResponseReceivedListener / useLastNotificationResponse in
+# apps/resident/src), so a tap only opens the app on its last screen.
+appId: in.nestovin.resident
+name: push_notification_tap
+tags:
+  - push
+  - native-only
+  - needs-trigger
+  - known-gap
+---
+- runFlow: subflows/ensure_signed_in.yaml
+- pressKey: Home
+- swipe:
+    start: 50%, 1%
+    end: 50%, 70%
+    duration: 400
+- extendedWaitUntil:
+    visible: ${E2E_PUSH_TITLE}
+    timeout: 120000
+- tapOn: ${E2E_PUSH_TITLE}
+- extendedWaitUntil:
+    visible: ${E2E_PUSH_EXPECT}
+    timeout: 20000

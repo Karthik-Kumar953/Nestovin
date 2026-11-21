@@ -1,0 +1,28 @@
+# EMP-06: a wrong or expired code is rejected with a reason; attendance is not recorded.
+appId: in.nestovin.employee # PLACEHOLDER
+name: attendance_check_in_invalid_code
+tags:
+  - attendance
+  - skeleton
+---
+- runFlow: subflows/ensure_signed_in.yaml
+- tapOn: "Today|My schedule|Schedule"
+- tapOn:
+    text: "Check in"
+    index: 0
+- runFlow:
+    when:
+      visible: "Enter code|Use code"
+    commands:
+      - tapOn: "Enter code|Use code"
+- tapOn:
+    text: "Code|Check-in code"
+    index: 1
+- inputText: "000000"
+- hideKeyboard
+- tapOn: "Verify|Check in|Submit"
+# TODO(app): exact message from the API error
+- extendedWaitUntil:
+    visible: ".*(not correct|invalid|expired).*"
+    timeout: 20000
+- assertNotVisible: ".*Checked in.*"

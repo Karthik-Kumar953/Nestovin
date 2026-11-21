@@ -1,0 +1,27 @@
+# RES-08/09: pay a pending booking or demand request with Razorpay TEST MODE card
+# (Visa 4111 1111 1111 1111, any future expiry, any CVV, then "Success" on the
+# simulated bank page). Same preconditions as razorpay_test_payment_upi.yaml.
+appId: in.nestovin.resident
+name: razorpay_test_payment_card
+tags:
+  - payments
+  - native-only
+---
+- runFlow: subflows/ensure_signed_in.yaml
+- tapOn: "Home"
+- scrollUntilVisible:
+    element:
+      text: "My bookings and payments"
+- tapOn: "My bookings and payments"
+- extendedWaitUntil:
+    visible: "Bookings and payments"
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      text: "Pay (balance )?₹.*"
+    timeout: 20000
+- tapOn: "Pay (balance )?₹.*"
+- runFlow: subflows/razorpay_card_success.yaml
+- extendedWaitUntil:
+    visible: 'Payment received and verified\.'
+    timeout: 60000

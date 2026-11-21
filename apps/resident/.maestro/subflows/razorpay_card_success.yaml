@@ -1,0 +1,39 @@
+# Reusable: complete Razorpay Checkout in TEST MODE with Razorpay's published
+# test Visa card, then press "Success" on the simulated bank page.
+appId: in.nestovin.resident
+---
+- extendedWaitUntil:
+    visible: ".*Card.*"
+    timeout: 30000
+- runFlow:
+    when:
+      visible: "Email.*"
+    commands:
+      - tapOn: "Email.*"
+      - inputText: ${E2E_PAYMENT_EMAIL}
+      - hideKeyboard
+- tapOn: ".*Card.*"
+- tapOn: "Card Number|.*card number.*"
+- inputText: "4111111111111111"
+- tapOn: "Expiry.*|MM ?/ ?YY"
+- inputText: "1230"
+- tapOn: "CVV"
+- inputText: "123"
+- hideKeyboard
+- runFlow:
+    when:
+      visible: "Card Holder.*|Name on card"
+    commands:
+      - tapOn: "Card Holder.*|Name on card"
+      - inputText: "Nestovin Test"
+      - hideKeyboard
+- tapOn: "Pay.*|Continue"
+- runFlow:
+    when:
+      visible: "Save.*card.*"
+    commands:
+      - tapOn: "Maybe later|Skip|Not now"
+- extendedWaitUntil:
+    visible: "Success"
+    timeout: 30000
+- tapOn: "Success"

@@ -1,0 +1,29 @@
+# EMP-06 (QR method). Maestro cannot inject a camera frame, so this flow needs a
+# camera source:
+#  - AVD back camera = "VirtualScene" with the resident's QR placed as a poster, or
+#  - AVD back camera = "Webcam0" pointed at a second phone showing the resident's
+#    code sheet (run apps/resident/.maestro/visit_check_in_code.yaml there).
+# The flow then waits up to 2 minutes for the scan to complete.
+appId: in.nestovin.employee # PLACEHOLDER
+name: attendance_check_in_qr
+tags:
+  - attendance
+  - native-only
+  - manual-assist
+  - skeleton
+---
+- runFlow: subflows/ensure_signed_in.yaml
+- tapOn: "Today|My schedule|Schedule"
+- tapOn:
+    text: "Check in"
+    index: 0
+# TODO(app)
+- tapOn: "Scan QR|Scan code"
+- runFlow:
+    when:
+      visible: "While using the app|Only this time|Allow"
+    commands:
+      - tapOn: "While using the app|Only this time|Allow"
+- extendedWaitUntil:
+    visible: ".*Checked in.*|.*Attendance recorded.*"
+    timeout: 120000

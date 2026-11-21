@@ -1,0 +1,16 @@
+# Maestro workspace config for the Resident app (appId in.nestovin.resident, from app.json).
+# Run all default flows:   maestro test apps/resident/.maestro -e E2E_RESIDENT_PHONE=... -e E2E_RESIDENT_OTP=...
+# Run one tag:             maestro test apps/resident/.maestro --include-tags=smoke
+# Flows tagged `needs-trigger` wait for something outside the device (a push sent
+# from the Admin portal or API) and are excluded by default; run them with
+#   maestro test apps/resident/.maestro/push_notification_tap.yaml -e ...
+# Reusable steps live in subflows/ and are not run on their own.
+flows:
+  - "*"
+excludeTags:
+  - needs-trigger
+executionOrder:
+  continueOnFailure: true
+  flowsOrder:
+    - sign_in_validation
+    - sign_in_phone_otp

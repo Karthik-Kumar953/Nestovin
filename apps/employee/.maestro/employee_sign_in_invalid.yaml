@@ -1,0 +1,31 @@
+# EMP-02: empty fields, a wrong password or an unknown/disabled Employee ID are rejected.
+appId: in.nestovin.employee # PLACEHOLDER
+name: employee_sign_in_invalid
+tags:
+  - auth
+  - smoke
+  - skeleton
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Employee ID"
+    timeout: 30000
+- tapOn: "Sign in"
+# TODO(app): exact empty-field message
+- assertVisible: ".*(Enter|required).*"
+- tapOn:
+    text: "Employee ID"
+    index: 1
+- inputText: "NV-NOPE-0000"
+- tapOn:
+    text: "Password"
+    index: 1
+- inputText: "wrong-password-123"
+- hideKeyboard
+- tapOn: "Sign in"
+# TODO(app): exact rejection message
+- extendedWaitUntil:
+    visible: ".*(not correct|invalid|incorrect|not enabled).*"
+    timeout: 15000
+- assertNotVisible: "Today|My schedule"

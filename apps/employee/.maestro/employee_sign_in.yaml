@@ -1,0 +1,17 @@
+# EMP-02: an enabled employee signs in with Employee ID and password and sees the schedule (EMP-05).
+# Needs: -e E2E_EMPLOYEE_ID=... -e E2E_EMPLOYEE_PASSWORD=...
+appId: in.nestovin.employee # PLACEHOLDER
+name: employee_sign_in
+tags:
+  - auth
+  - smoke
+  - skeleton
+---
+- launchApp:
+    clearState: true
+    permissions:
+      notifications: allow
+      location: allow
+      camera: allow
+- runFlow: subflows/sign_in.yaml
+- assertVisible: "Today|My schedule|Schedule"

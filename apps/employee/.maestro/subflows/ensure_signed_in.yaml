@@ -1,0 +1,15 @@
+# Reusable: open the Worker app and sign in only if the sign-in screen shows.
+appId: in.nestovin.employee # PLACEHOLDER
+---
+- launchApp:
+    permissions:
+      notifications: allow
+      location: allow
+      camera: allow
+- extendedWaitUntil:
+    visible: "Employee ID|Today|My schedule|Schedule"
+    timeout: 30000
+- runFlow:
+    when:
+      visible: "Employee ID"
+    file: sign_in.yaml

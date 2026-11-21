@@ -1,0 +1,30 @@
+# RES-08: closing Razorpay Checkout keeps the booking and shows the retry notice.
+appId: in.nestovin.resident
+name: razorpay_cancel
+tags:
+  - payments
+  - native-only
+---
+- runFlow: subflows/ensure_signed_in.yaml
+- tapOn: "Home"
+- scrollUntilVisible:
+    element:
+      text: "My bookings and payments"
+- tapOn: "My bookings and payments"
+- scrollUntilVisible:
+    element:
+      text: "Pay (balance )?₹.*"
+    timeout: 20000
+- tapOn: "Pay (balance )?₹.*"
+- extendedWaitUntil:
+    visible: ".*UPI.*|.*Card.*"
+    timeout: 30000
+- back
+- runFlow:
+    when:
+      visible: "Yes, exit|Yes|Cancel Payment.*"
+    commands:
+      - tapOn: "Yes, exit|Yes|Cancel Payment.*"
+- extendedWaitUntil:
+    visible: "Payment was not completed. You can try again from Bookings."
+    timeout: 20000

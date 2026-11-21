@@ -1,0 +1,18 @@
+# Maestro workspace config for the Worker app (apps/employee).
+# SKELETON: the Worker app is being built on another branch. These flows follow
+# docs/Architecture/Nestovin_Individual_Module_Workflows_v1.0_Final.md (EMP-02,
+# EMP-05, EMP-06, EMP-10). Labels marked TODO(app) must be aligned with the real
+# screens, and appId must match apps/employee/app.json once it exists
+# (placeholder: in.nestovin.employee).
+#
+# Run:  maestro test apps/employee/.maestro -e E2E_EMPLOYEE_ID=... -e E2E_EMPLOYEE_PASSWORD=...
+flows:
+  - "*"
+excludeTags:
+  - needs-trigger
+  - manual-assist
+executionOrder:
+  continueOnFailure: true
+  flowsOrder:
+    - employee_sign_in_invalid
+    - employee_sign_in

@@ -1,0 +1,14 @@
+# Reusable: open the app and sign in only if the sign-in screen shows.
+appId: in.nestovin.resident
+---
+- launchApp:
+    permissions:
+      notifications: allow
+- extendedWaitUntil:
+    visible:
+      text: "Welcome to Nestovin|Hello.*"
+    timeout: 30000
+- runFlow:
+    when:
+      visible: "Welcome to Nestovin"
+    file: sign_in.yaml

@@ -1,0 +1,60 @@
+# EMP-06 (OTP method), end to end across both apps on one device:
+#  1. the Resident app shows today's check-in code (RES-11),
+#  2. the code is copied,
+#  3. the Worker app checks in with it.
+# Preconditions: both apps installed (dev builds); the test resident and the test
+# employee share a visit today; the emulator location is set to the residence's
+# community (Extended controls -> Location).
+# Needs: E2E_RESIDENT_PHONE, E2E_RESIDENT_OTP, E2E_EMPLOYEE_ID, E2E_EMPLOYEE_PASSWORD.
+appId: in.nestovin.employee # PLACEHOLDER
+name: attendance_check_in_code
+tags:
+  - attendance
+  - cross-app
+  - skeleton
+---
+# 1. Resident side
+- launchApp:
+    appId: in.nestovin.resident
+- extendedWaitUntil:
+    visible: "Welcome to Nestovin|Hello.*"
+    timeout: 30000
+- runFlow:
+    when:
+      visible: "Welcome to Nestovin"
+    file: ../../resident/.maestro/subflows/sign_in.yaml
+- tapOn: "Visits"
+- scrollUntilVisible:
+    element:
+      text: "Show check-in code"
+    timeout: 15000
+- tapOn: "Show check-in code"
+- extendedWaitUntil:
+    visible: "Check-in code"
+    timeout: 15000
+- copyTextFrom:
+    text: '\d{6}'
+- evalScript: ${output.visitCode = maestro.copiedText}
+- tapOn: "Done"
+- stopApp: in.nestovin.resident
+# 2. Worker side
+- runFlow: subflows/ensure_signed_in.yaml
+# TODO(app): schedule tab label and the action that opens EMP-06 on today's assignment
+- tapOn: "Today|My schedule|Schedule"
+- tapOn:
+    text: "Check in"
+    index: 0
+- runFlow:
+    when:
+      visible: "Enter code|Use code"
+    commands:
+      - tapOn: "Enter code|Use code"
+- tapOn:
+    text: "Code|Check-in code"
+    index: 1
+- inputText: ${output.visitCode}
+- hideKeyboard
+- tapOn: "Verify|Check in|Submit"
+- extendedWaitUntil:
+    visible: ".*Checked in.*|.*Attendance recorded.*"
+    timeout: 30000

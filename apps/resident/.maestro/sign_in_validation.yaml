@@ -1,0 +1,25 @@
+# RES-01: phone and code validation on a clean install. No SMS is sent.
+appId: in.nestovin.resident
+name: sign_in_validation
+tags:
+  - auth
+  - smoke
+---
+- launchApp:
+    clearState: true
+    permissions:
+      notifications: allow
+- extendedWaitUntil:
+    visible: "Welcome to Nestovin"
+    timeout: 30000
+- assertVisible: "Managed maid, cook and caretaker services for your home."
+- tapOn: "Send code"
+- assertVisible: "Enter a valid 10-digit mobile number"
+- tapOn:
+    text: "Mobile number"
+    index: 1
+- inputText: "12345"
+- hideKeyboard
+- tapOn: "Send code"
+- assertVisible: "Enter a valid 10-digit mobile number"
+- assertNotVisible: "Verify and continue"

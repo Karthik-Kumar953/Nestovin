@@ -1,0 +1,25 @@
+# EMP-10: tapping an assignment/offer push opens the related screen in the Worker app.
+# Run this flow, then trigger the event from /admin (assign a visit, send an
+# overtime offer, decide leave). Pass the title and the text on the target screen:
+#   -e E2E_PUSH_TITLE="New overtime offer" -e E2E_PUSH_EXPECT="Accept"
+appId: in.nestovin.employee # PLACEHOLDER
+name: employee_push_notification_tap
+tags:
+  - push
+  - native-only
+  - needs-trigger
+  - skeleton
+---
+- runFlow: subflows/ensure_signed_in.yaml
+- pressKey: Home
+- swipe:
+    start: 50%, 1%
+    end: 50%, 70%
+    duration: 400
+- extendedWaitUntil:
+    visible: ${E2E_PUSH_TITLE}
+    timeout: 120000
+- tapOn: ${E2E_PUSH_TITLE}
+- extendedWaitUntil:
+    visible: ${E2E_PUSH_EXPECT}
+    timeout: 20000
