@@ -33,6 +33,7 @@ import {
 import { Building2, ExternalLink, History, MapPin, Network, Pencil, Plus, Settings, Upload } from '../../components/icons';
 import { CLUSTER_SOURCE, STATUS_OPTIONS, SearchPicker, Unassigned, plural } from './shared';
 import { RecordHistory } from '../../components/RecordHistory';
+import { BookingModePanel } from './BookingModes';
 
 export function CommunityDetailPage() {
   const { id = '' } = useParams();
@@ -100,6 +101,12 @@ export function CommunityDetailPage() {
           ]}
         />
       </div>
+
+      {can(me, 'catalogue_pricing') ? (
+        <div style={{ marginBottom: 20 }}>
+          <BookingModePanel communityId={c.id} />
+        </div>
+      ) : null}
 
       <div className="split">
         <div className="stack" style={{ minWidth: 0 }}>

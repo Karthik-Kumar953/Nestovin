@@ -301,7 +301,13 @@ export class LocationService {
       )
       .leftJoin('app.clusters as cl', 'cl.id', 'm.cluster_id')
       .selectAll('c')
-      .select(['ci.name as city_name', 'm.cluster_id as cluster_id', 'cl.name as cluster_name']);
+      .select(['ci.name as city_name', 'm.cluster_id as cluster_id', 'cl.name as cluster_name'])
+      .select(
+        sql<BookingModeRow[] | null>`(
+          select json_agg(json_build_object('code', s.code, 'name', s.name, 'mode', coalesce(cs.operating_mode, c.default_operating_mode)) order by s.sort)
+            from app.community_services cs join app.services s on s.id = cs.service_id
+           where cs.community_id = c.id and cs.enabled)`.as('booking_modes'),
+      );
   }
 
   async listCommunities(
@@ -941,6 +947,8 @@ function toCluster(
   };
 }
 
+type BookingModeRow = { code: string; name: string; mode: 'DEMAND_LED' | 'CONTINUOUS' | null };
+
 function toCommunity(
   r: {
     id: string;
@@ -956,6 +964,7 @@ function toCommunity(
     status: Community['status'];
     cluster_id: string | null;
     cluster_name: string | null;
+    booking_modes?: BookingModeRow[] | null;
   } & Stamp,
 ): Community {
   return {
@@ -971,6 +980,7 @@ function toCommunity(
     status: r.status,
     clusterId: r.cluster_id,
     clusterName: r.cluster_name,
+    bookingModes: r.booking_modes ?? [],
     version: r.version,
     createdAt: iso(r.created_at),
     updatedAt: iso(r.updated_at),

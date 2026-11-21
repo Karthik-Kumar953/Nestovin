@@ -10,8 +10,8 @@ import { Button, DataTable, ErrorBanner, InfoBanner, Modal, SelectInput, StatusB
 
 export const MODE_LABEL: Record<OperatingMode, string> = { DEMAND_LED: 'Demand-led', CONTINUOUS: 'Continuous' };
 const MODE_OPTIONS = [
-  { value: 'DEMAND_LED', label: 'Demand-led (collect commitments in cycles)' },
-  { value: 'CONTINUOUS', label: 'Continuous (book available slots)' },
+  { value: 'DEMAND_LED', label: 'Collect demand manually (demand cycles)' },
+  { value: 'CONTINUOUS', label: 'Open slots automatically (published slots)' },
 ];
 
 export function useServices(communityId: string) {

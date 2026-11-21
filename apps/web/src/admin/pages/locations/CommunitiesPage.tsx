@@ -25,6 +25,7 @@ import {
   useToast,
 } from '../../components/ui';
 import { Plus, Settings } from '../../components/icons';
+import { BookingModeChips } from './BookingModes';
 import { CITY_SOURCE, CLUSTER_SOURCE, COMMUNITY_STATUS_OPTIONS, SearchPicker, Unassigned } from './shared';
 
 export { COMMUNITY_STATUS_OPTIONS };
@@ -131,6 +132,7 @@ export function CommunitiesPage() {
             { header: 'City', cell: (c) => c.cityName },
             { header: 'Cluster', cell: (c) => c.clusterName ?? <Unassigned /> },
             { header: 'Status', cell: (c) => <StatusBadge status={c.status} /> },
+            { header: 'Booking mode', cell: (c) => <BookingModeChips modes={c.bookingModes} /> },
             {
               header: 'Actions',
               className: 'actions',

@@ -16,6 +16,7 @@
     "bootstrap:super-admin": "tsx --env-file-if-exists=.env scripts/bootstrap-super-admin.ts",
     "db:migrate": "tsx --env-file-if-exists=.env scripts/db-migrate.ts",
     "seed:dev-demo": "tsx --env-file-if-exists=.env scripts/seed-dev-demo.ts",
+    "seed:dev-demo-catalogue": "tsx --env-file-if-exists=.env scripts/seed-dev-demo-catalogue.ts",
     "seed:e2e-admin": "tsx --env-file-if-exists=.env scripts/seed-e2e-admin.ts"
   },
   "dependencies": {

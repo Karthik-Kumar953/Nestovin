@@ -87,6 +87,13 @@ export const communitySchema = z.object({
   status: communityStatusSchema,
   clusterId: uuidSchema.nullable(),
   clusterName: z.string().nullable(),
+  /**
+   * RES-07A: enabled services with their effective booking mode (own mode, else the
+   * community default; null when neither is set). Read-only summary for lists.
+   */
+  bookingModes: z
+    .array(z.object({ code: z.string(), name: z.string(), mode: z.enum(['DEMAND_LED', 'CONTINUOUS']).nullable() }))
+    .optional(),
   version: versionSchema,
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),

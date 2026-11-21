@@ -613,16 +613,18 @@ export function Segmented<T extends string>({
   onChange,
   items,
   label,
+  disabled,
 }: {
   value: T;
   onChange: (v: T) => void;
   items: { value: T; label: string }[];
   label: string;
+  disabled?: boolean | undefined;
 }) {
   return (
     <div className="segmented" role="group" aria-label={label}>
       {items.map((t) => (
-        <button key={t.value} type="button" aria-pressed={value === t.value} onClick={() => onChange(t.value)}>
+        <button key={t.value} type="button" aria-pressed={value === t.value} disabled={disabled} onClick={() => onChange(t.value)}>
           {t.label}
         </button>
       ))}
