@@ -19,6 +19,7 @@ export const gradients = {
   brand: ['#00695C', '#00897B', '#2E9D6F'] as const,
   mint: ['#E6F4F1', '#F5FAF9'] as const,
   dusk: ['#0B3B36', '#00695C'] as const,
+  sage: ['#1B5E20', '#2E7D32', '#43A047'] as const,
   scrimBottom: ['rgba(0,0,0,0)', 'rgba(6,30,27,0.78)'] as const,
 };
 

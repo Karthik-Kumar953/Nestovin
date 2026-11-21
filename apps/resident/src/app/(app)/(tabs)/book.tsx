@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import type { BookingOptions, ResidentCatalogue } from '@nestovin/contracts';
 import {
@@ -11,8 +11,8 @@ import {
   Icon,
   IconButton,
   Photo,
+  PressScale,
   Screen,
-  SegmentedControl,
   SkeletonList,
   StatusChip,
   Text,
@@ -85,12 +85,17 @@ function Plans({ cat, options, filter, setFilter, community }: { cat: ResidentCa
   return (
     <View className="gap-4">
       {kinds.length > 1 ? (
-        <SegmentedControl
-          label="Filter plans by service"
-          value={filter}
-          onChange={setFilter}
-          options={[{ value: 'all' as const, label: 'All' }, ...kinds.map((k) => ({ value: k, label: SERVICE_VISUAL[k].label }))]}
-        />
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }} accessibilityRole="tablist" accessibilityLabel="Filter plans by service">
+          {(['all', ...kinds] as const).map((k) => {
+            const on = filter === k;
+            return (
+              <PressScale key={k} onPress={() => setFilter(k)} haptic="select" accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={k === 'all' ? 'All plans' : SERVICE_VISUAL[k].label} className={`flex-row items-center gap-1.5 rounded-full px-4 min-h-[44px] border ${on ? 'bg-teal border-teal' : 'bg-white border-line'}`}>
+                <Icon name={k === 'all' ? 'grid-outline' : SERVICE_VISUAL[k].icon} size={16} color={on ? colors.white : colors.tealDeep} />
+                <Text variant="label" tone={on ? 'inverse' : 'default'}>{k === 'all' ? 'All' : SERVICE_VISUAL[k].label}</Text>
+              </PressScale>
+            );
+          })}
+        </ScrollView>
       ) : null}
 
       {!open.length ? (
@@ -133,7 +138,7 @@ function PlanCard({ plan, cat, options, kindOf }: { plan: Plan; cat: ResidentCat
   const modeChip = avail.mode === 'DEMAND_LED' ? { label: 'Booking round', tone: 'info' as const } : avail.mode === 'CONTINUOUS' ? { label: 'Start within 14 days', tone: 'success' as const } : { label: 'Choose service', tone: 'neutral' as const };
   return (
     <Card padded={false} raised onPress={() => router.push({ pathname: '/plan/[id]', params: { id: plan.id } })} accessibilityLabel={`${plan.name}, ${modeChip.label}, ${validity(plan.validityDays)}${from !== null ? `, from ${rupees(from)} including taxes` : ''}${avail.open ? '' : ', not open now'}`}>
-      <Photo source={visual.photo ? img(visual.photo) : null} fallbackIcon={visual.icon} scrim style={{ height: 150 }}>
+      <Photo source={visual.photo ? img(visual.photo) : null} fallbackIcon={visual.icon} fallbackTone={visual.tone} scrim style={{ height: 150 }}>
         <View className="flex-1 justify-between p-4">
           <View className="flex-row gap-2">
             <StatusChip label={modeChip.label} tone="inverse" icon={avail.mode === 'DEMAND_LED' ? 'time-outline' : 'flash-outline'} />

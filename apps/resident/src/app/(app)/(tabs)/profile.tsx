@@ -8,6 +8,7 @@ import { Avatar, Banner, Button, Card, Divider, Entrance, Field, ListRow, Screen
 import { api, ApiError, errorMessage } from '../../../lib/api';
 import { useAuth } from '../../../lib/auth';
 import { keys, useMe, useUnread } from '../../../lib/queries';
+import { phone } from '../../../lib/format';
 import { ErrorState } from '../../../components/common';
 
 /** RES-14: the resident's details, household, requests and settings. Sign-out sits apart from everything else. */
@@ -34,7 +35,7 @@ export default function Profile() {
           <Avatar name={d.fullName} size={84} />
           <View className="items-center gap-0.5">
             <Text variant="h2">{d.fullName ?? 'Add your name'}</Text>
-            <Text variant="body" tone="muted">{d.phone}</Text>
+            <Text variant="body" tone="muted">{phone(d.phone)}</Text>
             {d.email ? <Text variant="sm" tone="muted">{d.email}</Text> : null}
           </View>
           {m ? <StatusChip label={m.status === 'VERIFIED' ? (m.kind === 'PRIMARY' ? 'Primary resident' : 'Family member') : 'Verification in progress'} tone={m.status === 'VERIFIED' ? 'success' : 'info'} icon={m.status === 'VERIFIED' ? 'shield-checkmark' : 'time'} /> : null}

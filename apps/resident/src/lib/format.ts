@@ -81,3 +81,6 @@ export const taskFrequency = (f: string, times: number) => {
   const period = f === 'DAILY' ? 'day' : f === 'WEEKLY' ? 'week' : f === 'MONTHLY' ? 'month' : f.toLowerCase();
   return times > 1 ? `${times} times a ${period}` : f === 'DAILY' ? 'Daily' : f === 'WEEKLY' ? 'Weekly' : f === 'MONTHLY' ? 'Monthly' : period;
 };
+
+/** "+919876543210" → "+91 98765 43210"; other numbers are returned unchanged. */
+export const phone = (e164: string) => (/^\+91\d{10}$/.test(e164) ? `+91 ${e164.slice(3, 8)} ${e164.slice(8)}` : e164);

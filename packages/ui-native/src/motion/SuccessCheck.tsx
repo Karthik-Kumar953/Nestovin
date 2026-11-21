@@ -1,22 +1,8 @@
 import { useEffect } from 'react';
 import { View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
-import Animated, {
-  Easing,
-  useAnimatedProps,
-  useAnimatedStyle,
-  useReducedMotion,
-  useSharedValue,
-  withDelay,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { colors } from '../tokens';
-
-const ACircle = Animated.createAnimatedComponent(Circle);
-const APath = Animated.createAnimatedComponent(Path);
-const RING = 2 * Math.PI * 34;
-const STROKE = 60;
 
 export type ResultTone = 'success' | 'info' | 'warning' | 'error' | 'neutral';
 const TONES: Record<ResultTone, { fg: string; bg: string }> = {
@@ -34,49 +20,48 @@ const MARKS = {
 } as const;
 
 /**
- * Animated result mark: the ring draws, the disc pops, then the mark strokes in.
- * Used for payment success, joining a round and check-in. Reduce Motion: final state at once.
+ * Animated result mark for payment success, joining a round and check-in.
+ * A halo ripples out, the disc pops, then the mark springs in with a slight overshoot.
+ * Only transform and opacity animate (GPU-friendly, identical on iOS, Android and web).
+ * Reduce Motion: the final state at once.
  */
 export function SuccessCheck({ size = 104, tone = 'success', mark = 'check' }: { size?: number; tone?: ResultTone; mark?: keyof typeof MARKS }) {
   const reduce = useReducedMotion();
-  const ring = useSharedValue(reduce ? 1 : 0);
-  const pop = useSharedValue(reduce ? 1 : 0.5);
-  const stroke = useSharedValue(reduce ? 1 : 0);
+  const disc = useSharedValue(reduce ? 1 : 0);
+  const tick = useSharedValue(reduce ? 1 : 0);
+  const halo = useSharedValue(reduce ? 1 : 0);
   useEffect(() => {
     if (reduce) {
-      ring.value = 1;
-      pop.value = 1;
-      stroke.value = 1;
+      disc.value = 1;
+      tick.value = 1;
+      halo.value = 1;
       return;
     }
-    ring.value = withTiming(1, { duration: 460, easing: Easing.out(Easing.cubic) });
-    pop.value = withDelay(140, withSpring(1, { damping: 9, stiffness: 170 }));
-    stroke.value = withDelay(340, withTiming(1, { duration: 340, easing: Easing.out(Easing.quad) }));
-  }, [reduce, ring, pop, stroke, tone, mark]);
-  const ringProps = useAnimatedProps(() => ({ strokeDashoffset: RING * (1 - ring.value) }));
-  const markProps = useAnimatedProps(() => ({ strokeDashoffset: STROKE * (1 - stroke.value) }));
-  const disc = useAnimatedStyle(() => ({ transform: [{ scale: pop.value }], opacity: Math.min(1, Math.max(0, pop.value * 2 - 1)) }));
+    disc.value = withSpring(1, { damping: 11, stiffness: 170 });
+    tick.value = withDelay(220, withSpring(1, { damping: 9, stiffness: 200 }));
+    halo.value = withSequence(withTiming(0, { duration: 0 }), withDelay(160, withTiming(1, { duration: 700, easing: Easing.out(Easing.cubic) })));
+  }, [reduce, disc, tick, halo, tone, mark]);
+
+  const discStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, disc.value * 1.5), transform: [{ scale: 0.6 + disc.value * 0.4 }] }));
+  const tickStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, tick.value * 2), transform: [{ scale: 0.4 + tick.value * 0.6 }, { rotate: `${(1 - tick.value) * -12}deg` }] }));
+  const haloStyle = useAnimatedStyle(() => ({ opacity: reduce ? 0 : (1 - halo.value) * 0.5, transform: [{ scale: 0.8 + halo.value * 0.45 }] }));
   const t = TONES[tone];
-  const inset = size * 0.16;
+  const fill = { position: 'absolute' as const, top: 0, left: 0, width: size, height: size };
+
   return (
     <View style={{ width: size, height: size }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      <Animated.View style={[{ position: 'absolute', top: inset, left: inset, right: inset, bottom: inset, borderRadius: size, backgroundColor: t.bg }, disc]} />
-      <Svg width={size} height={size} viewBox="0 0 100 100">
-        <ACircle
-          cx={50}
-          cy={50}
-          r={34}
-          stroke={t.fg}
-          strokeOpacity={0.28}
-          strokeWidth={3}
-          fill="none"
-          strokeDasharray={RING}
-          strokeLinecap="round"
-          transform="rotate(-90 50 50)"
-          animatedProps={ringProps}
-        />
-        <APath d={MARKS[mark]} stroke={t.fg} strokeWidth={6} fill="none" strokeLinecap="round" strokeLinejoin="round" strokeDasharray={STROKE} animatedProps={markProps} />
-      </Svg>
+      <Animated.View style={[fill, { borderRadius: size, backgroundColor: t.bg }, haloStyle]} />
+      <Animated.View style={[fill, discStyle]}>
+        <Svg width={size} height={size} viewBox="0 0 100 100">
+          <Circle cx={50} cy={50} r={36} fill={t.bg} />
+          <Circle cx={50} cy={50} r={36} stroke={t.fg} strokeOpacity={0.3} strokeWidth={3} fill="none" />
+        </Svg>
+      </Animated.View>
+      <Animated.View style={[fill, tickStyle]}>
+        <Svg width={size} height={size} viewBox="0 0 100 100">
+          <Path d={MARKS[mark]} stroke={t.fg} strokeWidth={6} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        </Svg>
+      </Animated.View>
     </View>
   );
 }

@@ -8,7 +8,7 @@ import { api, ApiError, errorMessage } from '../../lib/api';
 import { toE164 } from '../../lib/auth';
 import { keys, useChangeRequests, useHousehold, useMe } from '../../lib/queries';
 import { CHANGE_STATUS } from '../../lib/status';
-import { shortDate } from '../../lib/format';
+import { phone, shortDate } from '../../lib/format';
 import { img } from '../../assets/images';
 import { ErrorState } from '../../components/common';
 
@@ -62,7 +62,7 @@ export default function HouseholdScreen() {
                 {i ? <Divider inset={60} /> : null}
                 <ListRow
                   leading={<Avatar name={x.fullName ?? x.phone} size={44} />}
-                  title={x.fullName ?? x.phone}
+                  title={x.fullName ?? phone(x.phone)}
                   subtitle={x.kind === 'PRIMARY' ? 'Primary resident' : 'Family member'}
                   chevron={false}
                   trailing={h.isPrimary && x.kind === 'FAMILY' ? <Button title="Remove" variant="tertiary" size="sm" block={false} onPress={() => confirmRemove(x.membershipId, x.fullName ?? x.phone)} /> : undefined}

@@ -49,7 +49,7 @@ export default function PaymentResult() {
           <Entrance delay={250} className="items-center gap-3">
             <Text variant="title" className="text-center">{c.title}</Text>
             <Text variant="body" tone="muted" className="text-center">{c.body}</Text>
-            <StatusChip label={c.chip} tone={c.chipTone} />
+            <StatusChip label={c.chip} tone={c.chipTone} align="center" />
           </Entrance>
         </View>
         <Entrance delay={400}>

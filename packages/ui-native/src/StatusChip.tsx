@@ -16,12 +16,12 @@ const MAP: Record<StatusTone, { bg: string; fg: string; icon: IconName }> = {
 };
 
 /** Status = colour + icon + text (never colour alone). */
-export function StatusChip({ label, tone = 'neutral', icon }: { label: string; tone?: StatusTone; icon?: IconName | null }) {
+export function StatusChip({ label, tone = 'neutral', icon, align = 'start' }: { label: string; tone?: StatusTone; icon?: IconName | null; align?: 'start' | 'center' }) {
   const t = MAP[tone];
   return (
     <View
       style={{ backgroundColor: t.bg }}
-      className="flex-row items-center self-start gap-1 rounded-full pl-2 pr-2.5 py-1"
+      className={`flex-row items-center ${align === 'center' ? 'self-center' : 'self-start'} gap-1 rounded-full pl-2 pr-2.5 py-1`}
       accessible
       accessibilityLabel={`Status: ${label}`}
     >

@@ -23,7 +23,7 @@ export function Photo({
 }: {
   source: ImageSource | number | null | undefined;
   fallbackIcon?: IconName;
-  fallbackTone?: 'brand' | 'mint' | 'dusk';
+  fallbackTone?: 'brand' | 'mint' | 'dusk' | 'sage';
   className?: string;
   style?: StyleProp<ViewStyle>;
   children?: ReactNode;
@@ -47,7 +47,7 @@ export function Photo({
   );
 }
 
-function Fallback({ icon, tone }: { icon: IconName; tone: 'brand' | 'mint' | 'dusk' }) {
+function Fallback({ icon, tone }: { icon: IconName; tone: 'brand' | 'mint' | 'dusk' | 'sage' }) {
   const light = tone === 'mint';
   return (
     <View style={StyleSheet.absoluteFill} accessible={false}>

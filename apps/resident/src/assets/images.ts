@@ -48,11 +48,12 @@ export function serviceKind(codeOrName: string | null | undefined): ServiceKind 
   return 'other';
 }
 
-export const SERVICE_VISUAL: Record<ServiceKind, { photo: ShotName | null; icon: IconName; label: string }> = {
-  maid: { photo: 'svc-maid.jpg', icon: 'sparkles-outline', label: 'Maid' },
-  cook: { photo: 'svc-cook.jpg', icon: 'restaurant-outline', label: 'Cook' },
-  caretaker: { photo: 'svc-caretaker.jpg', icon: 'heart-outline', label: 'Caretaker' },
-  other: { photo: null, icon: 'home-outline', label: 'Service' },
+/** `tone` picks the designed fallback gradient while the photo does not exist yet, so the three services look distinct. */
+export const SERVICE_VISUAL: Record<ServiceKind, { photo: ShotName | null; icon: IconName; label: string; tone: 'brand' | 'dusk' | 'sage' }> = {
+  maid: { photo: 'svc-maid.jpg', icon: 'sparkles-outline', label: 'Maid', tone: 'brand' },
+  cook: { photo: 'svc-cook.jpg', icon: 'restaurant-outline', label: 'Cook', tone: 'dusk' },
+  caretaker: { photo: 'svc-caretaker.jpg', icon: 'heart-outline', label: 'Caretaker', tone: 'sage' },
+  other: { photo: null, icon: 'home-outline', label: 'Service', tone: 'brand' },
 };
 
 export const servicePhoto = (codeOrName: string | null | undefined) => {

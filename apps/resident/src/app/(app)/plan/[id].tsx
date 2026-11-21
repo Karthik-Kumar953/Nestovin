@@ -76,7 +76,7 @@ export default function PlanDetail() {
       title={plan.name}
       onBack={() => router.back()}
       hero={
-        <Photo source={visual.photo ? img(visual.photo) : null} fallbackIcon={visual.icon} scrim style={{ height: 300 + insets.top }}>
+        <Photo source={visual.photo ? img(visual.photo) : null} fallbackIcon={visual.icon} fallbackTone={visual.tone} scrim style={{ height: 300 + insets.top }}>
           <View className="flex-1 justify-end px-gutter pb-6 gap-2">
             <View className="flex-row flex-wrap gap-2">
               <StatusChip label={mode === 'DEMAND_LED' ? 'Booking round' : mode === 'CONTINUOUS' ? 'Start within 14 days' : 'Choose a service'} tone="inverse" icon={mode === 'DEMAND_LED' ? 'time-outline' : 'flash-outline'} />
@@ -172,7 +172,7 @@ export default function PlanDetail() {
                   kind="checkbox"
                   icon={serviceIcon(c.name)}
                   title={`Add ${c.name}`}
-                  description={[c.addonHours ? `${c.addonHours} hours a day` : null, componentSummary(c, daysLabel)].filter(Boolean).join(' · ')}
+                  description={c.addonHours ? `${c.addonHours} hours a day · ${daysLabel(c.daysOfWeek)}` : componentSummary(c, daysLabel)}
                   selected={on}
                   onPress={() => setAddons(on ? addons.filter((x) => x !== c.id) : [...addons, c.id])}
                   meta={<Text variant="label" tone="brand">{`+${rupees(c.addonPricePaise ?? 0)}`}</Text>}

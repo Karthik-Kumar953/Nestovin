@@ -210,7 +210,7 @@ export function ServicesRail({ title }: { title: string }) {
           return (
             <Entrance key={k} index={i}>
               <PressScale onPress={() => router.push({ pathname: '/book', params: { service: k } })} haptic="tap" accessibilityRole="button" accessibilityLabel={`${v.label}, ${blurb[k]}. See plans`} className="rounded-xl overflow-hidden">
-                <Photo source={v.photo ? img(v.photo) : null} fallbackIcon={v.icon as IconName} scrim style={{ width: 168, height: 208 }} className="rounded-xl">
+                <Photo source={v.photo ? img(v.photo) : null} fallbackIcon={v.icon as IconName} fallbackTone={v.tone} scrim style={{ width: 168, height: 208 }} className="rounded-xl">
                   <View className="flex-1 justify-end p-4 gap-0.5">
                     <Text variant="h3" tone="inverse">{v.label}</Text>
                     <Text variant="sm" tone="inverseMuted">{blurb[k]}</Text>
@@ -354,7 +354,7 @@ function HomePending({ me, bell, onRefresh, refreshing }: { me: ResidentMe; bell
           <Card raised className="gap-5">
             <View className="items-center gap-3">
               <Illustration source={img('ill-verify-review.png')} icon="time-outline" size={120} />
-              <StatusChip label={uploaded ? 'Under review' : 'Upload incomplete'} tone={uploaded ? 'info' : 'warning'} />
+              <StatusChip label={uploaded ? 'Under review' : 'Upload incomplete'} tone={uploaded ? 'info' : 'warning'} align="center" />
               <Text variant="h2" className="text-center">{uploaded ? 'We are checking your document' : 'Your document did not upload'}</Text>
               <Text variant="body" tone="muted" className="text-center">
                 {uploaded ? 'You will get an update here and by notification. Booking opens as soon as your residence is verified.' : 'Upload it again to send your registration for review.'}
