@@ -14,8 +14,7 @@ import {
 } from '@nestovin/contracts';
 import type { AppDeps } from '../../http/context';
 import { adminOf } from '../../http/context';
-import { authorize, parseParam, parseQuery, validateBody } from '../../http/middleware';
-import { forbidden } from '../../lib/errors';
+import { authorize, parseParam, parseQuery, superAdminOnly, validateBody } from '../../http/middleware';
 import { SupportService } from './service';
 
 const id = (v: unknown, name = 'id') => parseParam(uuidSchema, v, name);
@@ -63,12 +62,10 @@ export function supportAdminRoutes(deps: AppDeps): Router {
   r.get('/holidays', authorize('support', 'view'), async (_req, res) => {
     res.json({ items: await svc.holidays() });
   });
-  r.post('/holidays', validateBody(holidaySchema), async (req, res) => {
-    if (!adminOf(req).isSuperAdmin) throw forbidden('Only the Super Admin maintains the holiday calendar');
+  r.post('/holidays', superAdminOnly('Only the Super Admin maintains the holiday calendar'), validateBody(holidaySchema), async (req, res) => {
     res.status(201).json({ items: await svc.addHoliday(adminOf(req), req.requestId, req.body) });
   });
-  r.delete('/holidays/:date', async (req, res) => {
-    if (!adminOf(req).isSuperAdmin) throw forbidden('Only the Super Admin maintains the holiday calendar');
+  r.delete('/holidays/:date', superAdminOnly('Only the Super Admin maintains the holiday calendar'), async (req, res) => {
     const date = parseParam(z.iso.date(), req.params.date, 'date');
     res.json({ items: await svc.removeHoliday(adminOf(req), req.requestId, date) });
   });

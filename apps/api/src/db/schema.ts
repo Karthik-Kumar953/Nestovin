@@ -664,6 +664,20 @@ export interface PaymentOrdersTable extends Stamped {
   status: Generated<PaymentOrderStatus>;
   expires_at: Timestamp;
   paid_at: Timestamp | null;
+  last_checked_at: Timestamp | null;
+  check_count: Generated<number>;
+}
+
+export interface IdempotencyKeysTable {
+  actor_kind: 'admin' | 'resident' | 'employee';
+  actor_id: string;
+  key: string;
+  route: string;
+  request_hash: string;
+  status_code: number | null;
+  response: Json | null;
+  created_at: Generated<Date>;
+  expires_at: Generated<Date>;
 }
 
 export interface ProviderEventsTable {
@@ -676,6 +690,7 @@ export interface ProviderEventsTable {
   received_at: Generated<Date>;
   processed_at: Timestamp | null;
   processing_error: string | null;
+  attempts: Generated<number>;
 }
 
 export interface PaymentTransactionsTable {
@@ -715,7 +730,8 @@ export type PaymentExceptionReason =
   | 'DUPLICATE_PAYMENT'
   | 'RECORD_NOT_PAYABLE'
   | 'UNAPPROVED_REFUND'
-  | 'UNKNOWN_ORDER';
+  | 'UNKNOWN_ORDER'
+  | 'WEBHOOK_FAILED';
 export interface PaymentExceptionsTable {
   id: Generated<string>;
   order_id: string | null;
@@ -1162,6 +1178,7 @@ export interface DB {
   'app.subscription_components': SubscriptionComponentsTable;
   'app.payment_orders': PaymentOrdersTable;
   'app.provider_events': ProviderEventsTable;
+  'app.idempotency_keys': IdempotencyKeysTable;
   'app.payment_transactions': PaymentTransactionsTable;
   'app.refund_records': RefundRecordsTable;
   'app.payment_exceptions': PaymentExceptionsTable;
