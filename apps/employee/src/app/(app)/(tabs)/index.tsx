@@ -25,6 +25,7 @@ import {
   c,
   gradients,
   shadow,
+  useLargeText,
 } from '../../../ui';
 
 const SHORTCUTS = [
@@ -58,6 +59,7 @@ export default function Today() {
   };
 
   const ready = me.data?.readiness === 'READY';
+  const large = useLargeText();
 
   return (
     <ScrollView
@@ -83,10 +85,10 @@ export default function Today() {
           </PressScale>
         </View>
         {ready ? (
-          <View className="mt-5 flex-row gap-3">
-            <Stat label="Visits today" value={schedule.data ? String(visits.length) : '–'} />
-            <Stat label="Completed" value={schedule.data ? `${done}/${visits.length}` : '–'} />
-            <Stat label="Offers" value={offers.data ? String(pendingOffers) : '–'} />
+          <View className={`mt-5 flex-row gap-3 ${large ? 'flex-wrap' : ''}`}>
+            <Stat large={large} label="Visits today" value={schedule.data ? String(visits.length) : '–'} />
+            <Stat large={large} label="Completed" value={schedule.data ? `${done}/${visits.length}` : '–'} />
+            <Stat large={large} label="Offers" value={offers.data ? String(pendingOffers) : '–'} />
           </View>
         ) : null}
       </LinearGradient>
@@ -188,9 +190,9 @@ export default function Today() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, large }: { label: string; value: string; large: boolean }) {
   return (
-    <View className="flex-1 rounded-lg bg-white/15 px-3 py-2.5" accessible accessibilityLabel={`${label}: ${value}`}>
+    <View className={`rounded-lg bg-white/15 px-3 py-2.5 ${large ? 'min-w-[45%] grow' : 'flex-1'}`} accessible accessibilityLabel={`${label}: ${value}`}>
       <Text className="font-heading text-[22px] text-white">{value}</Text>
       <Text className="text-[13px] text-white/85">{label}</Text>
     </View>

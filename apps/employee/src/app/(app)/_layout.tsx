@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { View } from 'react-native';
 import { Redirect, Stack } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
+import { useReducedMotion } from 'react-native-reanimated';
 import { ApiError } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { registerForPush } from '../../lib/push';
@@ -17,6 +18,7 @@ export default function AppLayout() {
   const { session, ready } = useAuth();
   const qc = useQueryClient();
   const me = useMe(!!session);
+  const reduceMotion = useReducedMotion();
   const unauth = me.error instanceof ApiError && me.error.status === 401;
 
   useEffect(() => {
@@ -47,6 +49,7 @@ export default function AppLayout() {
     headerStyle: { backgroundColor: c.background },
     headerBackButtonDisplayMode: 'minimal' as const,
     contentStyle: { backgroundColor: c.background },
+    ...(reduceMotion ? { animation: 'fade' as const } : {}),
   };
   return (
     <Stack screenOptions={header}>

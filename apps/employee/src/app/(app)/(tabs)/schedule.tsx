@@ -6,7 +6,7 @@ import { TimelineRow, byStart } from '../../../components/visit';
 import { addDays, daysLabel, isoDay, longDay, parseDay, weekStart } from '../../../lib/format';
 import { haptic } from '../../../lib/haptics';
 import { qk, useMe, useSchedule } from '../../../lib/queries';
-import { Card, EmptyState, ErrorState, IconButton, LoadingList, Muted, Screen, Section, Stagger, Text, c } from '../../../ui';
+import { Card, EmptyState, GRID_MAX_FONT_SCALE, ErrorState, IconButton, LoadingList, Muted, Screen, Section, Stagger, Text, c } from '../../../ui';
 
 const wd = new Intl.DateTimeFormat('en-IN', { weekday: 'short' });
 const range = new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short' });
@@ -57,10 +57,10 @@ export default function Schedule() {
                 accessibilityRole="tab"
                 accessibilityState={{ selected: on }}
                 accessibilityLabel={`${longDay(d)}, ${count} ${count === 1 ? 'visit' : 'visits'}`}
-                className={`h-[72px] flex-1 items-center justify-center gap-1 rounded-lg ${on ? 'bg-teal-action' : d === today ? 'border-[1.5px] border-teal-action/50 bg-surface' : 'bg-surface'}`}
+                className={`min-h-[72px] flex-1 items-center justify-center gap-1 rounded-lg ${on ? 'bg-teal-action' : d === today ? 'border-[1.5px] border-teal-action/50 bg-surface' : 'bg-surface'}`}
               >
-                <Text className={`text-[12px] ${on ? 'font-semibold text-white/90' : 'text-ink-secondary'}`}>{wd.format(parseDay(d))}</Text>
-                <Text className={`font-heading text-lg ${on ? 'text-white' : 'text-charcoal'}`}>{Number(d.slice(8))}</Text>
+                <Text maxFontSizeMultiplier={GRID_MAX_FONT_SCALE} className={`text-[12px] ${on ? 'font-semibold text-white/90' : 'text-ink-secondary'}`}>{wd.format(parseDay(d))}</Text>
+                <Text maxFontSizeMultiplier={GRID_MAX_FONT_SCALE} className={`font-heading text-lg ${on ? 'text-white' : 'text-charcoal'}`}>{Number(d.slice(8))}</Text>
                 <View className="h-1.5 flex-row gap-0.5">
                   {Array.from({ length: Math.min(count, 3) }, (_, i) => (
                     <View key={i} className={`h-1.5 w-1.5 rounded-full ${on ? 'bg-white' : 'bg-teal-action'}`} />

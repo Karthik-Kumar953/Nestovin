@@ -7,7 +7,7 @@ import { flatLabel, time, timeWindow } from '../lib/format';
 import { visitStatus } from '../lib/queries';
 import type { VisitTask } from '@nestovin/contracts';
 import type { Visit } from '../lib/types';
-import { BrandImage, Button, Muted, Pill, PressScale, PulseDot, ServiceIcon, Text, c, shadow, toneColors } from '../ui';
+import { BrandImage, Button, Muted, Pill, PressScale, PulseDot, ServiceIcon, Text, c, shadow, toneColors, useLargeText } from '../ui';
 
 export const isOpen = (v: Visit) => v.status === 'ASSIGNED' || v.status === 'SCHEDULED';
 export const isLive = (v: Visit) => v.status === 'IN_PROGRESS';
@@ -45,9 +45,12 @@ export function Tasks({ tasks, max }: { tasks: VisitTask[]; max?: number }) {
       {shown.map((t) => {
         const f = taskFrequency(t);
         return (
-          <View key={t.name} className="flex-row items-center gap-1.5 rounded-full bg-subtle px-3 py-1.5">
-            <Text className="text-sm text-ink">{t.name}</Text>
-            {f && t.frequency !== 'PER_VISIT' ? <Text className="text-[13px] text-ink-secondary">· {f}</Text> : null}
+          <View key={t.name} className="max-w-full rounded-2xl bg-subtle px-3 py-1.5">
+            {/* One wrapping Text so long names stay inside the card at large text sizes. */}
+            <Text className="text-sm text-ink">
+              {t.name}
+              {f && t.frequency !== 'PER_VISIT' ? <Text className="text-[13px] text-ink-secondary"> · {f}</Text> : null}
+            </Text>
           </View>
         );
       })}
@@ -120,11 +123,14 @@ export function TimelineRow({ visit, last, highlight }: { visit: Visit; last: bo
   const s = visitStatus(visit.status);
   const t = toneColors[s.tone];
   const done = visit.status === 'COMPLETED' || visit.status === 'COMPLETION_SUBMITTED';
+  const large = useLargeText();
   return (
     <View className="flex-row gap-3">
-      <View className="w-[68px] items-end pt-4">
-        <Text className={`font-semibold text-[15px] ${done ? 'text-ink-secondary' : 'text-charcoal'}`}>{time(visit.startsAt) ?? '—'}</Text>
-      </View>
+      {large ? null : (
+        <View className="w-[68px] items-end pt-4">
+          <Text className={`font-semibold text-[15px] ${done ? 'text-ink-secondary' : 'text-charcoal'}`}>{time(visit.startsAt) ?? '—'}</Text>
+        </View>
+      )}
       <View className="items-center">
         <View className="mt-[18px] h-4 w-4 items-center justify-center rounded-full" style={{ backgroundColor: highlight ? c.tealAction : t.bg, borderWidth: 2, borderColor: highlight ? c.mintStrong : t.dot }}>
           {done ? <BadgeCheck size={10} color={t.fg} /> : null}
@@ -137,8 +143,9 @@ export function TimelineRow({ visit, last, highlight }: { visit: Visit; last: bo
         accessibilityLabel={`${time(visit.startsAt) ?? 'Time to be confirmed'}, ${visit.serviceName}, ${flatLabel(visit.flat)}, ${s.label}`}
       >
         <View className={`flex-row items-center gap-3 rounded-xl border bg-surface p-3.5 ${highlight ? 'border-teal-action/50' : 'border-line/70'}`}>
-          <ServiceIcon serviceName={visit.serviceName} size="sm" />
+          {large ? null : <ServiceIcon serviceName={visit.serviceName} size="sm" />}
           <View className="min-w-0 flex-1 gap-1.5">
+            {large ? <Text className="font-semibold text-teal-deep">{time(visit.startsAt) ?? 'Time to be confirmed'}</Text> : null}
             <Text className={`font-semibold ${done ? 'text-ink-secondary' : ''}`}>{flatLabel(visit.flat)}</Text>
             <View className="flex-row flex-wrap items-center gap-2">
               <Muted className="text-sm">{visit.serviceName}</Muted>

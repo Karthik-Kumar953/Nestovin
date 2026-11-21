@@ -4,6 +4,7 @@ import Svg, { Circle } from 'react-native-svg';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { addDays, isoDay, pad, parseDay } from '../lib/format';
 import { haptic } from '../lib/haptics';
+import { GRID_MAX_FONT_SCALE } from './a11y';
 import { IconButton } from './primitives';
 import { c } from './theme';
 
@@ -92,7 +93,7 @@ export function RangeCalendar({ start, end, onChange, min = isoDay() }: { start:
       </View>
       <View className="flex-row">
         {WEEKDAYS.map((w, i) => (
-          <Text key={i} className="flex-1 text-center font-semibold text-[13px] text-ink-secondary" accessible={false}>
+          <Text key={i} maxFontSizeMultiplier={GRID_MAX_FONT_SCALE} className="flex-1 text-center font-semibold text-[13px] text-ink-secondary" accessible={false}>
             {w}
           </Text>
         ))}
@@ -115,7 +116,7 @@ export function RangeCalendar({ start, end, onChange, min = isoDay() }: { start:
                 accessibilityState={{ selected: edge || inRange, disabled }}
                 className={`h-11 w-11 items-center justify-center rounded-full ${edge ? 'bg-teal-action' : ''}`}
               >
-                <Text className={`text-base ${edge ? 'font-semibold text-white' : disabled ? 'text-ink-muted' : day === isoDay() ? 'font-semibold text-teal-action' : 'text-ink'}`}>{Number(day.slice(8))}</Text>
+                <Text maxFontSizeMultiplier={GRID_MAX_FONT_SCALE} className={`text-base ${edge ? 'font-semibold text-white' : disabled ? 'text-ink-muted' : day === isoDay() ? 'font-semibold text-teal-action' : 'text-ink'}`}>{Number(day.slice(8))}</Text>
               </Pressable>
             </View>
           );

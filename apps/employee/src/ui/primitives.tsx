@@ -1,6 +1,6 @@
 import { useState, type ReactNode, type Ref } from 'react';
 import { ActivityIndicator, Platform, Pressable, Text as RNText, TextInput, View, type TextInputInstance, type TextInputProps, type TextProps, type ViewProps } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import type { LucideIcon } from 'lucide-react-native';
 import { Eye, EyeOff } from 'lucide-react-native';
 import { c, toneColors, type Tone } from './theme';
@@ -85,16 +85,19 @@ export function PressScale({
   accessibilityState?: { selected?: boolean; checked?: boolean; disabled?: boolean; busy?: boolean };
   style?: ViewProps['style'];
 }) {
+  const reduce = useReducedMotion();
   const scale = useSharedValue(1);
-  const a = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const opacity = useSharedValue(1);
+  const a = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }], opacity: opacity.value }));
   return (
     <View className={containerClassName} style={style}>
       <Animated.View style={a}>
       <Pressable
         onPress={onPress}
         disabled={disabled}
-        onPressIn={() => (scale.value = withTiming(0.97, { duration: 90 }))}
-        onPressOut={() => (scale.value = withSpring(1, { damping: 15, stiffness: 260 }))}
+        // Reduce Motion: an instant opacity change instead of the scale spring.
+        onPressIn={() => (reduce ? (opacity.value = 0.7) : (scale.value = withTiming(0.97, { duration: 90 })))}
+        onPressOut={() => (reduce ? (opacity.value = 1) : (scale.value = withSpring(1, { damping: 15, stiffness: 260 })))}
         accessibilityRole={accessibilityRole}
         accessibilityLabel={accessibilityLabel}
         accessibilityHint={accessibilityHint}

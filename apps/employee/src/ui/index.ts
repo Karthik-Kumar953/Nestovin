@@ -5,3 +5,4 @@ export * from './motion';
 export * from './screen';
 export * from './inputs';
 export * from './theme';
+export * from './a11y';
