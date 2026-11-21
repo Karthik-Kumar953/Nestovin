@@ -17,6 +17,7 @@ import { adminOf, residentOf } from '../../http/context';
 import { authorize, parseParam, parseQuery, rateLimit, validateBody } from '../../http/middleware';
 import { employeeOf } from '../workforce/employee-service';
 import { AttendanceService } from './service';
+import { businessToday } from '../../lib/dates';
 
 const id = (v: unknown) => parseParam(uuidSchema, v, 'id');
 const isoDate = z.iso.date();
@@ -32,7 +33,7 @@ export function residentVisitRoutes(deps: AppDeps): Router {
   const r = Router();
   const svc = svcOf(deps);
   r.get('/visits', async (req, res) => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = businessToday();
     const q = parseQuery(z.object({ from: isoDate.optional(), to: isoDate.optional() }), req);
     res.json({ items: await svc.residentVisits(residentOf(req), q.from ?? shift(today, -30), q.to ?? shift(today, 14)) });
   });
@@ -69,7 +70,7 @@ export function attendanceAdminRoutes(deps: AppDeps): Router {
   const r = Router();
   const svc = svcOf(deps);
   r.get('/attendance', authorize('attendance', 'view'), async (req, res) => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = businessToday();
     const q = parseQuery(z.object({ communityId: uuidSchema.optional(), from: isoDate.optional(), to: isoDate.optional(), flagged: z.enum(['true', 'false']).default('false') }), req);
     res.json({ items: await svc.records(adminOf(req), { communityId: q.communityId, from: q.from ?? shift(today, -7), to: q.to ?? today, flaggedOnly: q.flagged === 'true' }) });
   });

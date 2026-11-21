@@ -4,6 +4,7 @@ import type { AppDeps } from '../../http/context';
 import { adminOf } from '../../http/context';
 import { can, toDbClaims, type AdminActor } from '../../auth/permissions';
 import { withTx, type Tx } from '../../db/database';
+import { businessToday } from '../../lib/dates';
 
 export interface OverviewItem {
   key: string;
@@ -19,8 +20,8 @@ export interface OverviewItem {
  */
 export async function overview(db: AppDeps['db'], actor: AdminActor): Promise<OverviewItem[]> {
   return withTx(db, toDbClaims(actor), async (trx: Tx) => {
-    const today = new Date().toISOString().slice(0, 10);
-    const week = new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
+    const today = businessToday();
+    const week = businessToday(new Date(Date.now() + 7 * 86_400_000));
     const n = async (q: { executeTakeFirstOrThrow: () => Promise<{ n: string | number | bigint }> }) => Number((await q.executeTakeFirstOrThrow()).n);
     const count = sql<string>`count(*)`.as('n');
     const items: OverviewItem[] = [];

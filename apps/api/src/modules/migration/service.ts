@@ -426,6 +426,8 @@ export class MigrationService {
 
   async commit(actor: AdminActor, requestId: string, id: string): Promise<ImportBatch> {
     return this.tx(actor, async (trx) => {
+      // A full community can be thousands of flats; allow more than the API's default 15 s (review M-15).
+      await sql`set local statement_timeout = '120s'`.execute(trx);
       const b = await this.scopedBatch(trx, actor, id, true);
       if (b.status !== 'APPROVED') throw businessRule('Only an approved batch can be committed');
 

@@ -31,6 +31,25 @@ export default tseslint.config(
     },
   },
   {
+    // Business dates are India dates (review H-6): `new Date().toISOString().slice(0, 10)` is a UTC date.
+    files: ['apps/api/src/**/*.ts'],
+    ignores: ['apps/api/src/lib/dates.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "CallExpression[callee.property.name='slice'][callee.object.callee.property.name='toISOString'][callee.object.callee.object.type='NewExpression'][callee.object.callee.object.arguments.length=0]",
+          message: 'This is the UTC date. Use businessToday() from src/lib/dates for business dates.',
+        },
+        {
+          selector: "TemplateElement[value.raw=/\\bcurrent_date\\b/]",
+          message: "current_date is the UTC date on Supabase. Use (now() at time zone 'Asia/Kolkata')::date.",
+        },
+      ],
+    },
+  },
+  {
     // Next.js rules for the web app (public site + /admin)
     files: ['apps/web/**/*.{ts,tsx}'],
     ...nextPlugin.configs['core-web-vitals'],

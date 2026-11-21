@@ -19,6 +19,7 @@ import { businessRule, conflict, notFound, versionConflict } from '../../lib/err
 import { decodeCursor, likeContains, toPage } from '../../lib/pagination';
 import { auditAdmin, auditSystem } from '../audit/audit';
 import { notify } from '../notifications/service';
+import { businessToday } from '../../lib/dates';
 
 const iso = (d: Date | string | null) => (d === null ? null : new Date(d).toISOString());
 
@@ -272,7 +273,7 @@ export class WorkforceAdminService {
             ...(input.homeClusterId ? { home_cluster_id: input.homeClusterId } : {}),
             ...(input.status ? { status: input.status, ...(input.status !== 'ACTIVE' ? { readiness: 'NOT_READY' as const } : {}) } : {}),
             // Payroll proration needs the exit date (ADR-014).
-            ...(input.status === 'EXITED' && e.status !== 'EXITED' ? { exited_on: new Date().toISOString().slice(0, 10) } : {}),
+            ...(input.status === 'EXITED' && e.status !== 'EXITED' ? { exited_on: businessToday() } : {}),
             ...(input.status && input.status !== 'EXITED' ? { exited_on: null } : {}),
             ...(input.joinedOn !== undefined ? { joined_on: input.joinedOn } : {}),
           })
