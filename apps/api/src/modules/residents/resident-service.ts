@@ -5,6 +5,7 @@ import type {
   FamilyRequestInput,
   Household,
   RegisterResidenceInput,
+  ReplaceResidenceDocumentInput,
   ResidenceRegistrationResult,
   ResidentCatalogue,
   ResidentMe,
@@ -57,7 +58,14 @@ export class ResidentService {
         .select(['v.decision', 'v.reason', 'd.status as doc_status'])
         .where('v.membership_id', '=', latest.id)
         .executeTakeFirst();
-      if (v) verification = { decision: v.decision, reason: v.reason, documentUploaded: v.doc_status === 'UPLOADED' };
+      if (v) {
+        verification = {
+          decision: v.decision,
+          reason: v.reason,
+          documentUploaded: v.doc_status === 'UPLOADED',
+          flat: { flatId: latest.flat_id, flatNumber: latest.flat_number, towerName: latest.tower_name, communityId: latest.community_id, communityName: latest.community_name, occupancy: latest.occupancy },
+        };
+      }
     }
     return {
       id: p.id,
@@ -235,6 +243,40 @@ export class ResidentService {
       return {
         membershipId: membership.id,
         upload: { documentId: doc.id, uploadUrl: upload.signedUrl, token: upload.token, path: upload.path, expiresInSeconds: UPLOAD_TTL_SECONDS },
+      };
+    });
+  }
+
+  /**
+   * A fresh upload target for the caller's PENDING registration whose document
+   * never finished uploading. Uses a new storage key so a half-written object
+   * from the failed attempt is never mistaken for the new file. 409 once a
+   * document is uploaded or the review is decided.
+   */
+  async replaceResidenceDocument(actor: ResidentActor, requestId: string, input: ReplaceResidenceDocumentInput): Promise<ResidenceRegistrationResult> {
+    return this.tx(actor, async (trx) => {
+      const m = await activeMembership(trx, actor.id);
+      if (!m || m.status !== 'PENDING' || m.kind !== 'PRIMARY') throw conflict('There is no pending registration waiting for a document');
+      const v = await trx
+        .selectFrom('app.residence_verification_requests as v')
+        .innerJoin('app.documents as d', 'd.id', 'v.document_id')
+        .select(['v.decision', 'd.id as document_id', 'd.status as doc_status'])
+        .where('v.membership_id', '=', m.id)
+        .executeTakeFirst();
+      if (!v || v.decision !== 'PENDING') throw conflict('This registration has already been reviewed');
+      if (v.doc_status === 'UPLOADED') throw conflict('Your document is already uploaded and waiting for review');
+      const key = `residence/${m.id}/${randomUUID()}.${EXT[input.document.mimeType]}`;
+      await trx
+        .updateTable('app.documents')
+        .set({ doc_type: input.document.docType, storage_key: key, file_name: input.document.fileName, mime_type: input.document.mimeType })
+        .where('id', '=', v.document_id)
+        .where('status', '=', 'PENDING_UPLOAD')
+        .execute();
+      const upload = await this.storage.createSignedUpload(DOCUMENT_BUCKET, key);
+      await auditResident(trx, actor.id, requestId, { action: 'residence.document_replaced', targetType: 'document', targetId: v.document_id, after: { docType: input.document.docType } });
+      return {
+        membershipId: m.id,
+        upload: { documentId: v.document_id, uploadUrl: upload.signedUrl, token: upload.token, path: upload.path, expiresInSeconds: UPLOAD_TTL_SECONDS },
       };
     });
   }

@@ -208,6 +208,39 @@ export const bookingViewSchema = z.object({
 });
 export type BookingView = z.infer<typeof bookingViewSchema>;
 
+/** GET /v1/resident/bookings/:id — the booking with what was agreed and every payment attempt. */
+export const bookingDetailSchema = bookingViewSchema.extend({
+  terms: z.object({
+    components: z.array(
+      z.object({
+        serviceName: z.string(),
+        isAddon: z.boolean(),
+        visitsPerDay: z.number().int(),
+        daysOfWeek: z.number().int(),
+        durationMinutes: z.number().int(),
+        addonHours: z.number().nullable(),
+        tasks: z.array(z.object({ name: z.string(), frequency: z.string(), timesPerPeriod: z.number().int() })),
+      }),
+    ),
+    initialPct: z.number().int().nullable(),
+    taxPaise: z.number().int().nullable(),
+    validityDays: z.number().int(),
+    disclosureVersion: z.string().nullable(),
+    disclosureAcceptedAt: z.string().nullable(),
+  }),
+  payments: z.array(
+    z.object({
+      id: uuidSchema,
+      purpose: z.enum(['INITIAL', 'BALANCE', 'FULL']),
+      amountPaise: z.number().int(),
+      status: z.enum(['CREATED', 'PAID', 'FAILED', 'EXPIRED', 'REVIEW_REQUIRED']),
+      createdAt: z.string(),
+      paidAt: z.string().nullable(),
+    }),
+  ),
+});
+export type BookingDetail = z.infer<typeof bookingDetailSchema>;
+
 export const adminBookingSchema = bookingViewSchema.extend({
   resident: z.object({ id: uuidSchema, fullName: z.string().nullable(), phone: z.string() }),
   flat: flatRef,
@@ -239,6 +272,9 @@ export const bookingOptionsSchema = z.object({
   /** Verified residence required (ADR-015). */
   eligible: z.boolean(),
   reason: z.string().nullable(),
+  /** Machine-readable reason when not eligible; null when eligible. */
+  reasonCode: z.enum(['NOT_REGISTERED', 'NOT_VERIFIED', 'NO_CATEGORY', 'COMMUNITY_NOT_LIVE']).nullable(),
+  communityName: z.string().nullable(),
   openCycles: z.array(
     z.object({
       id: uuidSchema,
