@@ -59,10 +59,10 @@ export async function open(page: Page, path = '') {
   await page.goto(`/${path.replace(/^\//, '')}`);
 }
 
-/** A tab whose accessible name ends with `label` (tab names start with an icon-font glyph on web: BUG-QA-025). */
+/** A tab whose accessible name ends with `label` (tolerant of icon glyphs; BUG-QA-025 fixed in 36d405c). */
 export const tabName = (label: string) => new RegExp(String.raw`(^|\s)` + label + '$');
 
-/** The main tab bar: the tablist holding the Profile tab (it has no name on web since 30ce489: BUG-QA-025). */
+/** The main tab bar: the tablist holding the Profile tab (named "Main" since 36d405c; home.spec asserts that). */
 export const tabBar = (page: Page) => page.getByRole('tablist').filter({ has: page.getByRole('tab', { name: tabName('Profile') }) });
 
 export async function openTab(page: Page, name: 'Home' | 'Book' | 'Visits' | 'Support' | 'Profile') {

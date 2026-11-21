@@ -128,7 +128,6 @@ test.describe('Home: verification pending (?demo=pending)', () => {
 
 test.describe('Tab bar', () => {
   test('the tab bar and its tabs have clean accessible names', async ({ page }) => {
-    test.fail(true, 'BUG-QA-025: the web tab bar has no name and each tab name starts with an icon-font glyph');
     await open(page);
     await waitForActiveHome(page);
     const main = page.getByRole('tablist', { name: 'Main' });

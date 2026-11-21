@@ -35,7 +35,7 @@ Owner: the lead fixes `apps/api`. Web and mobile bugs go through the lead to the
 | BUG-QA-022 | Low | Resident app (a11y) | Header actions are announced three times | **Fixed** on `claude/resident-app-0932e5` (merge pending); tests are normal again |
 | BUG-QA-023 | Low | Resident app (a11y, web) | Selected and checked state is not exposed on chips, tiles and radios | **Fixed** on `claude/resident-app-0932e5` (merge pending); tests are normal again |
 | BUG-QA-024 | Low | Resident app (a11y) | Updates are read out with a double full stop | **Fixed** on `claude/resident-app-0932e5` (merge pending); tests are normal again |
-| BUG-QA-025 | Low | Resident app (a11y, web) | The web tab bar has no name, and each tab's accessible name starts with an icon-font glyph | Open (resident branch) |
+| BUG-QA-025 | Low | Resident app (a11y, web) | The web tab bar has no name, and each tab's accessible name starts with an icon-font glyph | **Fixed** on `claude/resident-app-0932e5` (36d405c, merge pending); test is normal again |
 
 ---
 
