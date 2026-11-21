@@ -1,36 +1,23 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { Platform, View } from 'react-native';
-import { Redirect, Stack, router } from 'expo-router';
-import * as Notifications from 'expo-notifications';
+import { Redirect, Stack } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { colors, SkeletonList } from '@nestovin/ui-native';
 import { useAuth } from '../../lib/auth';
-import { hrefForPush } from '../../lib/deeplinks';
 import { keys } from '../../lib/queries';
-import { registerForPush } from '../../lib/push';
+import { registerForPush, usePushNavigation } from '../../lib/push';
 
 /** Signed-in area: tabs plus pushed screens. Registers push and opens the right screen from a notification tap. */
 export default function AppLayout() {
   const { session, ready } = useAuth();
   const qc = useQueryClient();
 
+  const refreshInbox = useCallback(() => void qc.invalidateQueries({ queryKey: keys.inbox }), [qc]);
   useEffect(() => {
-    if (!session || Platform.OS === 'web') return;
-    void registerForPush();
-    const open = (resp: Notifications.NotificationResponse | null) => {
-      const href = hrefForPush(resp?.notification.request.content.data as Record<string, unknown> | undefined);
-      if (href) router.push(href);
-    };
-    // Cold start from a tapped notification, then taps while running.
-    void Notifications.getLastNotificationResponseAsync().then(open).catch(() => undefined);
-    const tap = Notifications.addNotificationResponseReceivedListener(open);
-    // A push that arrives in the foreground refreshes the inbox badge.
-    const recv = Notifications.addNotificationReceivedListener(() => void qc.invalidateQueries({ queryKey: keys.inbox }));
-    return () => {
-      tap.remove();
-      recv.remove();
-    };
-  }, [session, qc]);
+    if (session && Platform.OS !== 'web') void registerForPush();
+  }, [session]);
+  // Push taps (and the tap that launched the app) open the related screen; a foreground push refreshes the inbox.
+  usePushNavigation(Boolean(session), refreshInbox);
 
   if (!ready) {
     return (

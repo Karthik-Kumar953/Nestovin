@@ -1,4 +1,5 @@
 import 'react-native-get-random-values';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import * as aesjs from 'aes-js';
@@ -41,9 +42,19 @@ class LargeSecureStore {
   }
 }
 
+/**
+ * Web build (E2E and design review only): expo-secure-store has no web implementation, so the
+ * session lives in localStorage, the same place supabase-js keeps it in a browser.
+ */
+const webStorage = {
+  getItem: async (key: string) => globalThis.localStorage?.getItem(key) ?? null,
+  setItem: async (key: string, value: string) => globalThis.localStorage?.setItem(key, value),
+  removeItem: async (key: string) => globalThis.localStorage?.removeItem(key),
+};
+
 export const supabase = createClient(env.supabaseUrl || 'http://localhost', env.supabaseKey || 'missing-key', {
   auth: {
-    storage: new LargeSecureStore(),
+    storage: Platform.OS === 'web' ? webStorage : new LargeSecureStore(),
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,

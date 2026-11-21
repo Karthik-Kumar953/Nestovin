@@ -9,7 +9,8 @@ import { missingEnv } from '../lib/env';
 import { img } from '../assets/images';
 import { Logo } from '../components/common';
 
-const RESEND_SECONDS = 30;
+/** Supabase's default minimum gap between OTP sends. */
+const RESEND_SECONDS = 60;
 
 /** RES-01: phone OTP sign-in (Supabase Auth via the MSG91 hook). Two steps on one screen. */
 export default function SignIn() {
@@ -31,35 +32,63 @@ export default function SignIn() {
 
   if (session) return <Redirect href="/" />;
 
+  /** Supabase answers HTTP 429 ("...only request this after N seconds") when a code was sent recently. */
+  const rateLimit = (err: { status?: number; code?: string; message: string }) => {
+    if (err.status !== 429 && !String(err.code ?? '').includes('rate_limit')) return null;
+    const secs = Number(/(\d+)\s*seconds?/.exec(err.message)?.[1] ?? RESEND_SECONDS);
+    return Number.isFinite(secs) && secs > 0 ? secs : RESEND_SECONDS;
+  };
+
   const send = async () => {
-    const e164 = toE164(phone);
+    const e164 = sentTo ?? toE164(phone);
+    const showError = (m: string) => (sentTo ? setCodeError(m) : setPhoneError(m));
     if (!e164) {
       haptics.error();
       return setPhoneError('Enter a 10-digit mobile number, for example 98765 43210');
     }
     setBusy(true);
     setPhoneError(null);
-    const { error } = await supabase.auth.signInWithOtp({ phone: e164 });
-    setBusy(false);
-    if (error) {
+    setCodeError(null);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({ phone: e164 });
+      if (error) {
+        haptics.error();
+        const wait = rateLimit(error);
+        if (wait) {
+          setWait(wait);
+          if (!sentTo) setSentTo(e164);
+          return showError(`Too many attempts. Please wait ${wait} seconds, then send a new code.`);
+        }
+        return showError('We could not send the code. Check the number and try again.');
+      }
+      setSentTo(e164);
+      setCode('');
+      setWait(RESEND_SECONDS);
+    } catch {
       haptics.error();
-      return setPhoneError(error.message.toLowerCase().includes('rate') ? 'Too many attempts. Wait a minute, then try again.' : 'We could not send the code. Check the number and try again.');
+      showError('No internet connection. Check your network and try again.');
+    } finally {
+      setBusy(false);
     }
-    setSentTo(e164);
-    setCode('');
-    setWait(RESEND_SECONDS);
   };
 
   const verify = async (value = code) => {
     if (!sentTo || !/^\d{6}$/.test(value)) return setCodeError('Enter the 6-digit code');
     setBusy(true);
     setCodeError(null);
-    const { error } = await supabase.auth.verifyOtp({ phone: sentTo, token: value, type: 'sms' });
-    setBusy(false);
-    if (error) {
+    try {
+      const { error } = await supabase.auth.verifyOtp({ phone: sentTo, token: value, type: 'sms' });
+      if (error) {
+        haptics.error();
+        setCodeError(rateLimit(error) ? 'Too many attempts. Please wait a minute, then try again.' : 'That code is not correct or has expired. Check the SMS or send a new code.');
+      } else haptics.success();
+    } catch {
+      // Network failure, or the session could not be saved on this device.
       haptics.error();
-      setCodeError('That code is not correct or has expired. Check the SMS or send a new code.');
-    } else haptics.success();
+      setCodeError('We could not finish signing you in. Check your connection and try again.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   const pretty = sentTo ? `${sentTo.slice(0, 3)} ${sentTo.slice(3, 8)} ${sentTo.slice(8)}` : '';
@@ -132,7 +161,11 @@ export default function SignIn() {
               />
               <Button title="Verify and continue" onPress={() => void verify()} loading={busy} disabled={code.length < 6} />
               <View className="flex-row justify-between">
-                <Button title="Change number" variant="tertiary" size="sm" block={false} onPress={() => setSentTo(null)} />
+                <Button title="Change number" variant="tertiary" size="sm" block={false} onPress={() => {
+                    setSentTo(null);
+                    setCodeError(null);
+                  }}
+                />
                 <Button title={wait ? `Resend in ${wait}s` : 'Send a new code'} variant="tertiary" size="sm" block={false} disabled={wait > 0 || busy} onPress={() => void send()} />
               </View>
             </Entrance>
