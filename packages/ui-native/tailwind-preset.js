@@ -1,35 +1,44 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- CommonJS config read by Tailwind */
 /**
  * Nestovin Tailwind preset for NativeWind (Resident and Worker apps).
- * Values mirror docs/Design/DESIGN.md and packages/design-tokens. Change them there first.
- * Fonts are registered per weight by the app (@expo-google-fonts), so each weight is its own family.
+ * DESIGN.md values come from @nestovin/design-tokens/tokens.json (single source). Mobile-only additions
+ * (mint tints, per-weight font families, the 28 px radius, the 20 px gutter) come from src/extensions.json.
+ * Only the type scale is defined here, because it is Tailwind-specific.
  */
+const t = require('@nestovin/design-tokens/tokens.json');
+const x = require('./src/extensions.json');
+
+const c = t.colors;
+const px = (n) => `${n}px`;
+const f = x.fontFamilies;
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   theme: {
     extend: {
       colors: {
-        brand: { DEFAULT: '#00897B', green: '#43A047' },
-        teal: { DEFAULT: '#00796B', deep: '#00695C', 50: '#F0F8F6', 100: '#E6F4F1', 200: '#CCE9E4', 300: '#99D3C9' },
-        green: { action: '#2E7D32' },
-        charcoal: '#111827',
-        mint: '#F5FAF9',
-        surface: { DEFAULT: '#FFFFFF', subtle: '#F1F5F9' },
-        ink: { DEFAULT: '#1F2937', 2: '#4B5563', 3: '#9CA3AF' },
-        line: '#E5E7EB',
-        success: { DEFAULT: '#22C55E', text: '#166534', surface: '#DCFCE7' },
-        warning: { DEFAULT: '#F59E0B', text: '#92400E', surface: '#FEF3C7' },
-        error: { DEFAULT: '#EF4444', text: '#B91C1C', surface: '#FEE2E2' },
-        info: { DEFAULT: '#3B82F6', text: '#1D4ED8', surface: '#DBEAFE' },
-        highlight: '#8B5CF6',
+        brand: { DEFAULT: c.primary, green: c.secondary },
+        teal: { DEFAULT: c.tealAction, deep: c.tealDeep, 50: x.tints.teal50, 100: x.tints.teal100, 200: x.tints.teal200, 300: x.tints.teal300 },
+        green: { action: c.greenAction },
+        charcoal: c.charcoal,
+        mint: c.background,
+        surface: { DEFAULT: c.surface, subtle: c.surfaceSubtle },
+        ink: { DEFAULT: c.textPrimary, 2: c.textSecondary, 3: c.textMuted },
+        line: c.border,
+        success: { DEFAULT: c.success, text: c.successText, surface: c.successSurface },
+        warning: { DEFAULT: c.warning, text: c.warningText, surface: c.warningSurface },
+        error: { DEFAULT: c.error, text: c.errorText, surface: c.errorSurface },
+        info: { DEFAULT: c.info, text: c.infoText, surface: c.infoSurface },
+        highlight: x.highlight,
       },
       fontFamily: {
-        display: ['Manrope_700Bold'],
-        'display-semi': ['Manrope_600SemiBold'],
-        'display-x': ['Manrope_800ExtraBold'],
-        body: ['Inter_400Regular'],
-        medium: ['Inter_500Medium'],
-        semibold: ['Inter_600SemiBold'],
-        bold: ['Inter_700Bold'],
+        display: [f.display],
+        'display-semi': [f.displaySemi],
+        'display-x': [f.displayX],
+        body: [f.body],
+        medium: [f.medium],
+        semibold: [f.semibold],
+        bold: [f.bold],
       },
       fontSize: {
         title: ['30px', { lineHeight: '38px' }],
@@ -41,8 +50,8 @@ module.exports = {
         caption: ['12px', { lineHeight: '16px' }],
         metric: ['28px', { lineHeight: '36px' }],
       },
-      borderRadius: { sm: '8px', md: '12px', lg: '16px', xl: '24px', '2xl': '28px' },
-      spacing: { gutter: '20px' },
+      borderRadius: { sm: px(t.radius.sm), md: px(t.radius.md), lg: px(t.radius.lg), xl: px(t.radius.xl), '2xl': px(x.radius2xl) },
+      spacing: { gutter: px(x.gutter) },
     },
   },
 };

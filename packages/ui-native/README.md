@@ -17,6 +17,13 @@ Shared React Native building blocks for the Resident and Worker apps. Styling us
 
 Glass is only for navigation chrome and floating controls (`Mobile_Design_System.md`), never cards, lists or text.
 
+## Rules that will bite you
+- **`className` only on core React Native components.** NativeWind 4 (react-native-css-interop) styles only the core components it registers: `View`, `Text`, `Pressable`, `ScrollView`, `TextInput`, `Image`, `KeyboardAvoidingView` and so on.
+  - Never put `className` on `Animated.*` (Reanimated), `GlassView` (expo-glass-effect), expo-image `Image` or `LinearGradient`: it is silently dropped at runtime, and tsc, lint and the bundle all still pass.
+  - Give those components `style` only, and put the classes on a core `View` or `Pressable` inside or around them. `PressScale` and `Entrance` follow this pattern.
+- **Tokens come from one place.** DESIGN.md values come from `@nestovin/design-tokens/tokens.json`; mobile-only additions live in `src/extensions.json`. Never hard-code a colour, radius or font name in a component; use the classes or `colors` / `fonts` from this package.
+- **Animate only `transform` and `opacity`** (no width, height, top or margin), and check `useReducedMotion()`. All motion primitives here already do.
+
 ## Using it in an app (Worker app checklist)
 The package declares no React Native dependencies on purpose. Under pnpm, its own copies would resolve with different peers and `expo-doctor` reports duplicate native modules. The host app provides them instead (listed in `package.json` → `nestovin.hostProvides`).
 

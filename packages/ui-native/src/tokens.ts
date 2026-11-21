@@ -1,11 +1,10 @@
 import { colors as base, radius, spacing } from '@nestovin/design-tokens';
+import ext from './extensions.json';
 
 /** Token values for props that cannot take a className (icons, gradients, native controls). */
 export const colors = {
   ...base,
-  teal50: '#F0F8F6',
-  teal100: '#E6F4F1',
-  teal200: '#CCE9E4',
+  ...ext.tints,
   white: '#FFFFFF',
   scrim: 'rgba(17, 24, 39, 0.45)',
 } as const;
@@ -13,15 +12,7 @@ export const colors = {
 export { radius, spacing };
 
 /** Font family per weight (registered by the app with @expo-google-fonts). */
-export const fonts = {
-  display: 'Manrope_700Bold',
-  displaySemi: 'Manrope_600SemiBold',
-  displayX: 'Manrope_800ExtraBold',
-  body: 'Inter_400Regular',
-  medium: 'Inter_500Medium',
-  semibold: 'Inter_600SemiBold',
-  bold: 'Inter_700Bold',
-} as const;
+export const fonts = ext.fontFamilies;
 
 /** Brand gradients for heroes and designed image fallbacks. */
 export const gradients = {
