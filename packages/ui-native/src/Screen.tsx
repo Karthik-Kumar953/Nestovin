@@ -1,6 +1,7 @@
-import type { ReactNode, ReactElement } from 'react';
+import { useState, type ReactNode, type ReactElement } from 'react';
 import { Platform, RefreshControl, View, type ScrollViewProps } from 'react-native';
-import Animated, { interpolate, Extrapolation, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import Animated, { interpolate, Extrapolation, useAnimatedReaction, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IconButton } from './Button';
 import { GlassSurface } from './GlassSurface';
@@ -58,12 +59,21 @@ export function Screen({
   });
   const threshold = hero ? 180 : 44;
   const bar = useAnimatedStyle(() => ({ opacity: interpolate(y.value, [threshold - 20, threshold + 10], [0, 1], Extrapolation.CLAMP) }));
+  // While the compact bar is faded out it must not take taps or be read out (BUG-QA-022).
+  const [barShown, setBarShown] = useState(false);
+  useAnimatedReaction(
+    () => y.value > threshold - 5,
+    (shown, prev) => {
+      if (shown !== prev) scheduleOnRN(setBarShown, shown);
+    },
+    [threshold],
+  );
   const bg = background === 'mint' ? colors.background : colors.white;
   const back = onBack ? <IconButton icon={Platform.OS === 'ios' ? 'chevron-back' : 'arrow-back'} label="Back" onPress={onBack} tone={hero ? 'inverse' : 'default'} /> : null;
 
   const header = hero ?? (
     <View className="px-gutter pt-2 pb-4 gap-3">
-      {(onBack || actions) && title ? (
+      {onBack && title ? (
         <View className="flex-row items-center justify-between min-h-[44px]">
           {back ?? <View />}
           <View className="flex-row gap-2">{actions}</View>
@@ -111,7 +121,13 @@ export function Screen({
       )}
 
       {title && scroll ? (
-        <Animated.View style={[bar, { position: 'absolute', top: 0, left: 0, right: 0 }]} pointerEvents="box-none">
+        <Animated.View
+          style={[bar, { position: 'absolute', top: 0, left: 0, right: 0 }]}
+          pointerEvents={barShown ? 'box-none' : 'none'}
+          accessibilityElementsHidden={!barShown}
+          importantForAccessibility={barShown ? 'auto' : 'no-hide-descendants'}
+          aria-hidden={!barShown}
+        >
           <GlassSurface style={{ paddingTop: insets.top, borderWidth: 0, borderBottomWidth: 1, borderBottomColor: colors.border }}>
             <View className="flex-row items-center gap-2 px-3 h-[52px]">
               {onBack ? <IconButton icon={Platform.OS === 'ios' ? 'chevron-back' : 'arrow-back'} label="Back" onPress={onBack} tone="plain" /> : <View className="w-2" />}
