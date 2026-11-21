@@ -39,6 +39,41 @@ npx eas-cli@latest build --profile development --platform android
 ```
 (or `npx expo run:android` with Android Studio installed).
 
+## Device checklist (needs a real phone or an iOS build)
+These cannot be checked on Windows, in a browser or on the Android emulator. Tick them on a development build before a demo.
+
+**iOS 26 (iPhone), Liquid Glass**
+- [ ] The tab bar is system glass, minimises when you scroll down, and shows SF Symbols (house, plus square, calendar, chat bubbles, person).
+- [ ] "Show check-in code" on Home and Visits is a full-width glass capsule with a teal tint above the tab bar, and it does not cover the last list item.
+- [ ] The compact header that appears when you scroll a screen is glass; the text under it stays readable.
+- [ ] Cards, lists, sheets, banners and the check-in code are never glass (solid white).
+
+**iOS: Reduce Transparency on** (Settings → Accessibility → Display & Text Size)
+- [ ] The floating action and the compact header turn solid (white, or solid teal for the action) with a hairline border, and switch live without restarting the app.
+- [ ] Text contrast on those surfaces stays at least 4.5:1.
+
+**iOS 18 or earlier**
+- [ ] Same solid fallback as above (no glass API), no crash.
+
+**Reduce Motion on** (iOS: Accessibility → Motion; Android: Remove animations)
+- [ ] Lists, cards and screens crossfade in instead of sliding.
+- [ ] Buttons and cards dim slightly on press instead of scaling.
+- [ ] The payment success mark and the check-in digits appear in their final state at once.
+- [ ] The shimmer on loading skeletons is off.
+
+**Haptics (physical phone only)**
+- [ ] Light tap on buttons and cards; a selection tick on choice tiles, filter chips, dates and stars.
+- [ ] Success on a verified payment, when the check-in code appears, and when a rating, request or vote is sent.
+- [ ] Error on a wrong code or a failed payment.
+- [ ] On Android 13+, CONFIRM and REJECT feel distinct from a plain tap.
+
+**Push (development build with Firebase configured)**
+- [ ] Tapping a push while the app runs, and the tap that launches a closed app, both open the related screen (booking, ticket, household) once, not twice.
+- [ ] A push received while the app is open updates the Updates badge on Home.
+
+**Payments (development build, Razorpay test keys)**
+- [ ] Checkout opens, test card succeeds → animated "confirmed" or "joined" screen; cancelling → "Payment not completed"; the booking shows the right status after each.
+
 ## Firebase (push)
 1. Firebase Console → add an Android app with package `in.nestovin.resident` (and an iOS app with bundle ID `in.nestovin.resident`, plus the APNs key).
 2. Download `google-services.json` (and `GoogleService-Info.plist`) into `apps/resident/`.
