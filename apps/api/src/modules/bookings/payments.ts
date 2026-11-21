@@ -178,7 +178,18 @@ export class PaymentService {
         return review('AMOUNT_MISMATCH', `Expected ${order.amount_paise} paise, received ${payment.amountPaise}`);
       }
 
-      const outcome = await this.applyPurpose(trx, order.purpose, order.ref_type, order.ref_id, payment.amountPaise);
+      // Evidence first, effect second (ADR-006, review H-2): the transaction row above must survive even if
+      // the business effect throws, so the effect runs inside a savepoint and a failure becomes a review.
+      let outcome: { reason: PaymentExceptionReason; detail: string } | null;
+      await sql`savepoint apply_purpose`.execute(trx);
+      try {
+        outcome = await this.applyPurpose(trx, order.purpose, order.ref_type, order.ref_id, payment.amountPaise);
+        await sql`release savepoint apply_purpose`.execute(trx);
+      } catch (err) {
+        await sql`rollback to savepoint apply_purpose`.execute(trx);
+        this.logger.error({ err, orderId: order.id }, 'payment effect failed; sent to review');
+        outcome = { reason: 'RECORD_NOT_PAYABLE', detail: `Could not apply payment ${payment.id}: ${String((err as Error).message).slice(0, 200)}` };
+      }
       if (outcome) return review(outcome.reason, outcome.detail);
 
       await trx.updateTable('app.payment_orders').set({ status: 'PAID', paid_at: sql`now()` }).where('id', '=', order.id).execute();

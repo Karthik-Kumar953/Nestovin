@@ -325,7 +325,14 @@ describe.skipIf(!available)('demand cycles, bookings and payments (Phase 4)', { 
   it('renewal is a new 100% booking at the current price, once per subscription', async () => {
     const sub = (await residents.bookings(C)).find((b) => b.status === 'CONFIRMED')!.subscription!;
     expect(sub.renewable).toBe(true);
-    const renewal = await residents.renew(C, 't', sub.id);
+    // A double tap: two renewals at the same moment produce exactly one booking (review H-2).
+    const both = await Promise.allSettled([residents.renew(C, 't', sub.id), residents.renew(C, 't', sub.id)]);
+    const won = both.filter((r) => r.status === 'fulfilled');
+    const lost = both.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
+    expect(won).toHaveLength(1);
+    expect(lost).toHaveLength(1);
+    expect((lost[0]!.reason as AppError).code).toBe('CONFLICT');
+    const renewal = (won[0] as PromiseFulfilledResult<Awaited<ReturnType<typeof residents.renew>>>).value;
     expect(renewal.checkout.amountPaise).toBe(500000);
     expect(renewal.booking.startDate).toBe(addDays(sub.periodEnd, 1));
     await expectCode(residents.renew(C, 't', sub.id), 'CONFLICT');
