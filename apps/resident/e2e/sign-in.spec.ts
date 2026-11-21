@@ -79,7 +79,6 @@ test.describe('Sign in: phone entry', () => {
   test('shows the rate-limit message for an SMS rate limit', async ({ page }) => {
     // BUG-QA-019: on a first send that is rate-limited the app moves to the code step, but showError
     // still sees the old sentTo (null) and puts the message on the hidden phone step: nothing is shown.
-    test.fail(true, 'BUG-QA-019: rate-limit message is written to the hidden phone step (src/app/sign-in.tsx:43, 58-60)');
     await page.route(OTP_URL, (r) => json(r, 429, { code: 429, error_code: 'over_sms_send_rate_limit', msg: 'SMS rate limit exceeded' }));
     await page.getByLabel('Mobile number').fill('9876543210');
     await page.getByRole('button', { name: 'Send code' }).click();
@@ -90,7 +89,6 @@ test.describe('Sign in: phone entry', () => {
   test('shows the rate-limit message when a code is re-requested within 60 s', async ({ page }) => {
     // BUG-QA-019: on a first send that is rate-limited the app moves to the code step, but showError
     // still sees the old sentTo (null) and puts the message on the hidden phone step: nothing is shown.
-    test.fail(true, 'BUG-QA-019: rate-limit message is written to the hidden phone step (src/app/sign-in.tsx:43, 58-60)');
     await page.route(OTP_URL, (r) => json(r, 429, { code: 429, error_code: 'over_request_rate_limit', msg: 'For security purposes, you can only request this after 42 seconds.' }));
     await page.getByLabel('Mobile number').fill('9876543210');
     await page.getByRole('button', { name: 'Send code' }).click();

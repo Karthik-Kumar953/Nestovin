@@ -29,12 +29,13 @@ Owner: the lead fixes `apps/api`. Web and mobile bugs go through the lead to the
 | BUG-QA-016 | Medium | DB grants | Review M-2: payment amounts, provider evidence and approved payroll lines are writable/deletable by the API role | Open |
 | BUG-QA-017 | Medium | API payroll | Review M-2 race: a payroll entry can be added to a run being submitted (run row not locked) | Open |
 | BUG-QA-018 | Low | Worker app | A push tap can re-open the same screen after a token refresh | Open (code read) |
-| BUG-QA-019 | Medium | Resident app | A rate-limited first "Send code" shows no message at all | Open (resident branch) |
-| BUG-QA-020 | Medium | Resident app (web) | The tab bar floats over the top of tab screens, so header buttons can't be tapped | Open (resident branch) |
-| BUG-QA-021 | Medium | Resident app | Home service cards don't filter the catalogue | Open (resident branch) |
-| BUG-QA-022 | Low | Resident app (a11y) | Header actions are announced three times | Open (resident branch) |
-| BUG-QA-023 | Low | Resident app (a11y, web) | Selected and checked state is not exposed on chips, tiles and radios | Open (resident branch) |
-| BUG-QA-024 | Low | Resident app (a11y) | Updates are read out with a double full stop | Open (resident branch) |
+| BUG-QA-019 | Medium | Resident app | A rate-limited first "Send code" shows no message at all | **Fixed** on `claude/resident-app-0932e5` (merge pending); tests are normal again |
+| BUG-QA-020 | Medium | Resident app (web) | The tab bar floats over the top of tab screens, so header buttons can't be tapped | **Fixed** on `claude/resident-app-0932e5` (merge pending); tests are normal again |
+| BUG-QA-021 | Medium | Resident app | Home service cards don't filter the catalogue | **Fixed** on `claude/resident-app-0932e5` (merge pending); tests are normal again |
+| BUG-QA-022 | Low | Resident app (a11y) | Header actions are announced three times | **Fixed** on `claude/resident-app-0932e5` (merge pending); tests are normal again |
+| BUG-QA-023 | Low | Resident app (a11y, web) | Selected and checked state is not exposed on chips, tiles and radios | **Fixed** on `claude/resident-app-0932e5` (merge pending); tests are normal again |
+| BUG-QA-024 | Low | Resident app (a11y) | Updates are read out with a double full stop | **Fixed** on `claude/resident-app-0932e5` (merge pending); tests are normal again |
+| BUG-QA-025 | Low | Resident app (a11y, web) | The web tab bar has no name, and each tab's accessible name starts with an icon-font glyph | Open (resident branch) |
 
 ---
 
@@ -160,6 +161,11 @@ Found against `claude/resident-app-0932e5` at e539651, either in demo mode (`cor
   - Suspected: `packages/ui-native/src/ChoiceTile.tsx:44`, `SegmentedControl.tsx:50`, `src/app/(app)/(tabs)/book.tsx:92`, `src/app/(app)/booking/slot.tsx:96`.
 - **BUG-QA-024 (Low, a11y): double full stop in the Updates accessibility label** ("…a new reply.. 2 hours ago").
   - Suspected: `src/app/(app)/notifications.tsx:68`.
+- **BUG-QA-025 (Low, a11y, web): tab names include an icon glyph.** Found after 30ce489 replaced the web tab bar.
+  - Test: `apps/resident/e2e/demo/home.spec.ts` → "the tab bar and its tabs have clean accessible names" (`test.fail`).
+  - Expected: a tablist named "Main" with tabs named "Home", "Book", "Visits", "Support" and "Profile".
+  - Actual: the tablist has no name, and each tab's name is an icon-font character, then the label, so screen readers read a junk character first.
+  - Suspected: the web tab bar in `src/app/(app)/(tabs)/_layout.tsx`. Fix: hide the icon from accessibility (`aria-hidden`) and give the tab bar `aria-label="Main"`.
 - **Not bugs, demo-mode limits:**
   - Demo visit ids change on every fetch, so a refetching visit screen shows "no longer available".
   - Family request, cancel and remove return "Not available in demo mode".

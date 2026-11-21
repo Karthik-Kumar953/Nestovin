@@ -1,4 +1,4 @@
-import { NON_REFUNDABLE, RUPEES, TAB_BAR_OVERLAP, back, expect, heading, open, test } from './demo-fixtures';
+import { NON_REFUNDABLE, RUPEES, back, expect, heading, open, test } from './demo-fixtures';
 
 /*
  * RES-06/07/08: catalogue (Book tab), plan detail, joining a booking round (demand-led) and picking a
@@ -39,7 +39,6 @@ test.describe('Catalogue', () => {
   });
 
   test('"My bookings" opens the bookings list (tap)', async ({ page }) => {
-    test.fail(true, TAB_BAR_OVERLAP);
     test.setTimeout(45_000);
     await page.getByRole('button', { name: 'My bookings' }).first().click({ timeout: 10_000 });
     await expect(heading(page, 'Bookings')).toBeVisible();
@@ -52,12 +51,10 @@ test.describe('Catalogue', () => {
   });
 
   test('a11y: the header action is announced once', async ({ page }) => {
-    test.fail(true, 'BUG: ui-native Screen renders `actions` twice in the header (and again in the hidden compact bar), so "My bookings" is announced 3 times');
     await expect(page.getByRole('button', { name: 'My bookings' })).toHaveCount(1, { timeout: 3_000 });
   });
 
   test('a11y: the selected filter is exposed as selected', async ({ page }) => {
-    test.fail(true, 'BUG: accessibilityState is not mapped to aria-selected / aria-checked by react-native-web 0.21 (filter chips, SegmentedControl, ChoiceTile)');
     await expect(page.getByRole('tab', { name: 'All plans', exact: true })).toHaveAttribute('aria-selected', 'true', { timeout: 3_000 });
   });
 });

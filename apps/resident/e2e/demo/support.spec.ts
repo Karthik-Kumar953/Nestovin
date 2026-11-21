@@ -1,4 +1,4 @@
-import { TAB_BAR_OVERLAP, back, expect, heading, open, openTab, test } from './demo-fixtures';
+import { back, expect, heading, open, openTab, test } from './demo-fixtures';
 
 /*
  * RES-12: support requests list, a request thread with the reply composer, and the new-request form
@@ -41,7 +41,6 @@ test.describe('Support', () => {
   });
 
   test('"New request" (tap on the header action)', async ({ page }) => {
-    test.fail(true, TAB_BAR_OVERLAP);
     test.setTimeout(45_000);
     await page.getByRole('button', { name: 'New request', exact: true }).first().click({ timeout: 10_000 });
     await expect(heading(page, 'New request')).toBeVisible();

@@ -1,4 +1,4 @@
-import { RESIDENT, RUPEES, TAB_BAR_OVERLAP, back, expect, heading, open, openTab, tabBar, test, waitForActiveHome } from './demo-fixtures';
+import { RESIDENT, RUPEES, back, expect, heading, open, openTab, tabBar, test, waitForActiveHome } from './demo-fixtures';
 
 /*
  * Home in its three states (src/app/(app)/(tabs)/index.tsx) and the native tab bar.
@@ -26,7 +26,7 @@ test.describe('Home: active resident (default demo state)', () => {
   });
 
   test('flags the unpaid balance and opens that booking', async ({ page }) => {
-    const due = page.getByRole('button', { name: /^\[Plan A\] Maid: ₹[\d,]+ due\. Pay by .+ to keep your slot\.$/ });
+    const due = page.getByRole('button', { name: /^\[Plan A\] Maid: ₹[\d,]+ due\. Pay by .+ to keep your slot\.?$/ });
     await expect(due).toBeVisible();
     await due.click();
     await expect(heading(page, '[Plan A] Maid')).toBeVisible();
@@ -41,7 +41,6 @@ test.describe('Home: active resident (default demo state)', () => {
   });
 
   test('service cards open the catalogue filtered to that service', async ({ page }) => {
-    test.fail(true, 'BUG: Book keeps its first filter (useState initialiser in book.tsx) so ?service=cook is ignored once the Book tab is mounted; web mounts every tab up front');
     await expect(heading(page, 'Book a service')).toBeVisible();
     for (const name of ['Maid, Cleaning and upkeep. See plans', 'Cook, Home-style meals. See plans', 'Caretaker, Care for elders. See plans']) {
       await expect(page.getByRole('button', { name })).toBeVisible();
@@ -54,7 +53,6 @@ test.describe('Home: active resident (default demo state)', () => {
   });
 
   test('the Updates bell shows the unread count and opens Updates', async ({ page }) => {
-    test.fail(true, TAB_BAR_OVERLAP);
     test.setTimeout(45_000);
     const bell = page.getByRole('button', { name: /^Updates, \d+ unread$/ });
     await expect(bell).toBeVisible();
@@ -129,10 +127,18 @@ test.describe('Home: verification pending (?demo=pending)', () => {
 });
 
 test.describe('Tab bar', () => {
+  test('the tab bar and its tabs have clean accessible names', async ({ page }) => {
+    test.fail(true, 'BUG-QA-025: the web tab bar has no name and each tab name starts with an icon-font glyph');
+    await open(page);
+    await waitForActiveHome(page);
+    const main = page.getByRole('tablist', { name: 'Main' });
+    for (const name of ['Home', 'Book', 'Visits', 'Support', 'Profile']) await expect(main.getByRole('tab', { name, exact: true })).toBeVisible({ timeout: 3_000 });
+  });
+
   test('every tab opens with its heading', async ({ page }) => {
     await open(page);
     await waitForActiveHome(page);
-    await expect(tabBar(page).getByRole('tab')).toHaveText(['Home', 'Book', 'Visits', 'Support', 'Profile']);
+    await expect(tabBar(page).getByRole('tab')).toHaveText([/Home$/, /Book$/, /Visits$/, /Support$/, /Profile$/]);
 
     await openTab(page, 'Book');
     await expect(heading(page, 'Book')).toBeVisible();

@@ -20,12 +20,8 @@ import { test as base, expect, type Page } from '@playwright/test';
  * "Back" and the header actions. That invisible bar sits on top of the header, so a pointer tap on
  * "Back" lands on the compact-bar copy (same action): back() clicks the topmost (last) copy.
  *
- * On web the native tab bar floats over the top of every tab screen (see TAB_BAR_OVERLAP), so the
- * header actions of tab screens (Updates bell, "My bookings", "New request") cannot be tapped there.
+ * The web tab bar used to float over the top of tab screens (BUG-QA-020, fixed in 30ce489).
  */
-
-export const TAB_BAR_OVERLAP =
-  'BUG: on web the native tab bar (expo-router/native-tabs) floats over the top of tab screens and intercepts taps on header actions';
 
 export const RESIDENT = { name: 'Ananya Rao', first: 'Ananya', community: 'Green Meadows', tower: 'Tower B', flat: '1204' };
 
@@ -63,11 +59,14 @@ export async function open(page: Page, path = '') {
   await page.goto(`/${path.replace(/^\//, '')}`);
 }
 
-/** The native tab bar (role=tablist "Main" on web). */
-export const tabBar = (page: Page) => page.getByRole('tablist', { name: 'Main' });
+/** A tab whose accessible name ends with `label` (tab names start with an icon-font glyph on web: BUG-QA-025). */
+export const tabName = (label: string) => new RegExp(String.raw`(^|\s)` + label + '$');
+
+/** The main tab bar: the tablist holding the Profile tab (it has no name on web since 30ce489: BUG-QA-025). */
+export const tabBar = (page: Page) => page.getByRole('tablist').filter({ has: page.getByRole('tab', { name: tabName('Profile') }) });
 
 export async function openTab(page: Page, name: 'Home' | 'Book' | 'Visits' | 'Support' | 'Profile') {
-  const tab = tabBar(page).getByRole('tab', { name, exact: true });
+  const tab = tabBar(page).getByRole('tab', { name: tabName(name) });
   await tab.click();
   await expect(tab).toHaveAttribute('aria-selected', 'true');
 }

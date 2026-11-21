@@ -106,7 +106,6 @@ test.describe('Updates inbox', () => {
   });
 
   test('a11y: update labels read as clean sentences', async ({ page }) => {
-    test.fail(true, 'BUG: notifications.tsx joins title/body/time with ". " after a body that already ends in ".", so screen readers hear "reply.. 2 hours ago"');
     await expect(page.getByRole('button', { name: /Support replied/ })).toBeVisible();
     await expect(page.getByRole('button', { name: /\.\. / })).toHaveCount(0, { timeout: 3_000 });
   });
