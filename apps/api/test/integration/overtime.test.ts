@@ -13,6 +13,7 @@ import { SYSTEM_CLAIMS } from '../../src/modules/bookings/payments';
 import { addDays } from '../../src/modules/bookings/pricing';
 import { actor } from '../helpers/fake-deps';
 import { adminPool, appDatabase, databaseAvailable, uniq } from '../helpers/db';
+import { cleanupSuite } from '../helpers/qa-fixtures';
 
 /* EMP-08: offer -> accept/reject -> admin confirmation creates the schedule entry. */
 
@@ -78,7 +79,10 @@ describe.skipIf(!available)('overtime offers (EMP-08)', { timeout: 120_000 }, ()
     await admin?.query(`update app.verification_items set status = 'INACTIVE' where id = $1`, [itemId]).catch(() => undefined);
     await db?.destroy();
     await admin?.end();
-  });
+    // Last, so it never delays the suite's own resets (hook timeouts on a busy shared DB).
+    // Removes this suite's fixtures from the shared dev database (test/helpers/qa-fixtures.ts).
+    await cleanupSuite({ suffix: s });
+  }, 180_000);
 
   it('offers only to safe candidates; acceptance alone is not an assignment', async () => {
     const c = await ot.candidates(root, visitId);

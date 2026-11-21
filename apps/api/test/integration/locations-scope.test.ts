@@ -5,6 +5,7 @@ import { LocationService } from '../../src/modules/locations/service';
 import type { Database } from '../../src/db/database';
 import { actor } from '../helpers/fake-deps';
 import { appDatabase, databaseAvailable, uniq } from '../helpers/db';
+import { cleanupSuite } from '../helpers/qa-fixtures';
 
 const available = await databaseAvailable();
 
@@ -34,7 +35,10 @@ describe.skipIf(!available)('location master data: scope and integrity', () => {
   });
   afterAll(async () => {
     await db?.destroy();
-  });
+    // Last, so it never delays the suite's own resets (hook timeouts on a busy shared DB).
+    // Removes this suite's fixtures from the shared dev database (test/helpers/qa-fixtures.ts).
+    await cleanupSuite({ suffix: s });
+  }, 180_000);
 
   const north = () => actor({ id: randomUUID(), scope: { type: 'CLUSTERS', clusterIds: [c1] } });
 

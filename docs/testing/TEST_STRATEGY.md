@@ -22,6 +22,22 @@ Rules every suite follows:
 - **No real credentials in code.** Admin E2E reads `E2E_ADMIN_*` from the git-ignored `e2e/.env.e2e`; the resident specs read `E2E_RESIDENT_*`.
 - **Bugs stay visible.** A test that exposes a bug is kept as `it.fails` / `test.fail` and listed in `BUGS.md`.
 
+### Running integration suites against the shared dev database
+Integration suites share one Postgres. Inside one run, Vitest already runs the files one after another (`fileParallelism: false`). Across worktrees nothing coordinates, so:
+
+- **Run one integration suite per database at a time.** Before starting, tell the other sessions. Better still, point each worktree at its own local Supabase (`supabase start`). Two runs at once slow every query, so hooks time out, and they see each other's data.
+- **Organisation-wide rules are the hazard.** Rules that read every active row, not your own fixture, break other suites while your run is active:
+  - **Required verification items:** readiness needs every ACTIVE required item.
+    - Suites must not assume theirs is the only one. Use `makeReadyTolerant()` (`test/helpers/qa-fixtures.ts`), which verifies every active required item and retries once.
+    - Deactivate or delete your own item in `afterAll` before anything slow.
+  - **Training items:** only listed on the employee profile, not used for readiness today. Treat them like verification items if that changes.
+  - **Business holidays:** these shift working-day deadlines (escalation, ADR-014).
+    - The escalation suite asserts only a lower bound (more than 47 hours away). Extra holidays only push the deadline later, so other rows cannot break it.
+    - Admin E2E adds holidays only in 2090 and later, and removes them afterwards.
+  - **Payroll periods:** a month is organisation-wide, so the payroll suite picks a random unused past month and deletes it afterwards.
+  - **Notification outbox:** any API process running with `JOBS_ENABLED` against the same database delivers outbox rows that a test expects to stay pending or be skipped. Stop other API dev servers, or run them with `JOBS_ENABLED=false`, while the notifications suite runs.
+- **Cleanup runs last in `afterAll`,** after the suite's own resets, and the hook gets a 3-minute timeout. A slow FK-walking cleanup must never stop a suite from deactivating its global rows.
+
 ## 2. Route authorisation matrix (every route)
 
 The unit test discovers every route from `apps/api/src/modules/*/routes.ts`. It then checks the list against what Express actually mounts, so a new route is covered automatically, and a new admin route with no guard fails until someone reviews it.

@@ -7,6 +7,7 @@ import { CatalogueService } from '../../src/modules/catalogue/service';
 import { MigrationService } from '../../src/modules/migration/service';
 import { actor } from '../helpers/fake-deps';
 import { appDatabase, databaseAvailable, uniq } from '../helpers/db';
+import { cleanupSuite } from '../helpers/qa-fixtures';
 
 /* ADM-04: dashboard table entry and structure export use the Excel pipeline's rules. */
 
@@ -31,7 +32,10 @@ describe.skipIf(!available)('community migration: dashboard table and export', {
 
   afterAll(async () => {
     await db?.destroy();
-  });
+    // Last, so it never delays the suite's own resets (hook timeouts on a busy shared DB).
+    // Removes this suite's fixtures from the shared dev database (test/helpers/qa-fixtures.ts).
+    await cleanupSuite({ suffix: s });
+  }, 180_000);
 
   it('checks table rows with the same rules and points at the bad rows', async () => {
     const v = await mig.validateGrid(root, communityId, [

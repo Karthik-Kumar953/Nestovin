@@ -11,6 +11,7 @@ import { SupportService } from '../../src/modules/support/service';
 import type { ResidentActor } from '../../src/modules/residents/auth';
 import { actor } from '../helpers/fake-deps';
 import { adminPool, appDatabase, appPool, databaseAvailable, uniq } from '../helpers/db';
+import { cleanupSuite } from '../helpers/qa-fixtures';
 
 /*
  * Phase 3 (ADR-012): residence verification, household access, family
@@ -107,7 +108,10 @@ describe.skipIf(!available)('residents, household and support (Phase 3)', { time
     await db?.destroy();
     await admin?.end();
     await app?.end();
-  });
+    // Last, so it never delays the suite's own resets (hook timeouts on a busy shared DB).
+    // Removes this suite's fixtures from the shared dev database (test/helpers/qa-fixtures.ts).
+    await cleanupSuite({ suffix: s });
+  }, 180_000);
 
   it('registers a residence as PENDING with a document awaiting upload', async () => {
     const res = await residents.registerResidence(A, 't', { flatId: flat1, occupancy: 'OWNER', document: doc });

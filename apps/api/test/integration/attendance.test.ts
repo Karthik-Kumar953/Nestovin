@@ -13,6 +13,7 @@ import type { ResidentActor } from '../../src/modules/residents/auth';
 import { addDays } from '../../src/modules/bookings/pricing';
 import { actor } from '../helpers/fake-deps';
 import { adminPool, appDatabase, databaseAvailable, uniq } from '../helpers/db';
+import { cleanupSuite } from '../helpers/qa-fixtures';
 
 /* Phase 6 (EMP-06/07, RES-10/11, ADM-12/12A, ADR-014). */
 
@@ -135,7 +136,10 @@ describe.skipIf(!available)('attendance and service records (Phase 6)', { timeou
     await admin?.query(`update app.verification_items set status = 'INACTIVE' where id = $1`, [itemId]).catch(() => undefined);
     await db?.destroy();
     await admin?.end();
-  });
+    // Last, so it never delays the suite's own resets (hook timeouts on a busy shared DB).
+    // Removes this suite's fixtures from the shared dev database (test/helpers/qa-fixtures.ts).
+    await cleanupSuite({ suffix: s });
+  }, 180_000);
 
   it('the household sees today’s visit with the worker’s first name and can show a code', async () => {
     const visits = await att.residentVisits(residents[0]!, today, today);

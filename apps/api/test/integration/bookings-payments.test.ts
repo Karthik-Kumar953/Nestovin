@@ -14,6 +14,7 @@ import type { ResidentActor } from '../../src/modules/residents/auth';
 import { addDays } from '../../src/modules/bookings/pricing';
 import { actor } from '../helpers/fake-deps';
 import { adminPool, appDatabase, appPool, databaseAvailable, uniq } from '../helpers/db';
+import { cleanupSuite } from '../helpers/qa-fixtures';
 
 /*
  * Phase 4 (ADR-006/013/015): demand cycle -> initial payment -> slot set ->
@@ -156,7 +157,10 @@ describe.skipIf(!available)('demand cycles, bookings and payments (Phase 4)', { 
     await db?.destroy();
     await admin?.end();
     await app?.end();
-  });
+    // Last, so it never delays the suite's own resets (hook timeouts on a busy shared DB).
+    // Removes this suite's fixtures from the shared dev database (test/helpers/qa-fixtures.ts).
+    await cleanupSuite({ suffix: s });
+  }, 180_000);
 
   const demandInput = (serviceId: string, addons: string[] = []) => ({
     cycleId,

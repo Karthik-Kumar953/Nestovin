@@ -8,6 +8,7 @@ import { ChangeRequestService } from '../../src/modules/residents/change-request
 import type { ResidentActor } from '../../src/modules/residents/auth';
 import { actor } from '../helpers/fake-deps';
 import { adminPool, appDatabase, databaseAvailable, uniq } from '../helpers/db';
+import { cleanupSuite } from '../helpers/qa-fixtures';
 
 /* RES-14: verified residence data changes only through reviewed requests. */
 
@@ -54,7 +55,10 @@ describe.skipIf(!available)('resident change requests (RES-14)', { timeout: 90_0
   afterAll(async () => {
     await db?.destroy();
     await admin?.end();
-  });
+    // Last, so it never delays the suite's own resets (hook timeouts on a busy shared DB).
+    // Removes this suite's fixtures from the shared dev database (test/helpers/qa-fixtures.ts).
+    await cleanupSuite({ suffix: s });
+  }, 180_000);
 
   it('occupancy change: Primary only, one pending at a time, applied on approval', async () => {
     await expectCode(svc.create(F, 't', { kind: 'OCCUPANCY_CHANGE', occupancy: 'OWNER' }), 'BUSINESS_RULE_VIOLATION');

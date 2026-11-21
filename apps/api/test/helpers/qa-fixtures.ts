@@ -5,7 +5,7 @@ import { LocationService } from '../../src/modules/locations/service';
 import type { ResidentActor } from '../../src/modules/residents/auth';
 import type { AdminActor } from '../../src/auth/permissions';
 import type { Database } from '../../src/db/database';
-import { uniq } from './db';
+import { adminPool, databaseAvailable, uniq } from './db';
 
 /*
  * QA fixtures for the shared dev database.
@@ -81,6 +81,8 @@ export class Fixtures {
   readonly cities: string[] = [];
   readonly residents: string[] = [];
   readonly authUsers: string[] = [];
+  /** Other app-schema roots to remove (with everything referencing them). */
+  readonly extra: { table: string; ids: string[] }[] = [];
   constructor(private readonly admin: pg.Pool) {}
 
   q(text: string, params: unknown[] = []) {
@@ -113,6 +115,7 @@ export class Fixtures {
       await walker.delete('app', 'resident_profiles', this.residents);
       await walker.delete('app', 'clusters', this.clusters);
       await walker.delete('app', 'cities', this.cities);
+      for (const root of this.extra) await walker.delete('app', root.table, root.ids);
       if (this.authUsers.length) await client.query(`delete from auth.users where id = any($1::uuid[])`, [this.authUsers]);
       await client.query('commit');
     } catch (err) {
@@ -228,4 +231,85 @@ export async function commercialFixture(fx: Fixtures, db: Database, root: AdminA
   await fx.q(`update app.catalogue_versions set status = 'PUBLISHED', published_at = now() where id = $1`, [version]);
 
   return { cityId, north, south, communityId, southCommunityId, flats, southFlat, ids, category, windowId, version, planId };
+}
+
+/**
+ * Cleanup for suites written before the QA fixtures: they name every root with a
+ * random 6-character suffix (`uniq()`), so the roots can be found again by that
+ * suffix (names/codes END with it) and removed with everything that references
+ * them. Pass ids the suite created without the suffix (e.g. residents named
+ * "P6 Resident") and organisation-wide rows such as payroll months.
+ */
+export async function cleanupSuite(
+  opts: { suffix?: string; residentIds?: string[]; authUserIds?: string[]; payrollMonths?: string[]; extra?: { table: string; ids: string[] }[] },
+): Promise<void> {
+  if (!(await databaseAvailable())) return;
+  const admin = adminPool();
+  try {
+    await cleanupWith(admin, opts);
+  } finally {
+    await admin.end();
+  }
+}
+
+async function cleanupWith(admin: pg.Pool, opts: Parameters<typeof cleanupSuite>[0]): Promise<void> {
+  const fx = new Fixtures(admin);
+  const ids = async (sql: string, params: unknown[]) => (await admin.query<{ id: string }>(sql, params)).rows.map((r) => r.id);
+  const s = opts.suffix;
+  if (s) {
+    if (!/^[A-Z0-9]{4,8}$/.test(s)) throw new Error(`refusing to clean up by an unexpected suffix: ${s}`);
+    fx.cities.push(...(await ids(`select id::text from app.cities where name like '%' || $1`, [s])));
+    fx.clusters.push(...(await ids(`select id::text from app.clusters where name like '%' || $1 or code like '%' || $1`, [s])));
+    const residents = await ids(
+      `select distinct m.resident_id::text as id
+         from app.residence_memberships m
+         join app.flats f on f.id = m.flat_id
+         join app.towers t on t.id = f.tower_id
+         join app.communities c on c.id = t.community_id
+        where c.city_id = any($1::uuid[]) or m.cluster_id = any($2::uuid[])
+       union
+       select id::text from app.resident_profiles where full_name like '%' || $3`,
+      [fx.cities, fx.clusters, s],
+    );
+    fx.residents.push(...residents);
+    fx.authUsers.push(...residents);
+    fx.authUsers.push(...(await ids(`select auth_user_id::text as id from app.employees where home_cluster_id = any($1::uuid[]) and auth_user_id is not null`, [fx.clusters])));
+    fx.extra.push({ table: 'verification_items', ids: await ids(`select id::text from app.verification_items where name like '%' || $1`, [s]) });
+    fx.extra.push({ table: 'roles', ids: await ids(`select id::text from app.roles where name like '%' || $1`, [s]) });
+  }
+  fx.residents.push(...(opts.residentIds ?? []));
+  fx.authUsers.push(...(opts.residentIds ?? []), ...(opts.authUserIds ?? []));
+  if (opts.payrollMonths?.length) {
+    fx.extra.push({ table: 'payroll_periods', ids: await ids(`select id::text from app.payroll_periods where month = any($1::date[])`, [opts.payrollMonths]) });
+  }
+  fx.extra.push(...(opts.extra ?? []));
+  await fx.cleanup();
+}
+
+/**
+ * Makes an employee READY while other suites (in other worktrees) may be adding
+ * their own temporary required checklist items to the shared database at the same
+ * time. Readiness requires every ACTIVE required item, so verify all of them, and
+ * retry once if a new one appeared between the check and the readiness change.
+ */
+export async function makeReadyTolerant(
+  hr: {
+    setVerification(actor: AdminActor, requestId: string, employeeId: string, itemId: string, input: { status: 'VERIFIED' }): Promise<unknown>;
+    detail(actor: AdminActor, id: string): Promise<{ version: number }>;
+    setReadiness(actor: AdminActor, requestId: string, id: string, input: { readiness: 'READY'; version: number }): Promise<unknown>;
+  },
+  admin: pg.Pool,
+  root: AdminActor,
+  employeeId: string,
+): Promise<void> {
+  for (let attempt = 0; ; attempt++) {
+    const items = (await admin.query<{ id: string }>(`select id::text from app.verification_items where status = 'ACTIVE' and required`)).rows;
+    for (const it of items) await hr.setVerification(root, 'qa', employeeId, it.id, { status: 'VERIFIED' });
+    try {
+      await hr.setReadiness(root, 'qa', employeeId, { readiness: 'READY', version: (await hr.detail(root, employeeId)).version });
+      return;
+    } catch (err) {
+      if (attempt >= 2 || !/not verified/.test((err as Error).message)) throw err;
+    }
+  }
 }

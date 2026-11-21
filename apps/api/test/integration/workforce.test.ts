@@ -11,6 +11,7 @@ import { EmployeeService, type EmployeeActor } from '../../src/modules/workforce
 import { addDays } from '../../src/modules/bookings/pricing';
 import { actor } from '../helpers/fake-deps';
 import { adminPool, appDatabase, appPool, databaseAvailable, uniq } from '../helpers/db';
+import { cleanupSuite } from '../helpers/qa-fixtures';
 
 /*
  * Phase 5 (ADM-09/11, EMP-01/09, ADR-005/012): readiness, eligibility filters,
@@ -124,7 +125,10 @@ describe.skipIf(!available)('workforce and allocation (Phase 5)', { timeout: 120
     await db?.destroy();
     await admin?.end();
     await app?.end();
-  });
+    // Last, so it never delays the suite's own resets (hook timeouts on a busy shared DB).
+    // Removes this suite's fixtures from the shared dev database (test/helpers/qa-fixtures.ts).
+    await cleanupSuite({ suffix: s });
+  }, 180_000);
 
   async function readyEmployee(name: string, cluster: string) {
     const d = await hr.createEmployee(root, 't', { fullName: name, phone: phone(), homeClusterId: cluster });
