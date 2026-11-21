@@ -7,7 +7,7 @@ import type { AuthAdminAdapter } from '../../src/integrations/auth-admin';
 import { LocationService } from '../../src/modules/locations/service';
 import { WorkforceAdminService } from '../../src/modules/workforce/admin-service';
 import { AllocationService } from '../../src/modules/workforce/allocation';
-import type { EmployeeActor } from '../../src/modules/workforce/employee-service';
+import { EmployeeService, type EmployeeActor } from '../../src/modules/workforce/employee-service';
 import { AttendanceService } from '../../src/modules/attendance/service';
 import type { ResidentActor } from '../../src/modules/residents/auth';
 import { addDays } from '../../src/modules/bookings/pricing';
@@ -92,8 +92,21 @@ describe.skipIf(!available)('attendance and service records (Phase 6)', { timeou
       const snap = (
         await q(
           `insert into app.booking_terms_snapshots (resident_id, flat_id, community_id, cluster_id, catalogue_version_id, plan_id, residence_category_id, plan_snapshot, total_paise, initial_due_paise, remaining_due_paise, validity_days)
-           values ($1, $2, $3, $4, $5, $6, $7, '{"planName":"Basic","selectionLabel":"Maid","components":[]}', 100000, 100000, 0, 30) returning id`,
-          [rid, flats[i], community, m.cluster_id, ver, plan, cat],
+           values ($1, $2, $3, $4, $5, $6, $7, $8, 100000, 100000, 0, 30) returning id`,
+          [
+            rid,
+            flats[i],
+            community,
+            m.cluster_id,
+            ver,
+            plan,
+            cat,
+            JSON.stringify({
+              planName: 'Basic',
+              selectionLabel: 'Maid',
+              components: [{ serviceId: maid, isAddon: false, tasks: [{ name: 'Sweeping and mopping', frequency: 'PER_VISIT', timesPerPeriod: 1 }, { name: 'Bathroom deep clean', frequency: 'WEEKLY', timesPerPeriod: 1 }] }],
+            }),
+          ],
         )
       ).rows[0].id;
       const b = (
@@ -179,5 +192,25 @@ describe.skipIf(!available)('attendance and service records (Phase 6)', { timeou
     expect(rows[0].status).toBe('IN_PROGRESS');
     const kept = await admin.query(`select count(*)::int as n from app.no_show_records where occurrence_id = $1`, [occ[1]]);
     expect(kept.rows[0].n).toBe(1);
+  });
+
+  it('Worker app: schedule lists the agreed tasks; visit detail shows attendance state; other workers get 404', async () => {
+    const emp = new EmployeeService(db);
+    const items = await emp.schedule(workers[0]!, today, today);
+    const mine = items.find((i) => i.occurrenceId === occ[0])!;
+    expect(mine).toMatchObject({ serviceName: expect.any(String), durationMinutes: 30, isAddon: false });
+    expect(mine.tasks).toEqual([
+      { name: 'Sweeping and mopping', frequency: 'PER_VISIT', timesPerPeriod: 1 },
+      { name: 'Bathroom deep clean', frequency: 'WEEKLY', timesPerPeriod: 1 },
+    ]);
+    const detail = await emp.visit(workers[0]!, occ[0]!);
+    expect(detail.checkIn).toMatchObject({ method: 'QR', result: 'VERIFIED', flags: ['OUTSIDE_RADIUS'] });
+    expect(detail.completedAt).not.toBeNull();
+    expect(detail.noShow).toBeNull();
+    const absent = await emp.visit(workers[1]!, occ[1]!);
+    expect(absent).toMatchObject({ noShow: 'RESIDENT_ABSENT', correction: { status: 'APPROVED', requestedChange: 'MARK_ATTENDED' } });
+    await expectCode(emp.visit(workers[1]!, occ[0]!), 'NOT_FOUND');
+    const me = await emp.me(workers[0]!);
+    expect(me.homeClusterName).toMatch(/^P6 North/);
   });
 });
