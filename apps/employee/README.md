@@ -13,6 +13,17 @@ It talks only to the Nestovin API (`/v1/employee/*`, `/v1/public/applicants`), p
 
 On Windows, Expo commands that call pnpm need a shim folder with `pnpm` / `pnpm.cmd` running `corepack pnpm` on PATH (see `docs/team/TEAM_PLAN.md`).
 
+## On your iPhone with Expo Go
+
+1. Check Expo Go: the app's settings must list **SDK 58** (this app uses Expo SDK 58). If it shows an older SDK, update Expo Go from the App Store.
+2. Phone and computer on the same Wi-Fi. Start the API from the main checkout: `corepack pnpm dev:api`. The first time, allow Node.js on **Private networks** in the Windows firewall prompt.
+3. `corepack pnpm --filter @nestovin/employee phone` (or `node scripts/phone.cjs` here). It finds this computer's Wi-Fi address, points the app at `http://<that address>:4000` and starts Metro on port 8082 for Expo Go. Your `.env` is not changed.
+4. Scan the QR code with the iPhone Camera app; it opens in Expo Go.
+
+If the phone cannot connect, pass the address yourself (`--host 192.168.x.x`) or use `--tunnel` (needs `npx expo login`; the API must still be reachable from the phone).
+
+In Expo Go, push notifications are off by design (they need a development build); everything else works.
+
 ## Design review without the API (demo mode, dev only)
 ```
 node scripts/demo-web.cjs        # or the "worker-demo" entry in .claude/launch.json
