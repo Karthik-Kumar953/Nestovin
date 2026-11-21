@@ -19,8 +19,9 @@ import { addDays, assertMode, planSnapshot, priceSelection, splitInitial } from 
 import type { PaymentService} from './payments';
 import { setting, slotUsage } from './payments';
 import { bookingViews } from './views';
+import { businessToday } from '../../lib/dates';
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => businessToday();
 
 /** RES-06..09 for the Resident app. Verified residence required (ADR-015). */
 export class ResidentBookingService {

@@ -6,6 +6,7 @@ import { withTx } from '../../db/database';
 import { businessRule, forbidden, notFound, unauthenticated } from '../../lib/errors';
 import { SYSTEM_CLAIMS } from '../bookings/payments';
 import { STAFF_EMAIL_DOMAIN } from './admin-service';
+import { businessToday } from '../../lib/dates';
 
 export interface EmployeeActor {
   id: string;
@@ -266,7 +267,7 @@ export class EmployeeService {
 
   async requestLeave(actor: EmployeeActor, input: { startDate: string; endDate: string; reason?: string | undefined }) {
     if (input.endDate < input.startDate) throw businessRule('The leave must end on or after its start date');
-    if (input.startDate < new Date().toISOString().slice(0, 10)) throw businessRule('Leave cannot start in the past');
+    if (input.startDate < businessToday()) throw businessRule('Leave cannot start in the past');
     await this.tx(actor, async (trx) => {
       const overlap = await trx
         .selectFrom('app.leave_requests')

@@ -7,6 +7,7 @@ import { businessRule, conflict, notFound } from '../../lib/errors';
 import { auditAdmin, auditResident } from '../audit/audit';
 import { residentClaims, type ResidentActor } from './auth';
 import { notify } from '../notifications/service';
+import { businessToday } from '../../lib/dates';
 
 export const createChangeRequestSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('OCCUPANCY_CHANGE'), occupancy: z.enum(['OWNER', 'TENANT']), reason: z.string().trim().max(500).optional() }),
@@ -84,7 +85,7 @@ export class ChangeRequestService {
         if (m.kind !== 'PRIMARY') throw businessRule('Only the Primary Resident can change how the flat is occupied');
         if (m.occupancy === input.occupancy) throw businessRule('Your residence already has this occupancy');
       }
-      if (input.kind === 'MOVE_OUT' && input.moveOutDate < new Date().toISOString().slice(0, 10)) throw businessRule('The move-out date cannot be in the past');
+      if (input.kind === 'MOVE_OUT' && input.moveOutDate < businessToday()) throw businessRule('The move-out date cannot be in the past');
       const requested = input.kind === 'OCCUPANCY_CHANGE' ? { occupancy: input.occupancy } : { moveOutDate: input.moveOutDate };
       try {
         const row = await trx

@@ -14,9 +14,10 @@ import { BookingAdminService } from '../bookings/admin-service';
 import { WorkforceAdminService } from '../workforce/admin-service';
 import { SupportService } from '../support/service';
 import { AttendanceService } from '../attendance/service';
+import { businessToday } from '../../lib/dates';
 
 const rupees = (paise: number) => (paise / 100).toFixed(2);
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => businessToday();
 
 /**
  * CSV exports for every module with an `export` action. Each export uses the

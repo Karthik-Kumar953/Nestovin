@@ -27,6 +27,7 @@ import { AllocationService } from './allocation';
 import { OvertimeService, confirmOfferSchema, createOfferSchema, respondOfferSchema } from './overtime';
 import { WorkforceAdminService } from './admin-service';
 import { EmployeeService, employeeOf, requireEmployee } from './employee-service';
+import { businessToday } from '../../lib/dates';
 
 const id = (v: unknown, name = 'id') => parseParam(uuidSchema, v, name);
 const isoDate = z.iso.date();
@@ -67,7 +68,7 @@ export function employeeRoutes(deps: AppDeps, ...extra: Router[]): Router {
     res.json(await svc.passwordChanged(employeeOf(req)));
   });
   r.get('/schedule', async (req, res) => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = businessToday();
     const q = parseQuery(z.object({ from: isoDate.optional(), to: isoDate.optional() }), req);
     res.json({ items: await svc.schedule(employeeOf(req), q.from ?? today, q.to ?? addDays(q.from ?? today, 14)) });
   });
@@ -205,7 +206,7 @@ export function workforceAdminRoutes(deps: AppDeps): Router {
     res.json(await alloc.confirmStanding(adminOf(req), req.requestId, id(req.params.id), req.body));
   });
   r.get('/visits', authorize('allocation', 'view'), async (req, res) => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = businessToday();
     const q = parseQuery(
       z.object({ communityId: uuidSchema.optional(), from: isoDate.optional(), to: isoDate.optional(), unassigned: z.enum(['true', 'false']).default('false') }),
       req,

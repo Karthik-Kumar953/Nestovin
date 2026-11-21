@@ -939,7 +939,7 @@ export class CatalogueService {
           status: 'PUBLISHED',
           published_at: sql`now()`,
           published_by: actor.id,
-          effective_from: input.effectiveFrom ?? sql`current_date`,
+          effective_from: input.effectiveFrom ?? sql`(now() at time zone 'Asia/Kolkata')::date`,
           ...(input.notes !== undefined ? { notes: input.notes } : {}),
         })
         .where('id', '=', versionId)
