@@ -93,7 +93,10 @@ describe.skipIf(!available)('route data scope and RLS', { timeout: 120_000 }, ()
     ['demand', `/demand-cycles/${cycleId}/summary`],
     ['demand', `/demand-cycles/${cycleId}/requests`],
     ['residents', `/residents/${A.id}`],
+    ['residents', `/residents/${A.id}/bookings`],
     ['support', `/tickets/${ticketId}`],
+    ['support', `/tickets/${ticketId}/assignees`],
+    ['locations', `/clusters/${f.north}/communities`],
     ['employees', `/employees/${employeeId}`],
     ['finance', `/employees/${employeeId}/compensation`],
   ];

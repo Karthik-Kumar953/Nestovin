@@ -1,9 +1,12 @@
 import { sql } from 'kysely';
 import type {
+  AdminBooking,
   AdminFamilyRequest,
   AdminResident,
   AdminResidentDetail,
+  AdminUpdateResidentInput,
   ApproveFamilyInput,
+  ResidentBookingAdmin,
   DocumentUrl,
   SetResidentStatusInput,
   VerificationRequest,
@@ -14,6 +17,7 @@ import { toDbClaims, type AdminActor } from '../../auth/permissions';
 import type { StorageAdapter } from '../../integrations/storage';
 import { businessRule, notFound, versionConflict } from '../../lib/errors';
 import { decodeCursor, likeContains, toPage } from '../../lib/pagination';
+import { bookingViews } from '../bookings/views';
 import { auditAdmin } from '../audit/audit';
 import { notify } from '../notifications/service';
 import { iso, membershipQuery, toMembership } from './queries';
@@ -135,6 +139,72 @@ export class ResidentAdminService {
         reason: input.reason,
       });
       return this.loadDetail(trx, residentId);
+    });
+  }
+
+  /**
+   * ADM-05: edit a resident's contact details (name, email). The phone number is
+   * the sign-in identity and is never changed here. Optimistic concurrency on
+   * `version`; audited with before/after.
+   */
+  async update(actor: AdminActor, requestId: string, residentId: string, input: AdminUpdateResidentInput): Promise<AdminResidentDetail> {
+    return this.tx(actor, async (trx) => {
+      const before = await trx.selectFrom('app.resident_profiles').select(['id', 'full_name', 'email', 'version']).where('id', '=', residentId).forUpdate().executeTakeFirst();
+      if (!before) throw notFound('Resident');
+      if (before.version !== input.version) throw versionConflict();
+      const updated = await trx
+        .updateTable('app.resident_profiles')
+        .set({
+          ...(input.fullName !== undefined ? { full_name: input.fullName } : {}),
+          ...(input.email !== undefined ? { email: input.email } : {}),
+        })
+        .where('id', '=', residentId)
+        .where('version', '=', input.version)
+        .returning(['full_name', 'email'])
+        .executeTakeFirst();
+      if (!updated) throw versionConflict();
+      await auditAdmin(trx, actor, requestId, {
+        action: 'resident.updated',
+        targetType: 'resident',
+        targetId: residentId,
+        before: { fullName: before.full_name, email: before.email },
+        after: { fullName: updated.full_name, email: updated.email },
+      });
+      return this.loadDetail(trx, residentId);
+    });
+  }
+
+  /**
+   * ADM-05: the resident's bookings and subscriptions (plan, services, status,
+   * amounts, community/flat), newest first. RLS limits rows to the admin's clusters.
+   */
+  async bookings(actor: AdminActor, residentId: string, p: { limit: number; cursor?: string | undefined; status?: string | undefined }) {
+    return this.tx(actor, async (trx) => {
+      const exists = await trx.selectFrom('app.resident_profiles').select('id').where('id', '=', residentId).executeTakeFirst();
+      if (!exists) throw notFound('Resident');
+      const c = decodeCursor(p.cursor);
+      const rows = await bookingViews(trx, { residentId, status: p.status, limit: p.limit + 1, before: c ? { at: c.v, id: c.id } : undefined });
+      const page = toPage(rows, p.limit, (r) => ({ v: r.createdAt, id: r.id }));
+      const ids = page.items.map((b) => b.id);
+      const snaps = ids.length
+        ? await trx
+            .selectFrom('app.bookings as b')
+            .innerJoin('app.booking_terms_snapshots as t', 't.id', 'b.terms_snapshot_id')
+            .select(['b.id', 't.plan_snapshot'])
+            .where('b.id', 'in', ids)
+            .execute()
+        : [];
+      const services = new Map(
+        snaps.map((x) => {
+          const comps = ((x.plan_snapshot as { components?: { serviceName?: string }[] } | null)?.components ?? [])
+            .map((cmp) => cmp.serviceName)
+            .filter((n): n is string => typeof n === 'string' && n.length > 0);
+          return [x.id, [...new Set(comps)]];
+        }),
+      );
+      // bookingViews returns the admin shape (resident, flat, version) for every row.
+      const items: ResidentBookingAdmin[] = (page.items as AdminBooking[]).map((b) => ({ ...b, serviceNames: services.get(b.id) ?? [] }));
+      return { items, nextCursor: page.nextCursor };
     });
   }
 

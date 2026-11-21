@@ -248,6 +248,13 @@ export const adminBookingSchema = bookingViewSchema.extend({
 });
 export type AdminBooking = z.infer<typeof adminBookingSchema>;
 
+/** GET /residents/:id/bookings (ADM-05): the resident's bookings with the services they cover. */
+export const residentBookingAdminSchema = adminBookingSchema.extend({
+  /** Services in the booked plan selection (from the terms the resident accepted). */
+  serviceNames: z.array(z.string()),
+});
+export type ResidentBookingAdmin = z.infer<typeof residentBookingAdminSchema>;
+
 // ---------------------------------------------------------------- resident app
 
 export const residentDemandRequestSchema = z.object({

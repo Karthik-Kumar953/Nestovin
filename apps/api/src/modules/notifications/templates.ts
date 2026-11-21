@@ -33,6 +33,7 @@ const TEMPLATES: Record<string, (p: Payload) => RenderedNotification> = {
   'payslip.available': () => ({ title: 'Payslip available', body: 'Your payslip for the month is available.' }),
   // Email (admins / support destination)
   'ticket.escalated': (p) => ({ title: `Ticket ${String(p.reference ?? '')} escalated`, body: `A support ticket was escalated to you (${String(p.trigger ?? '').toLowerCase()}). Open the admin portal to review it.` }),
+  'ticket.assigned': (p) => ({ title: `Ticket ${String(p.reference ?? '')} assigned to you`, body: 'A support ticket was assigned to you. Open the admin portal to review it.' }),
   'website_enquiry.received': (p) => ({ title: `New website enquiry ${String(p.reference ?? '')}`, body: 'A new enquiry was submitted on the Nestovin website. Open the admin portal to view it.' }),
 };
 

@@ -1,8 +1,11 @@
 'use client';
 
+import { Fragment } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { useSearchParams } from '../../lib/router';
+import { useToast } from '../../components/ui';
+import { Check, Copy } from '../../components/icons';
 
 export interface CommunityOption {
   id: string;
@@ -108,4 +111,117 @@ export function toneOf(status: string): string {
 export function Pill({ status, label }: { status: string; label?: string | undefined }) {
   const text = label ?? status.charAt(0) + status.slice(1).toLowerCase().replace(/_/g, ' ');
   return <span className={`badge badge-${toneOf(status)}`}>{text}</span>;
+}
+
+/* ---------- Local primitives for the demand and finance screens ---------- */
+
+export interface Stage {
+  key: string;
+  label: string;
+  note?: string | undefined;
+}
+
+/**
+ * Horizontal stage indicator (Draft → Published → …). Done stages are teal with a tick,
+ * the current stage has a teal ring, later stages are hairline. `halted` greys every stage
+ * (e.g. a cancelled cycle) and the caller explains why next to it.
+ */
+export function StageIndicator({ stages, current, halted, label }: { stages: Stage[]; current: string; halted?: boolean; label: string }) {
+  const at = stages.findIndex((s) => s.key === current);
+  return (
+    <ol aria-label={label} style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px 0' }}>
+      {stages.map((s, i) => {
+        const done = !halted && i < at;
+        const now = !halted && i === at;
+        return (
+          <Fragment key={s.key}>
+            {i > 0 ? (
+              <li aria-hidden style={{ flex: '1 1 16px', minWidth: 16, maxWidth: 72, height: 2, margin: '0 8px', background: done || now ? 'var(--teal)' : 'var(--rule)' }} />
+            ) : null}
+            <li aria-current={now ? 'step' : undefined} style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+              <span
+                aria-hidden
+                style={{
+                  flex: 'none',
+                  width: 24,
+                  height: 24,
+                  borderRadius: 'var(--r-full)',
+                  display: 'grid',
+                  placeItems: 'center',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  background: done ? 'var(--teal)' : now ? 'var(--teal-tint)' : 'var(--surface)',
+                  color: done ? 'var(--surface)' : now ? 'var(--teal-ink)' : 'var(--muted)',
+                  border: `2px solid ${done || now ? 'var(--teal)' : 'var(--rule-strong)'}`,
+                }}
+              >
+                {done ? <Check size={13} strokeWidth={3} /> : i + 1}
+              </span>
+              <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25 }}>
+                <span style={{ fontWeight: now ? 600 : 500, color: now ? 'var(--ink)' : done ? 'var(--ink-2)' : 'var(--muted)', fontSize: 13.5 }}>
+                  {s.label}
+                  <span className="sr-only">{done ? ' (done)' : now ? ' (current stage)' : ' (not reached)'}</span>
+                </span>
+                {s.note ? <span className="faint" style={{ fontSize: 12 }}>{s.note}</span> : null}
+              </span>
+            </li>
+          </Fragment>
+        );
+      })}
+    </ol>
+  );
+}
+
+/** Shortened provider id (e.g. pay_…9xQz) that copies the full value on click. */
+export function CopyId({ value, label = 'payment id' }: { value: string; label?: string }) {
+  const toast = useToast();
+  const short = value.length > 14 ? `${value.slice(0, value.indexOf('_') > 0 && value.indexOf('_') < 6 ? value.indexOf('_') + 1 : 4)}…${value.slice(-6)}` : value;
+  return (
+    <button
+      type="button"
+      className="chip"
+      title={`${value} (click to copy)`}
+      aria-label={`Copy ${label} ${value}`}
+      style={{ cursor: 'pointer', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 12 }}
+      onClick={(e) => {
+        e.stopPropagation();
+        void navigator.clipboard?.writeText(value).then(
+          () => toast(`Copied ${label}`),
+          () => toast(`Could not copy the ${label}`, 'error'),
+        );
+      }}
+    >
+      {short}
+      <Copy size={12} aria-hidden />
+    </button>
+  );
+}
+
+/** Inline horizontal bars (uses the shared .bar-list styles). */
+export function BarRows({ rows, label }: { rows: { key: string; name: string; sub?: string | undefined; value: number }[]; label: string }) {
+  const max = Math.max(1, ...rows.map((r) => r.value));
+  return (
+    <ul className="bar-list" aria-label={label}>
+      {rows.map((r) => (
+        <li key={r.key} style={{ gridTemplateColumns: 'minmax(0, 1.3fr) minmax(60px, 1fr) 44px' }}>
+          <span style={{ minWidth: 0 }}>
+            {r.name}
+            {r.sub ? <span className="muted" style={{ display: 'block', fontSize: 12 }}>{r.sub}</span> : null}
+          </span>
+          <span className="bar-track">
+            <span className="bar-fill" style={{ display: 'block', width: `${(r.value / max) * 100}%` }} />
+          </span>
+          <strong className="num" style={{ textAlign: 'right' }}>
+            {r.value}
+          </strong>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** "2026-11" -> "Nov 2026" (falls back to the raw value). */
+export function monthLabel(m: string, style: 'short' | 'long' = 'short'): string {
+  if (!/^\d{4}-\d{2}$/.test(m)) return m;
+  return new Intl.DateTimeFormat('en-IN', { month: style, year: 'numeric' }).format(new Date(`${m}-01T00:00:00`));
 }

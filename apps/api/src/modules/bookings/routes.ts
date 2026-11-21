@@ -82,7 +82,10 @@ const bookingQuery = paginationQuerySchema.extend({
   status: z.enum(['PENDING_PAYMENT', 'CONFIRMED', 'CANCELLED', 'EXPIRED', 'REVIEW_REQUIRED']).optional(),
   communityId: uuidSchema.optional(),
 });
-const paymentQuery = paginationQuerySchema.extend({ status: z.enum(['CREATED', 'PAID', 'FAILED', 'EXPIRED', 'REVIEW_REQUIRED']).optional() });
+const paymentQuery = paginationQuerySchema.extend({
+  status: z.enum(['CREATED', 'PAID', 'FAILED', 'EXPIRED', 'REVIEW_REQUIRED']).optional(),
+  communityId: uuidSchema.optional(),
+});
 
 /** ADM-08 + ADM-10 routes; mounted under /v1/admin behind requireAdmin. */
 export function bookingAdminRoutes(deps: AppDeps): Router {
@@ -182,8 +185,8 @@ export function bookingAdminRoutes(deps: AppDeps): Router {
     res.json(await svc.payments(adminOf(req), parseQuery(paymentQuery, req)));
   });
   r.get('/payment-exceptions', authorize('demand_payments', 'view'), async (req, res) => {
-    const q = parseQuery(z.object({ status: z.enum(['OPEN', 'RESOLVED']).default('OPEN') }), req);
-    res.json({ items: await svc.exceptions(adminOf(req), q.status) });
+    const q = parseQuery(z.object({ status: z.enum(['OPEN', 'RESOLVED']).default('OPEN'), communityId: uuidSchema.optional() }), req);
+    res.json({ items: await svc.exceptions(adminOf(req), q.status, q.communityId) });
   });
   r.post('/payment-exceptions/:id/resolve', authorize('demand_payments', 'edit'), validateBody(resolveExceptionSchema), async (req, res) => {
     res.json(await svc.resolveException(adminOf(req), req.requestId, id(req.params.id), req.body.note));

@@ -5,6 +5,7 @@ import {
   completeVisitSchema,
   correctionRequestSchema,
   decideCorrectionSchema,
+  feedbackListQuerySchema,
   feedbackSchema,
   geofenceSchema,
   residentAbsentSchema,
@@ -73,6 +74,10 @@ export function attendanceAdminRoutes(deps: AppDeps): Router {
     const today = businessToday();
     const q = parseQuery(z.object({ communityId: uuidSchema.optional(), from: isoDate.optional(), to: isoDate.optional(), flagged: z.enum(['true', 'false']).default('false') }), req);
     res.json({ items: await svc.records(adminOf(req), { communityId: q.communityId, from: q.from ?? shift(today, -7), to: q.to ?? today, flaggedOnly: q.flagged === 'true' }) });
+  });
+  // ADM-12 resident feedback on visits (rating + comment), newest first.
+  r.get('/feedback', authorize('attendance', 'view'), async (req, res) => {
+    res.json(await svc.feedbackList(adminOf(req), parseQuery(feedbackListQuerySchema, req)));
   });
   r.post('/attendance/events/:id/review', authorize('attendance', 'approve'), validateBody(reviewFlagSchema), async (req, res) => {
     res.json(await svc.reviewFlag(adminOf(req), req.requestId, id(req.params.id), req.body));

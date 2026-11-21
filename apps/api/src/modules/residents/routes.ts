@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import {
+  adminUpdateResidentSchema,
   approveFamilySchema,
+  bookingStatusSchema,
   createTicketSchema,
   expansionVoteSchema,
   familyRequestSchema,
@@ -139,6 +141,7 @@ const residentListQuery = paginationQuerySchema.extend({
   status: z.enum(['ACTIVE', 'SUSPENDED']).optional(),
   communityId: uuidSchema.optional(),
 });
+const residentBookingsQuery = paginationQuerySchema.extend({ status: bookingStatusSchema.optional() });
 const verificationQuery = z.object({
   decision: z.enum(['PENDING', 'APPROVED', 'REJECTED']).default('PENDING'),
   limit: z.coerce.number().int().min(1).max(100).default(50),
@@ -158,6 +161,12 @@ export function residentAdminRoutes(deps: AppDeps): Router {
   });
   r.get('/residents/:id', authorize('residents', 'view'), async (req, res) => {
     res.json(await svc.detail(adminOf(req), id(req.params.id)));
+  });
+  r.patch('/residents/:id', authorize('residents', 'edit'), validateBody(adminUpdateResidentSchema), async (req, res) => {
+    res.json(await svc.update(adminOf(req), req.requestId, id(req.params.id), req.body));
+  });
+  r.get('/residents/:id/bookings', authorize('residents', 'view'), async (req, res) => {
+    res.json(await svc.bookings(adminOf(req), id(req.params.id), parseQuery(residentBookingsQuery, req)));
   });
   r.patch('/residents/:id/status', authorize('residents', 'edit'), validateBody(setResidentStatusSchema), async (req, res) => {
     res.json(await svc.setStatus(adminOf(req), req.requestId, id(req.params.id), req.body));

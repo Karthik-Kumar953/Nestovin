@@ -13,7 +13,7 @@ import type {
 import type { Database, Tx } from '../../db/database';
 import { withTx } from '../../db/database';
 import { inScope, toDbClaims, type AdminActor } from '../../auth/permissions';
-import { businessRule, conflict, forbidden, notFound } from '../../lib/errors';
+import { AppError, businessRule, conflict, forbidden, notFound } from '../../lib/errors';
 import { auditAdmin } from '../audit/audit';
 import { employeeClaims, type EmployeeActor } from '../workforce/employee-service';
 import { notify } from '../notifications/service';
@@ -59,6 +59,19 @@ export function prorate(
   // round_half_up(weighted / days) in integers
   const basePaise = Math.floor((weighted * 2 + days) / (2 * days));
   return { segments: used, payableDays: payable, basePaise, daysInMonth: days };
+}
+
+/**
+ * ADM-14 separation of duties: whoever prepared (created) or submitted a payroll
+ * run cannot approve it. Applies to everyone, the Super Admin included.
+ */
+export function assertNotPreparer(approverId: string, preparedBy: string | null, submittedBy: string | null): void {
+  if (approverId === preparedBy || approverId === submittedBy) {
+    throw new AppError(
+      'SAME_PREPARER_APPROVER',
+      'You prepared or submitted this payroll, so another admin with approval rights must approve it.',
+    );
+  }
 }
 
 /** ADM-14 payroll + finance overview. Payroll actions need global scope (one common cycle). */
@@ -130,7 +143,7 @@ export class PayrollService {
     });
   }
 
-  private async summary(trx: Tx, r: { id: string; month: string; version: number; status: PayrollRunSummary['status']; created_at: Date; reviewed_at: Date | null; return_reason: string | null }): Promise<PayrollRunSummary> {
+  private async summary(trx: Tx, r: { id: string; month: string; version: number; status: PayrollRunSummary['status']; created_at: Date; prepared_by: string | null; reviewed_by: string | null; reviewed_at: Date | null; return_reason: string | null }): Promise<PayrollRunSummary> {
     const agg = await trx
       .selectFrom('app.payroll_lines as l')
       .select((eb) => [
@@ -156,6 +169,8 @@ export class PayrollService {
       netPaise: Number(agg.net),
       paidPaise: Number(paid.paid),
       preparedAt: iso(r.created_at)!,
+      preparedBy: r.prepared_by,
+      reviewedBy: r.reviewed_by,
       reviewedAt: iso(r.reviewed_at),
       returnReason: r.return_reason,
     };
@@ -290,7 +305,7 @@ export class PayrollService {
         .where('r.id', '=', runId)
         .executeTakeFirst();
       if (!r) throw notFound('Payroll run');
-      return { ...(await this.summary(trx, r)), lines: await this.lines(trx, { runId }) };
+      return { ...(await this.summary(trx, r)), submittedBy: await this.submitterOf(trx, runId), lines: await this.lines(trx, { runId }) };
     });
   }
 
@@ -406,12 +421,33 @@ export class PayrollService {
     return this.detail(actor, runId);
   }
 
-  /** Approval stores the version; it never marks anything paid (ADM-14). Preparer/approver separation: OPEN. */
+  /**
+   * Who sent the run for review. There is no submitted_by column, so it comes from
+   * the append-only audit trail written in the same transaction as the submit.
+   */
+  private async submitterOf(trx: Tx, runId: string): Promise<string | null> {
+    const row = await trx
+      .selectFrom('app.audit_events')
+      .select('actor_id')
+      .where('target_type', '=', 'payroll_run')
+      .where('target_id', '=', runId)
+      .where('action', '=', 'payroll.submitted')
+      .orderBy('occurred_at', 'desc')
+      .limit(1)
+      .executeTakeFirst();
+    return row?.actor_id ?? null;
+  }
+
+  /**
+   * Approval stores the version; it never marks anything paid (ADM-14).
+   * Separation of duties: the preparer or submitter cannot approve (SAME_PREPARER_APPROVER).
+   */
   async approve(actor: AdminActor, requestId: string, runId: string) {
     this.requireGlobal(actor);
     await this.tx(actor, async (trx) => {
       const r = await this.runOf(trx, runId);
       if (r.status !== 'IN_REVIEW') throw businessRule('Only a payroll in review can be approved');
+      assertNotPreparer(actor.id, r.prepared_by, await this.submitterOf(trx, runId));
       await trx.updateTable('app.payroll_runs').set({ status: 'APPROVED', reviewed_by: actor.id, reviewed_at: sql`now()`, updated_at: sql`now()` }).where('id', '=', runId).execute();
       await auditAdmin(trx, actor, requestId, { action: 'payroll.approved', targetType: 'payroll_run', targetId: runId });
       const paid = await trx.selectFrom('app.payroll_lines').select('employee_id').where('run_id', '=', runId).where('net_paise', '>', '0').execute();

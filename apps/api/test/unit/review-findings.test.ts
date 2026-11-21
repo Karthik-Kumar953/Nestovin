@@ -130,7 +130,7 @@ describe('H-2 (BUG-QA-014): a verified payment is never rolled back when its bus
 });
 
 describe('M-17 (BUG-QA-015): check-in locks the ACTIVE assignment, not only the occurrence', () => {
-  it.fails('the visit lookup locks every joined row it decides on (no "for update of o")', async () => {
+  it('the visit lookup locks every joined row it decides on (no "for update of o")', async () => {
     const { db, log } = scriptedDb(() => undefined); // no rows: the visit is "not found", which is fine here
     const att = new AttendanceService(db, 'test-pepper-0123456789');
     const worker = { id: '3b0e5f1a-8c2d-4e6f-9a1b-2c3d4e5f6a7b', employeeCode: 'NV-QA', clusterId: ORDER_ID, mustChangePassword: false };
@@ -144,7 +144,7 @@ describe('M-17 (BUG-QA-015): check-in locks the ACTIVE assignment, not only the 
 });
 
 describe('M-2 race (BUG-QA-017): a payroll entry cannot slip into a run that was just submitted', () => {
-  it.fails('addItem locks the payroll run (not only the line) before checking it is still DRAFT', async () => {
+  it('addItem locks the payroll run (not only the line) before checking it is still DRAFT', async () => {
     const { db, log } = scriptedDb(() => undefined); // line not found: we only inspect the lock taken
     const payroll = new PayrollService(db);
     const root = actor({ isSuperAdmin: true, scope: { type: 'GLOBAL' } });

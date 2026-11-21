@@ -12,6 +12,7 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   BUSINESS_RULE_VIOLATION: 422,
   INTERNAL: 500,
   UNAVAILABLE: 503,
+  SAME_PREPARER_APPROVER: 422,
 };
 
 /** An error that is safe to show to the client. Anything else becomes a generic 500. */

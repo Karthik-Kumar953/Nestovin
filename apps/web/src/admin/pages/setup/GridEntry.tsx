@@ -5,6 +5,7 @@ import { useMutation } from '@tanstack/react-query';
 import { IMPORT_OCCUPANCY_VALUES, type GridRow, type GridValidation, type ImportBatch } from '@nestovin/contracts';
 import { api } from '../../lib/api';
 import { Button, ErrorBanner, InfoBanner } from '../../components/ui';
+import { X } from '../../components/icons';
 
 type Row = { tower: string; floor: string; flatNumber: string; bhkType: string; areaSqft: string; category: string; occupancy: string };
 const empty = (): Row => ({ tower: '', floor: '', flatNumber: '', bhkType: '', areaSqft: '', category: '', occupancy: '' });
@@ -157,9 +158,14 @@ export function GridEntry({
                   </td>
                 ))}
                 <td>
-                  <Button variant="ghost" aria-label={`Remove row ${i + 1}`} disabled={disabled} onClick={() => setRows((rs) => (rs.length > 1 ? rs.filter((_, j) => j !== i) : [empty()]))}>
-                    ×
-                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    icon={X}
+                    aria-label={`Remove row ${i + 1}`}
+                    disabled={disabled}
+                    onClick={() => setRows((rs) => (rs.length > 1 ? rs.filter((_, j) => j !== i) : [empty()]))}
+                  />
                 </td>
               </tr>
             ))}

@@ -5,6 +5,8 @@ import { adminOf } from '../../http/context';
 import { can, toDbClaims, type AdminActor } from '../../auth/permissions';
 import { withTx, type Tx } from '../../db/database';
 import { businessToday } from '../../lib/dates';
+import { authorize } from '../../http/middleware';
+import { buildDashboard } from './dashboard';
 
 export interface OverviewItem {
   key: string;
@@ -95,6 +97,10 @@ export async function overview(db: AppDeps['db'], actor: AdminActor): Promise<Ov
 
 export function overviewRoutes(deps: AppDeps): Router {
   const r = Router();
+  // ADM-01 home dashboard: queues, 30-day series and breakdowns; each section gated by its module grant.
+  r.get('/overview/dashboard', authorize('overview', 'view'), async (req, res) => {
+    res.json(await buildDashboard(deps.db, adminOf(req), deps.logger));
+  });
   // Every admin may call it; each count is gated by its own module grant.
   r.get('/overview', async (req, res) => {
     res.json({ items: await overview(deps.db, adminOf(req)) });

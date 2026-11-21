@@ -25,6 +25,8 @@ describe.skipIf(!available)('payroll and finance (Phase 8)', { timeout: 180_000 
   let pay: PayrollService;
   const s = uniq();
   const root = actor({ id: randomUUID(), scope: { type: 'GLOBAL' } });
+  /** A second all-cluster admin: the preparer cannot approve (ADM-14 separation of duties). */
+  const approver = actor({ id: randomUUID(), scope: { type: 'GLOBAL' } });
   let month = '';
   const e: Record<string, string> = {};
   let runId = '';
@@ -112,8 +114,13 @@ describe.skipIf(!available)('payroll and finance (Phase 8)', { timeout: 180_000 
     expect(v2.version).toBe(2);
     runId = v2.id;
     await pay.submit(root, 't', runId);
-    const approved = await pay.approve(root, 't', runId);
-    expect(approved.status).toBe('APPROVED');
+    // Separation of duties: the preparer/submitter cannot approve, the Super Admin included.
+    await expectCode(pay.approve(root, 't', runId), 'SAME_PREPARER_APPROVER');
+    await expectCode(pay.approve({ ...root, isSuperAdmin: true }, 't', runId), 'SAME_PREPARER_APPROVER');
+    const inReview = await pay.detail(root, runId);
+    expect(inReview).toMatchObject({ status: 'IN_REVIEW', preparedBy: root.id, submittedBy: root.id });
+    const approved = await pay.approve(approver, 't', runId);
+    expect(approved).toMatchObject({ status: 'APPROVED', preparedBy: root.id, reviewedBy: approver.id });
     expect((await lineOf('full')).paymentStatus).toBe('PENDING');
     await expectCode(pay.createRun(root, 't', month), 'BUSINESS_RULE_VIOLATION');
     // A salary change cannot reach back into an approved month for that employee.

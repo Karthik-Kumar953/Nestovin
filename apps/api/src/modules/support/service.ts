@@ -5,6 +5,8 @@ import {
   type AdminTicket,
   type AdminTicketDetail,
   type AdminTicketUpdateInput,
+  type TicketAssignee,
+  type TicketContext,
   type CreateTicketInput,
   type PatchTicketInput,
   type TicketCategory,
@@ -18,6 +20,8 @@ import { withTx } from '../../db/database';
 import { toDbClaims, type AdminActor } from '../../auth/permissions';
 import { businessRule, fromPgError, notFound, versionConflict } from '../../lib/errors';
 import { decodeCursor, toPage } from '../../lib/pagination';
+import { businessToday } from '../../lib/dates';
+import { bookingViews } from '../bookings/views';
 import { auditAdmin, auditResident } from '../audit/audit';
 import { residentClaims, type ResidentActor } from '../residents/auth';
 import { activeMembership } from '../residents/queries';
@@ -205,7 +209,7 @@ export class SupportService {
 
   async adminList(
     actor: AdminActor,
-    p: { limit: number; cursor?: string | undefined; status?: string | undefined; categoryId?: string | undefined; mine?: boolean; open?: boolean; escalated?: boolean },
+    p: { limit: number; cursor?: string | undefined; status?: string | undefined; categoryId?: string | undefined; priority?: string | undefined; mine?: boolean; open?: boolean; escalated?: boolean },
   ) {
     return withTx(this.db, toDbClaims(actor), async (trx) => {
       const cursor = decodeCursor(p.cursor);
@@ -213,6 +217,7 @@ export class SupportService {
       if (p.status) q = q.where('t.status', '=', p.status as TicketStatus);
       if (p.open) q = q.where('t.status', 'not in', ['RESOLVED', 'CLOSED']);
       if (p.categoryId) q = q.where('t.category_id', '=', p.categoryId);
+      if (p.priority) q = q.where('t.priority', '=', p.priority as 'LOW' | 'NORMAL' | 'HIGH');
       if (p.mine) q = q.where('t.owner_admin_id', '=', actor.id);
       if (p.escalated) q = q.where('t.escalation_level', '!=', 'NONE').where('t.status', 'not in', ['RESOLVED', 'CLOSED']);
       if (cursor) {
@@ -227,7 +232,202 @@ export class SupportService {
   }
 
   async adminDetail(actor: AdminActor, id: string): Promise<AdminTicketDetail> {
-    return withTx(this.db, toDbClaims(actor), (trx) => this.loadAdminDetail(trx, id));
+    return withTx(this.db, toDbClaims(actor), async (trx) => {
+      const detail = await this.loadAdminDetail(trx, id);
+      return { ...detail, context: await this.ticketContext(trx, id) };
+    });
+  }
+
+  /**
+   * Linked context for a ticket (ADM-13): the resident's flat, live bookings,
+   * last 5 payments and last/next 5 visits. Runs under the admin's claims, so RLS
+   * keeps every list inside the admin's clusters.
+   */
+  private async ticketContext(trx: Tx, ticketId: string): Promise<TicketContext> {
+    const t = await trx.selectFrom('app.support_tickets').select(['resident_id', 'flat_id']).where('id', '=', ticketId).executeTakeFirstOrThrow();
+    const flat = t.flat_id
+      ? await trx
+          .selectFrom('app.flats as f')
+          .innerJoin('app.towers as tw', 'tw.id', 'f.tower_id')
+          .innerJoin('app.communities as c', 'c.id', 'f.community_id')
+          .select(['f.id', 'f.flat_number', 'tw.name as tower_name', 'c.id as community_id', 'c.name as community_name'])
+          .where('f.id', '=', t.flat_id)
+          .executeTakeFirst()
+      : undefined;
+
+    const live = (await bookingViews(trx, { residentId: t.resident_id, limit: 50 })).filter(
+      (b) =>
+        ['PENDING_PAYMENT', 'CONFIRMED', 'REVIEW_REQUIRED'].includes(b.status) &&
+        (!b.subscription || b.subscription.status === 'ACTIVE' || b.subscription.status === 'PENDING_ACTIVATION'),
+    );
+
+    const payments = await trx
+      .selectFrom('app.payment_orders')
+      .select(['id', 'purpose', 'amount_paise', 'status', 'created_at', 'paid_at'])
+      .where('resident_id', '=', t.resident_id)
+      .orderBy('created_at', 'desc')
+      .orderBy('id', 'desc')
+      .limit(5)
+      .execute();
+
+    // Visits at the ticket's flat, or at any flat the resident subscribes for when the ticket has none.
+    const today = businessToday();
+    const visits = (direction: 'past' | 'next') => {
+      let q = trx
+        .selectFrom('app.service_occurrences as o')
+        .innerJoin('app.services as sv', 'sv.id', 'o.service_id')
+        .leftJoin('app.occurrence_assignments as a', (j) => j.onRef('a.occurrence_id', '=', 'o.id').on('a.status', '=', 'ACTIVE'))
+        .leftJoin('app.employees as e', 'e.id', 'a.employee_id')
+        .select(['o.id', 'o.scheduled_date', 'o.starts_at', 'o.status', 'sv.name as service_name', 'e.full_name as worker_name']);
+      q = t.flat_id
+        ? q.where('o.flat_id', '=', t.flat_id)
+        : q.where('o.subscription_id', 'in', (eb) => eb.selectFrom('app.subscriptions').select('id').where('resident_id', '=', t.resident_id));
+      q =
+        direction === 'past'
+          ? q.where('o.scheduled_date', '<', today).orderBy('o.scheduled_date', 'desc').orderBy('o.visit_no', 'desc')
+          : q.where('o.scheduled_date', '>=', today).where('o.status', '!=', 'CANCELLED').orderBy('o.scheduled_date', 'asc').orderBy('o.visit_no', 'asc');
+      return q.orderBy('o.id').limit(5).execute();
+    };
+    const toVisit = (v: Awaited<ReturnType<typeof visits>>[number]) => ({
+      occurrenceId: v.id,
+      scheduledDate: v.scheduled_date,
+      startsAt: iso(v.starts_at),
+      serviceName: v.service_name,
+      status: v.status,
+      workerName: v.worker_name,
+    });
+
+    return {
+      flat: flat
+        ? { flatId: flat.id, flatNumber: flat.flat_number, towerName: flat.tower_name, communityId: flat.community_id, communityName: flat.community_name }
+        : null,
+      bookings: live.map((b) => ({
+        bookingId: b.id,
+        reference: b.reference,
+        planName: b.planName,
+        selectionLabel: b.selectionLabel,
+        status: b.status,
+        startDate: b.startDate,
+        totalPaise: b.totalPaise,
+        outstandingPaise: b.outstandingPaise,
+        subscription: b.subscription
+          ? { id: b.subscription.id, status: b.subscription.status, periodStart: b.subscription.periodStart, periodEnd: b.subscription.periodEnd }
+          : null,
+      })),
+      payments: payments.map((o) => ({
+        id: o.id,
+        purpose: o.purpose,
+        amountPaise: Number(o.amount_paise),
+        status: o.status,
+        createdAt: iso(o.created_at)!,
+        paidAt: iso(o.paid_at),
+      })),
+      recentVisits: (await visits('past')).map(toVisit),
+      upcomingVisits: (await visits('next')).map(toVisit),
+    };
+  }
+
+  // ------------------------------------------------------------ assignment
+
+  /**
+   * Admins who may own this ticket (ADM-13): active, holding support:edit (or the
+   * Super Admin), with a data scope that covers the ticket's cluster. A ticket
+   * with no cluster can only go to global-scope admins.
+   */
+  private async eligibleAssignees(trx: Tx, clusterId: string | null, ownerId: string | null, only?: string): Promise<TicketAssignee[]> {
+    const rows = await sql<{ id: string; full_name: string; email: string; title: string | null; is_super_admin: boolean; scope_type: 'GLOBAL' | 'CLUSTERS'; open_tickets: number }>`
+      select a.id, a.full_name, a.email, a.title, a.is_super_admin, a.scope_type,
+             (select count(*)::int from app.support_tickets t
+               where t.owner_admin_id = a.id and t.status not in ('RESOLVED', 'CLOSED')) as open_tickets
+        from app.admin_profiles a
+       where a.status = 'ACTIVE'
+         and (a.is_super_admin or exists (
+               select 1 from app.admin_effective_grants g
+                where g.admin_id = a.id and g.module_key = 'support' and g.action_key = 'edit'))
+         and (a.is_super_admin or a.scope_type = 'GLOBAL' or (${clusterId}::uuid is not null and exists (
+               select 1 from app.admin_cluster_scopes s where s.admin_id = a.id and s.cluster_id = ${clusterId}::uuid)))
+         ${only ? sql`and a.id = ${only}::uuid` : sql``}
+       order by lower(a.full_name), a.id
+       limit 500
+    `.execute(trx);
+    return rows.rows.map((r) => ({
+      id: r.id,
+      fullName: r.full_name,
+      email: r.email,
+      title: r.title,
+      isSuperAdmin: r.is_super_admin,
+      scopeType: r.is_super_admin ? 'GLOBAL' : r.scope_type,
+      isCurrentOwner: r.id === ownerId,
+      openTickets: r.open_tickets,
+    }));
+  }
+
+  async assignees(actor: AdminActor, id: string): Promise<TicketAssignee[]> {
+    return withTx(this.db, toDbClaims(actor), async (trx) => {
+      const t = await trx.selectFrom('app.support_tickets').select(['cluster_id', 'owner_admin_id']).where('id', '=', id).executeTakeFirst();
+      if (!t) throw notFound('Ticket');
+      return this.eligibleAssignees(trx, t.cluster_id, t.owner_admin_id);
+    });
+  }
+
+  /**
+   * Assign or reassign a ticket to an eligible admin (ADM-13). Adds an internal
+   * update, emails the new owner through the outbox and audits before/after.
+   * An open ticket moves to ASSIGNED; other statuses are kept.
+   */
+  async assign(actor: AdminActor, requestId: string, id: string, adminId: string): Promise<AdminTicketDetail> {
+    return withTx(this.db, toDbClaims(actor), async (trx) => {
+      const before = await trx.selectFrom('app.support_tickets').selectAll().where('id', '=', id).forUpdate().executeTakeFirst();
+      if (!before) throw notFound('Ticket');
+      if (before.status === 'RESOLVED' || before.status === 'CLOSED') throw businessRule('A resolved or closed ticket cannot be assigned. Reopen it first.');
+      if (before.owner_admin_id === adminId) throw businessRule('This admin already owns the ticket');
+      const [target] = await this.eligibleAssignees(trx, before.cluster_id, before.owner_admin_id, adminId);
+      if (!target) throw businessRule('Choose an active admin with support access to this ticket’s cluster');
+
+      const status = before.status === 'OPEN' ? 'ASSIGNED' : before.status;
+      await trx.updateTable('app.support_tickets').set({ owner_admin_id: adminId, status }).where('id', '=', id).execute();
+
+      const previous = before.owner_admin_id
+        ? await trx.selectFrom('app.admin_profiles').select('full_name').where('id', '=', before.owner_admin_id).executeTakeFirst()
+        : undefined;
+      const body = previous
+        ? `Reassigned from ${previous.full_name} to ${target.fullName} by ${actor.fullName}`
+        : `Assigned to ${target.fullName} by ${actor.fullName}`;
+      const update = await trx
+        .insertInto('app.ticket_updates')
+        .values({ ticket_id: id, author_kind: 'system', author_id: actor.id, visibility: 'INTERNAL', body })
+        .returning('id')
+        .executeTakeFirstOrThrow();
+      if (status !== before.status) {
+        await trx
+          .insertInto('app.ticket_updates')
+          .values({ ticket_id: id, author_kind: 'system', author_id: actor.id, visibility: 'RESIDENT', body: `Status changed to ${status.toLowerCase()}` })
+          .execute();
+        await notify(trx, 'ticket.status_changed', before.resident_id, { ticketId: id, status });
+      }
+      // Email the new owner (same outbox pattern as escalations); not when assigning to oneself.
+      if (adminId !== actor.id) {
+        await trx
+          .insertInto('app.notification_outbox')
+          .values({
+            event_type: 'ticket.assigned',
+            dedupe_key: `ticket_assigned:${id}:${adminId}:${update.id}`,
+            channel: 'EMAIL',
+            recipient: target.email,
+            payload: JSON.stringify({ ticketId: id, reference: before.reference, assignedBy: actor.fullName }),
+          })
+          .onConflict((oc) => oc.column('dedupe_key').doNothing())
+          .execute();
+      }
+      await auditAdmin(trx, actor, requestId, {
+        action: before.owner_admin_id ? 'ticket.reassigned' : 'ticket.assigned',
+        targetType: 'support_ticket',
+        targetId: id,
+        before: { owner: before.owner_admin_id, status: before.status },
+        after: { owner: adminId, status },
+      });
+      return this.loadAdminDetail(trx, id);
+    });
   }
 
   private async loadAdminDetail(trx: Tx, id: string): Promise<AdminTicketDetail> {

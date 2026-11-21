@@ -1,0 +1,227 @@
+/* Locations module: local primitives (search picker, pick list, membership timeline). */
+
+.loc-picker {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+}
+.loc-picker-field {
+  display: flex;
+  width: 100%;
+}
+.loc-picker-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-width: 160px;
+  text-align: left;
+  cursor: pointer;
+}
+.loc-picker-trigger span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.loc-picker-trigger .lucide {
+  flex: none;
+  color: var(--faint);
+}
+.loc-picker-pop {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 40;
+  width: min(340px, calc(100vw - 32px));
+  padding: 8px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-pop);
+}
+.loc-picker-pop-inline {
+  position: static;
+  width: 100%;
+  margin-top: 4px;
+  box-shadow: none;
+}
+.loc-picker-pop .search-field {
+  display: flex;
+  width: 100%;
+}
+.loc-picker-pop .search-field .input {
+  width: 100%;
+}
+.loc-picker-list {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.loc-picker-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  text-align: left;
+  font: 500 13.5px/18px var(--font-ui);
+  color: var(--ink);
+  cursor: pointer;
+}
+.loc-picker-option:hover,
+.loc-picker-option:focus-visible {
+  background: var(--surface-2);
+  outline: none;
+}
+.loc-picker-option[aria-selected='true'] {
+  background: var(--teal-tint);
+  color: var(--teal-ink);
+}
+.loc-picker-option .sub {
+  display: block;
+  font-weight: 400;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.loc-picker-note {
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* Dashed = unassigned (system rule). */
+.loc-unassigned {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border: 1px dashed var(--rule-strong);
+  border-radius: var(--r-full);
+  font-size: 12px;
+  line-height: 19px;
+  color: var(--muted);
+  background: var(--surface);
+  white-space: nowrap;
+}
+
+/* Multi-select pick list (cluster "Add communities"). */
+.loc-picklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-lg);
+  max-height: 340px;
+  overflow-y: auto;
+}
+.loc-picklist li + li {
+  border-top: 1px solid var(--rule);
+}
+.loc-pick {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+.loc-pick:hover {
+  background: var(--surface-2);
+}
+.loc-pick[data-checked='true'] {
+  background: var(--teal-tint);
+}
+.loc-pick[data-disabled='true'] {
+  cursor: default;
+  opacity: 0.6;
+}
+.loc-pick input {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  accent-color: var(--teal);
+  margin: 0;
+}
+.loc-pick-main {
+  flex: 1;
+  min-width: 0;
+}
+.loc-pick-main strong {
+  display: block;
+  font-weight: 600;
+  font-size: 13.5px;
+}
+.loc-pick-main .sub {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+/* Cluster membership timeline (community detail). */
+.loc-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 18px;
+  position: relative;
+}
+.loc-timeline::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 6px;
+  bottom: 6px;
+  width: 1px;
+  background: var(--rule-strong);
+}
+.loc-timeline li {
+  position: relative;
+  padding: 0 0 16px;
+}
+.loc-timeline li:last-child {
+  padding-bottom: 0;
+}
+.loc-timeline li::before {
+  content: '';
+  position: absolute;
+  left: -18px;
+  top: 5px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--rule-strong);
+}
+.loc-timeline li[data-current='true']::before {
+  background: var(--teal);
+  border-color: var(--teal);
+}
+.loc-timeline-title {
+  font-weight: 600;
+  font-size: 13.5px;
+}
+.loc-timeline-meta {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.loc-timeline-reason {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+/* Batch report pager */
+.loc-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  border-top: 1px solid var(--rule);
+  font-size: 13px;
+  color: var(--muted);
+}

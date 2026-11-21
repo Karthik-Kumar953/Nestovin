@@ -7,7 +7,7 @@ import { AuthProvider, useAuth } from './auth/AuthProvider';
 import { ApiError } from './lib/api';
 import { can } from './lib/permissions';
 import { Navigate } from './lib/router';
-import { Spinner } from './components/ui';
+import { FeedbackProvider, Spinner } from './components/ui';
 import { NoAccessPage } from './pages/HomePage';
 
 const subscribeNoop = () => () => {};
@@ -33,13 +33,22 @@ export function AdminRoot({ children }: { children: ReactNode }) {
         },
       }),
   );
-  if (!mounted) return <Spinner />;
+  if (!mounted)
+    return (
+      <div className="nv-admin-root">
+        <Spinner />
+      </div>
+    );
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Suspense fallback={<Spinner />}>{children}</Suspense>
-      </AuthProvider>
-    </QueryClientProvider>
+    <div className="nv-admin-root">
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <FeedbackProvider>
+            <Suspense fallback={<Spinner />}>{children}</Suspense>
+          </FeedbackProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </div>
   );
 }
 

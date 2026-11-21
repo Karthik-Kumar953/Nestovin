@@ -112,3 +112,33 @@ export type Correction = z.infer<typeof correctionSchema>;
 export const decideCorrectionSchema = z.object({ decision: z.enum(['APPROVED', 'REJECTED']), note: z.string().trim().min(3).max(500) });
 
 export const geofenceSchema = z.object({ radiusM: z.number().int().min(25).max(5000) });
+
+// ---------------------------------------------------------------- feedback (ADM-12)
+
+/** GET /feedback query: newest first, keyset paging. */
+export const feedbackListQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(25),
+  cursor: z.string().min(1).optional(),
+  communityId: uuidSchema.optional(),
+  employeeId: uuidSchema.optional(),
+  /** Ratings from minRating to maxRating inclusive (1-5). */
+  minRating: z.coerce.number().int().min(1).max(5).optional(),
+  maxRating: z.coerce.number().int().min(1).max(5).optional(),
+  /** true = only feedback with a written comment. */
+  withComment: z.enum(['true', 'false']).transform((v) => v === 'true').optional(),
+});
+export type FeedbackListQuery = z.infer<typeof feedbackListQuerySchema>;
+
+export const adminFeedbackSchema = z.object({
+  occurrenceId: uuidSchema,
+  rating: z.number().int(),
+  comment: z.string().nullable(),
+  createdAt: z.string(),
+  visitDate: z.string(),
+  serviceName: z.string(),
+  resident: z.object({ id: uuidSchema, fullName: z.string().nullable() }),
+  worker: z.object({ id: uuidSchema, fullName: z.string(), employeeCode: z.string() }).nullable(),
+  community: z.object({ id: uuidSchema, name: z.string() }),
+  flat: z.object({ flatNumber: z.string(), towerName: z.string() }),
+});
+export type AdminFeedback = z.infer<typeof adminFeedbackSchema>;

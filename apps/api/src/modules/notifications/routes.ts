@@ -12,6 +12,16 @@ import { NotificationService } from './service';
 const deviceSchema = z.object({ token: z.string().min(20).max(4096), platform: z.enum(['android', 'ios']) });
 
 /** Super Admin: delivery status of queued notifications (no message bodies with personal data are stored). */
+/** Shows enough of an email, phone or device id to identify it, without exposing it in full. */
+export function maskRecipient(v: string): string {
+  if (v.includes('@')) {
+    const [user = '', domain = ''] = v.split('@');
+    return `${user.slice(0, 2)}***@${domain}`;
+  }
+  if (/^\+?\d{8,}$/.test(v)) return `${v.slice(0, 5)}****${v.slice(-3)}`;
+  return v.length > 10 ? `${v.slice(0, 6)}…${v.slice(-4)}` : v;
+}
+
 export function notificationAdminRoutes(deps: AppDeps): Router {
   const r = Router();
   r.get('/notifications/outbox', async (req, res) => {
@@ -19,12 +29,12 @@ export function notificationAdminRoutes(deps: AppDeps): Router {
     if (!actor.isSuperAdmin) throw forbidden('Only the Super Admin can view notification delivery');
     const q = parseQuery(z.object({ status: z.enum(['PENDING', 'SENT', 'FAILED', 'DEAD', 'SKIPPED']).optional() }), req);
     const rows = await withTx(deps.db, toDbClaims(actor), (trx) => {
-      let qb = trx.selectFrom('app.notification_outbox').select(['id', 'event_type', 'channel', 'status', 'attempts', 'last_error', 'created_at', 'sent_at']);
+      let qb = trx.selectFrom('app.notification_outbox').select(['id', 'event_type', 'channel', 'recipient', 'status', 'attempts', 'last_error', 'created_at', 'sent_at']);
       if (q.status) qb = qb.where('status', '=', q.status);
       return qb.orderBy('created_at', 'desc').limit(200).execute();
     });
     res.json({
-      items: rows.map((x) => ({ id: x.id, eventType: x.event_type, channel: x.channel, status: x.status, attempts: x.attempts, lastError: x.last_error, createdAt: new Date(x.created_at).toISOString(), sentAt: x.sent_at ? new Date(x.sent_at).toISOString() : null })),
+      items: rows.map((x) => ({ id: x.id, eventType: x.event_type, channel: x.channel, recipient: maskRecipient(x.recipient), status: x.status, attempts: x.attempts, lastError: x.last_error, createdAt: new Date(x.created_at).toISOString(), sentAt: x.sent_at ? new Date(x.sent_at).toISOString() : null })),
     });
   });
   return r;

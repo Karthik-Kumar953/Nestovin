@@ -706,7 +706,7 @@ export class BookingAdminService {
     });
   }
 
-  async payments(actor: AdminActor, p: { limit: number; cursor?: string | undefined; status?: string | undefined }) {
+  async payments(actor: AdminActor, p: { limit: number; cursor?: string | undefined; status?: string | undefined; communityId?: string | undefined }) {
     return this.tx(actor, async (trx) => {
       const c = decodeCursor(p.cursor);
       let q = trx
@@ -717,6 +717,7 @@ export class BookingAdminService {
         .selectAll('o')
         .select(['r.full_name', 'r.phone', 'dr.reference as dr_ref', 'bk.reference as bk_ref']);
       if (p.status) q = q.where('o.status', '=', p.status as AdminPayment['status']);
+      if (p.communityId) q = q.where('o.community_id', '=', p.communityId);
       if (c) q = q.where((eb) => eb.or([eb('o.created_at', '<', new Date(c.v)), eb.and([eb('o.created_at', '=', new Date(c.v)), eb('o.id', '<', c.id)])]));
       const rows = await q.orderBy('o.created_at', 'desc').orderBy('o.id', 'desc').limit(p.limit + 1).execute();
       const page = toPage(rows, p.limit, (r) => ({ v: iso(r.created_at)!, id: r.id }));
@@ -762,19 +763,18 @@ export class BookingAdminService {
     });
   }
 
-  async exceptions(actor: AdminActor, status: 'OPEN' | 'RESOLVED'): Promise<PaymentException[]> {
+  async exceptions(actor: AdminActor, status: 'OPEN' | 'RESOLVED', communityId?: string): Promise<PaymentException[]> {
     return this.tx(actor, async (trx) => {
-      const rows = await trx
+      let q = trx
         .selectFrom('app.payment_exceptions as e')
         .leftJoin('app.payment_orders as o', 'o.id', 'e.order_id')
         .leftJoin('app.payment_transactions as t', 't.id', 'e.transaction_id')
         .leftJoin('app.resident_profiles as r', 'r.id', 'o.resident_id')
         .selectAll('e')
         .select(['t.amount_paise', 'r.full_name', 'r.phone'])
-        .where('e.status', '=', status)
-        .orderBy('e.created_at', 'desc')
-        .limit(200)
-        .execute();
+        .where('e.status', '=', status);
+      if (communityId) q = q.where('o.community_id', '=', communityId);
+      const rows = await q.orderBy('e.created_at', 'desc').limit(200).execute();
       return rows.map((e) => ({
         id: e.id,
         reasonCode: e.reason_code,

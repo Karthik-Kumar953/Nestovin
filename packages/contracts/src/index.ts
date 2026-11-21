@@ -12,3 +12,4 @@ export * from './bookings';
 export * from './workforce';
 export * from './attendance';
 export * from './payroll';
+export * from './dashboard';

@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { sql } from 'kysely';
-import { IMPORT_COLUMNS, type ActivationChecklist, type GridRow, type GridValidation, type ImportBatch, type ImportRow } from '@nestovin/contracts';
+import { IMPORT_COLUMNS, type ActivationChecklist, type GridRow, type GridValidation, type ImportBatch, type ImportRow, type ImportRowsPage } from '@nestovin/contracts';
 import type { Database, Tx } from '../../db/database';
 import { withTx } from '../../db/database';
 import { toDbClaims, type AdminActor } from '../../auth/permissions';
@@ -363,19 +363,37 @@ export class MigrationService {
     });
   }
 
-  async rows(actor: AdminActor, id: string, p: { onlyProblems: boolean; afterRow?: number | undefined; limit: number }) {
+  /**
+   * Rows of a batch for review (up to 20,000). Filter by status (error / warning /
+   * ok / problem / all) and page by `afterRow` (keyset) or `offset` (jump to a page).
+   * `total` counts every row matching the filter so the UI can show page numbers.
+   */
+  async rows(
+    actor: AdminActor,
+    id: string,
+    p: { status?: 'all' | 'error' | 'warning' | 'ok' | 'problem' | undefined; onlyProblems: boolean; afterRow?: number | undefined; offset?: number | undefined; limit: number },
+  ): Promise<ImportRowsPage> {
     return this.tx(actor, async (trx) => {
       await this.scopedBatch(trx, actor, id);
-      let q = trx
-        .selectFrom('app.import_rows')
-        .select(['row_number', 'raw', 'errors', 'warnings', 'action'])
-        .where('batch_id', '=', id);
-      if (p.onlyProblems) q = q.where((eb) => eb.or([eb(sql`cardinality(errors)`, '>', 0), eb(sql`cardinality(warnings)`, '>', 0)]));
+      const status = p.status ?? (p.onlyProblems ? 'problem' : 'all');
+      const filtered = () => {
+        let q = trx.selectFrom('app.import_rows').where('batch_id', '=', id);
+        const errs = sql`cardinality(errors)`;
+        const warns = sql`cardinality(warnings)`;
+        if (status === 'error') q = q.where(errs, '>', 0);
+        if (status === 'warning') q = q.where(errs, '=', 0).where(warns, '>', 0);
+        if (status === 'ok') q = q.where(errs, '=', 0).where(warns, '=', 0);
+        if (status === 'problem') q = q.where((eb) => eb.or([eb(errs, '>', 0), eb(warns, '>', 0)]));
+        return q;
+      };
+      const total = Number((await filtered().select(sql<string>`count(*)`.as('n')).executeTakeFirstOrThrow()).n);
+      let q = filtered().select(['row_number', 'raw', 'errors', 'warnings', 'action']);
       if (p.afterRow) q = q.where('row_number', '>', p.afterRow);
+      else if (p.offset) q = q.offset(p.offset);
       const rows = await q.orderBy('row_number').limit(p.limit + 1).execute();
       const page = rows.slice(0, p.limit);
       const items: ImportRow[] = page.map((r) => ({ rowNumber: r.row_number, raw: r.raw, errors: r.errors, warnings: r.warnings, action: r.action }));
-      return { items, nextAfterRow: rows.length > p.limit ? page[page.length - 1]!.row_number : null };
+      return { items, nextAfterRow: rows.length > p.limit ? page[page.length - 1]!.row_number : null, total };
     });
   }
 

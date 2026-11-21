@@ -1,17 +1,12 @@
 import express, { Router } from 'express';
-import { z } from 'zod';
-import { IMPORT_LIMITS, XLSX_MIME, gridImportSchema, importDecisionSchema, uuidSchema } from '@nestovin/contracts';
+import { IMPORT_LIMITS, XLSX_MIME, gridImportSchema, importDecisionSchema, importRowsQuerySchema, uuidSchema } from '@nestovin/contracts';
 import type { AppDeps } from '../../http/context';
 import { adminOf } from '../../http/context';
 import { authorize, parseParam, parseQuery, validateBody } from '../../http/middleware';
 import { AppError } from '../../lib/errors';
 import { MigrationService } from './service';
 
-const rowsQuery = z.object({
-  onlyProblems: z.enum(['true', 'false']).default('true').transform((v) => v === 'true'),
-  afterRow: z.coerce.number().int().min(1).optional(),
-  limit: z.coerce.number().int().min(1).max(500).default(100),
-});
+const rowsQuery = importRowsQuerySchema;
 
 /** ADM-04 community migration + activation. Mounted under /v1/admin behind requireAdmin. */
 export function migrationRoutes(deps: AppDeps): Router {

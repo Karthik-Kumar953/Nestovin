@@ -10,14 +10,43 @@ import { useAuth } from './AuthProvider';
 
 function AuthShell({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
   return (
-    <main className="auth-shell">
-      <div className="auth-card">
-        <Image src="/nestovin-logo.png" alt="Nestovin" className="auth-logo" width={54} height={48} priority />
-        <h1 className="auth-title">{title}</h1>
-        {subtitle ? <p className="auth-subtitle">{subtitle}</p> : null}
-        {children}
-      </div>
-    </main>
+    <div className="auth-shell">
+      <aside className="auth-aside" aria-hidden>
+        <div className="row" style={{ gap: 10 }}>
+          <Image src="/nestovin-logo.png" alt="" className="sidebar-logo" width={30} height={30} />
+          <span className="sidebar-brand-name" style={{ color: '#fff' }}>
+            Nestovin
+          </span>
+        </div>
+        <div>
+          <h2>Every visit, every community, one run sheet.</h2>
+          <p>Onboard communities, take demand, allocate workers, verify attendance and run payroll from the admin portal.</p>
+          <div className="auth-aside-lanes">
+            {[
+              [6, 14, 30, 18, 58, 12],
+              [12, 20, 40, 14, 70, 16],
+              [4, 10, 24, 22, 52, 20],
+              [18, 16, 46, 12, 66, 14],
+            ].map((l, i) => (
+              <div key={i} className="auth-aside-lane">
+                <span style={{ left: `${l[0]}%`, width: `${l[1]}%` }} />
+                <span style={{ left: `${l[2]}%`, width: `${l[3]}%` }} />
+                <span style={{ left: `${l[4]}%`, width: `${l[5]}%` }} />
+              </div>
+            ))}
+          </div>
+        </div>
+        <p style={{ fontSize: 12.5 }}>Access is by invitation only. Every action is recorded.</p>
+      </aside>
+      <main className="auth-main">
+        <div className="auth-card">
+          <Image src="/nestovin-logo.png" alt="Nestovin" className="auth-logo" width={45} height={40} priority />
+          <h1 className="auth-title">{title}</h1>
+          {subtitle ? <p className="auth-subtitle">{subtitle}</p> : null}
+          {children}
+        </div>
+      </main>
+    </div>
   );
 }
 

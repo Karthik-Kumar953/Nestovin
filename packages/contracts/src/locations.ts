@@ -82,6 +82,8 @@ export const communitySchema = z.object({
   postalCode: z.string().nullable(),
   /** Reference point for the attendance distance check (set via Google Maps in the admin). */
   location: geoPointSchema.nullable(),
+  /** Attendance check-in radius around `location`, metres (ADM-12). */
+  geofenceRadiusM: z.number().int().optional(),
   status: communityStatusSchema,
   clusterId: uuidSchema.nullable(),
   clusterName: z.string().nullable(),
@@ -139,6 +141,67 @@ export const clusterMembershipSchema = z.object({
   changedBy: uuidSchema,
 });
 export type ClusterMembership = z.infer<typeof clusterMembershipSchema>;
+
+/** GET /clusters/:id/communities — a current member of the cluster (ADM-03). */
+export const clusterCommunityMemberSchema = z.object({
+  communityId: uuidSchema,
+  name: z.string(),
+  code: z.string(),
+  cityId: uuidSchema,
+  cityName: z.string(),
+  status: communityStatusSchema,
+  /** Active towers / active flats. */
+  towerCount: z.number().int(),
+  flatCount: z.number().int(),
+  /** Start of the current membership. */
+  since: z.iso.datetime(),
+  reason: z.string(),
+});
+export type ClusterCommunityMember = z.infer<typeof clusterCommunityMemberSchema>;
+
+/**
+ * POST /clusters/:id/communities — assign or move several communities into this
+ * cluster in one transaction. Communities already in the cluster are skipped.
+ */
+export const assignClusterCommunitiesSchema = z.object({
+  communityIds: z.array(uuidSchema).min(1).max(200),
+  reason: z.string().trim().min(3).max(500),
+});
+export type AssignClusterCommunitiesInput = z.infer<typeof assignClusterCommunitiesSchema>;
+
+export const clusterAssignmentOutcomeSchema = z.enum(['ASSIGNED', 'MOVED', 'ALREADY_IN_CLUSTER']);
+export type ClusterAssignmentOutcome = z.infer<typeof clusterAssignmentOutcomeSchema>;
+
+export const assignClusterCommunitiesResultSchema = z.object({
+  clusterId: uuidSchema,
+  assigned: z.number().int(),
+  moved: z.number().int(),
+  skipped: z.number().int(),
+  results: z.array(
+    z.object({
+      communityId: uuidSchema,
+      communityName: z.string(),
+      /** ASSIGNED = had no cluster; MOVED = left another cluster; ALREADY_IN_CLUSTER = unchanged. */
+      outcome: clusterAssignmentOutcomeSchema,
+      fromClusterId: uuidSchema.nullable(),
+      fromClusterName: z.string().nullable(),
+    }),
+  ),
+});
+export type AssignClusterCommunitiesResult = z.infer<typeof assignClusterCommunitiesResultSchema>;
+
+/** Query for GET /communities (dropdowns and the master-data table). */
+export const communityListQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(25),
+  cursor: z.string().min(1).optional(),
+  q: z.string().trim().max(100).optional(),
+  status: z.string().max(20).optional(),
+  cityId: uuidSchema.optional(),
+  clusterId: uuidSchema.optional(),
+  /** true = only communities with no current cluster (global-scope admins only; others get an empty list). */
+  unassigned: z.enum(['true', 'false']).transform((v) => v === 'true').optional(),
+});
+export type CommunityListQuery = z.infer<typeof communityListQuerySchema>;
 
 // ---- Tower / Building ------------------------------------------------------
 
@@ -220,3 +283,15 @@ export const expansionVoteAggregateSchema = z.object({
   lastVoteAt: z.iso.datetime(),
 });
 export type ExpansionVoteAggregate = z.infer<typeof expansionVoteAggregateSchema>;
+
+/** GET /expansion-votes filters and sort (Super Admin only). */
+export const expansionVoteQuerySchema = z.object({
+  level: z.enum(['CITY', 'COMMUNITY']).optional(),
+  /** City name contains (case-insensitive). */
+  city: z.string().trim().min(1).max(100).optional(),
+  /** City or community name contains (case-insensitive). */
+  q: z.string().trim().min(1).max(100).optional(),
+  sort: z.enum(['votes', 'recent', 'oldest', 'name']).default('votes'),
+  limit: z.coerce.number().int().min(1).max(500).default(500),
+});
+export type ExpansionVoteQuery = z.infer<typeof expansionVoteQuerySchema>;

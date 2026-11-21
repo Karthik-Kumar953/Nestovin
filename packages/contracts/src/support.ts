@@ -75,12 +75,88 @@ export const adminTicketSchema = ticketSummarySchema.extend({
 });
 export type AdminTicket = z.infer<typeof adminTicketSchema>;
 
+export const ticketVisitSchema = z.object({
+  occurrenceId: uuidSchema,
+  scheduledDate: z.string(),
+  startsAt: z.string().nullable(),
+  serviceName: z.string(),
+  status: z.string(),
+  workerName: z.string().nullable(),
+});
+export type TicketVisit = z.infer<typeof ticketVisitSchema>;
+
+/**
+ * Linked context shown beside a ticket (ADM-13): the resident's flat, live
+ * bookings/subscriptions, recent payments and visits. Everything is limited to
+ * the admin's clusters, so a list can be shorter than the resident's full history.
+ */
+export const ticketContextSchema = z.object({
+  flat: z
+    .object({
+      flatId: uuidSchema,
+      flatNumber: z.string(),
+      towerName: z.string(),
+      communityId: uuidSchema,
+      communityName: z.string(),
+    })
+    .nullable(),
+  /** Bookings that are live: waiting for payment, confirmed, under review, or with an active subscription. */
+  bookings: z.array(
+    z.object({
+      bookingId: uuidSchema,
+      reference: z.string(),
+      planName: z.string(),
+      selectionLabel: z.string(),
+      status: z.string(),
+      startDate: z.string(),
+      totalPaise: z.number().int(),
+      outstandingPaise: z.number().int(),
+      subscription: z.object({ id: uuidSchema, status: z.string(), periodStart: z.string(), periodEnd: z.string() }).nullable(),
+    }),
+  ),
+  /** Last 5 payment orders, newest first. */
+  payments: z.array(
+    z.object({
+      id: uuidSchema,
+      purpose: z.enum(['INITIAL', 'BALANCE', 'FULL']),
+      amountPaise: z.number().int(),
+      status: z.enum(['CREATED', 'PAID', 'FAILED', 'EXPIRED', 'REVIEW_REQUIRED']),
+      createdAt: z.string(),
+      paidAt: z.string().nullable(),
+    }),
+  ),
+  /** Last 5 visits before today (newest first) and the next 5 from today (soonest first). */
+  recentVisits: z.array(ticketVisitSchema),
+  upcomingVisits: z.array(ticketVisitSchema),
+});
+export type TicketContext = z.infer<typeof ticketContextSchema>;
+
 export const adminTicketDetailSchema = adminTicketSchema.extend({
   description: z.string(),
   updates: z.array(ticketUpdateSchema),
   allowedStatuses: z.array(ticketStatusSchema),
   escalations: z.array(z.object({ level: z.string(), trigger: z.string(), reason: z.string().nullable(), notified: z.number().int(), at: z.string() })),
+  /** Present on GET /tickets/:id only (not on the responses of write calls). */
+  context: ticketContextSchema.optional(),
 });
+
+/** GET /tickets/:id/assignees — admins the ticket can be assigned to. */
+export const ticketAssigneeSchema = z.object({
+  id: uuidSchema,
+  fullName: z.string(),
+  email: z.string(),
+  title: z.string().nullable(),
+  isSuperAdmin: z.boolean(),
+  scopeType: z.enum(['GLOBAL', 'CLUSTERS']),
+  isCurrentOwner: z.boolean(),
+  /** Open tickets this admin currently owns (among those visible to the caller), to help balance work. */
+  openTickets: z.number().int(),
+});
+export type TicketAssignee = z.infer<typeof ticketAssigneeSchema>;
+
+/** POST /tickets/:id/assign */
+export const assignTicketSchema = z.object({ adminId: uuidSchema });
+export type AssignTicketInput = z.infer<typeof assignTicketSchema>;
 export const escalateTicketSchema = z.object({ reason: z.string().trim().min(3).max(500) });
 export const holidaySchema = z.object({ date: z.iso.date(), name: z.string().trim().min(2).max(80) });
 export type Holiday = z.infer<typeof holidaySchema>;

@@ -2,12 +2,15 @@ import { Router } from 'express';
 import { businessRule } from '../../lib/errors';
 import { z } from 'zod';
 import {
+  assignClusterCommunitiesSchema,
   assignCommunityClusterSchema,
+  communityListQuerySchema,
   createCitySchema,
   createClusterSchema,
   createCommunitySchema,
   createFlatSchema,
   createTowerSchema,
+  expansionVoteQuerySchema,
   paginationQuerySchema,
   updateCitySchema,
   updateClusterSchema,
@@ -25,10 +28,7 @@ const listQuery = paginationQuerySchema.extend({
   q: z.string().trim().max(100).optional(),
   status: z.string().max(20).optional(),
 });
-const communityListQuery = listQuery.extend({
-  cityId: uuidSchema.optional(),
-  clusterId: uuidSchema.optional(),
-});
+const communityListQuery = communityListQuerySchema;
 
 /** ADM-03 Location master data. Mounted under /v1/admin behind requireAdmin. */
 export function locationRoutes(deps: AppDeps): Router {
@@ -56,6 +56,13 @@ export function locationRoutes(deps: AppDeps): Router {
   });
   r.patch('/clusters/:id', authorize('locations', 'edit'), validateBody(updateClusterSchema), async (req, res) => {
     res.json(await svc.updateCluster(adminOf(req), req.requestId, id(req.params.id), req.body));
+  });
+  // Cluster membership (a cluster groups one or more communities; moves keep history).
+  r.get('/clusters/:id/communities', authorize('locations', 'view'), async (req, res) => {
+    res.json({ items: await svc.clusterCommunities(adminOf(req), id(req.params.id)) });
+  });
+  r.post('/clusters/:id/communities', authorize('locations', 'edit'), validateBody(assignClusterCommunitiesSchema), async (req, res) => {
+    res.json(await svc.assignCommunitiesToCluster(adminOf(req), req.requestId, id(req.params.id), req.body));
   });
 
   // Communities
@@ -107,7 +114,7 @@ export function locationRoutes(deps: AppDeps): Router {
 
   // ADM-03A expansion votes: Super Admin only (route guard + service check)
   r.get('/expansion-votes', superAdminOnly('Only the Super Admin reviews expansion votes'), async (req, res) => {
-    res.json({ items: await svc.voteAggregates(adminOf(req)) });
+    res.json({ items: await svc.voteAggregates(adminOf(req), parseQuery(expansionVoteQuerySchema, req)) });
   });
 
 

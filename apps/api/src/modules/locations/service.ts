@@ -1,6 +1,9 @@
 import { sql } from 'kysely';
 import type {
+  AssignClusterCommunitiesInput,
+  AssignClusterCommunitiesResult,
   AssignCommunityClusterInput,
+  ClusterCommunityMember,
   City,
   Cluster,
   ClusterMembership,
@@ -11,6 +14,7 @@ import type {
   CreateFlatInput,
   CreateTowerInput,
   ExpansionVoteAggregate,
+  ExpansionVoteQuery,
   Flat,
   Tower,
   UpdateCityInput,
@@ -22,7 +26,7 @@ import type {
 import type { Database, Tx } from '../../db/database';
 import { withTx } from '../../db/database';
 import { hasGlobalScope, inScope, scopeClusterIds, toDbClaims, type AdminActor } from '../../auth/permissions';
-import { businessRule, forbidden, fromPgError, notFound, versionConflict } from '../../lib/errors';
+import { AppError, businessRule, forbidden, fromPgError, notFound, versionConflict } from '../../lib/errors';
 import { decodeCursor, likeContains, toPage } from '../../lib/pagination';
 import { auditAdmin } from '../audit/audit';
 
@@ -302,7 +306,7 @@ export class LocationService {
 
   async listCommunities(
     actor: AdminActor,
-    p: ListParams & { cityId?: string | undefined; clusterId?: string | undefined },
+    p: ListParams & { cityId?: string | undefined; clusterId?: string | undefined; unassigned?: boolean | undefined },
   ) {
     const cursor = decodeCursor(p.cursor);
     const clusters = scopeClusterIds(actor);
@@ -313,6 +317,9 @@ export class LocationService {
     }
     if (p.cityId) q = q.where('c.city_id', '=', p.cityId);
     if (p.clusterId) q = q.where('m.cluster_id', '=', p.clusterId);
+    // Unassigned communities are visible to global scope only (the scope filter above empties this for others).
+    if (p.unassigned === true) q = q.where('m.cluster_id', 'is', null);
+    if (p.unassigned === false) q = q.where('m.cluster_id', 'is not', null);
     if (p.q) {
       const pattern = likeContains(p.q);
       q = q.where((eb) => eb.or([eb('c.name', 'ilike', pattern), eb('c.code', 'ilike', pattern)]));
@@ -440,46 +447,180 @@ export class LocationService {
   async assignCluster(actor: AdminActor, requestId: string, communityId: string, input: AssignCommunityClusterInput): Promise<Community> {
     return this.tx(actor, async (trx) => {
       const current = await this.visibleCommunity(trx, actor, communityId);
-      if (!inScope(actor, input.clusterId)) throw notFound('Cluster');
+      await this.activeTargetCluster(trx, actor, input.clusterId);
       if (current.cluster_id === input.clusterId) throw businessRule('The community is already in this cluster');
+      await this.moveCommunity(trx, actor, requestId, communityId, current.cluster_id, input.clusterId, input.reason);
+      return toCommunity(await this.communityQuery(trx).where('c.id', '=', communityId).executeTakeFirstOrThrow());
+    });
+  }
 
-      const target = await trx.selectFrom('app.clusters').select(['status']).where('id', '=', input.clusterId).executeTakeFirst();
-      if (!target) throw notFound('Cluster');
-      if (target.status !== 'ACTIVE') throw businessRule('This cluster is inactive');
+  /** The target cluster of a move: in the admin's scope (else NOT_FOUND) and active. */
+  private async activeTargetCluster(trx: Tx, actor: AdminActor, clusterId: string) {
+    if (!inScope(actor, clusterId)) throw notFound('Cluster');
+    const target = await trx.selectFrom('app.clusters').select(['id', 'name', 'status']).where('id', '=', clusterId).executeTakeFirst();
+    if (!target) throw notFound('Cluster');
+    if (target.status !== 'ACTIVE') throw businessRule('This cluster is inactive');
+    return target;
+  }
 
-      // Lock the community row so concurrent moves serialise.
-      await trx.selectFrom('app.communities').select('id').where('id', '=', communityId).forUpdate().execute();
+  /**
+   * Closes the community's open membership (if any) and opens one in the target
+   * cluster, with an audit row. The caller has already checked scope on both sides.
+   * Shared by the single move and the bulk assignment so both keep history the same way.
+   */
+  private async moveCommunity(
+    trx: Tx,
+    actor: AdminActor,
+    requestId: string,
+    communityId: string,
+    fromClusterId: string | null,
+    toClusterId: string,
+    reason: string,
+  ) {
+    // Lock the community row so concurrent moves serialise.
+    await trx.selectFrom('app.communities').select('id').where('id', '=', communityId).forUpdate().execute();
 
-      if (current.cluster_id) {
-        await trx
-          .updateTable('app.cluster_community_memberships')
-          .set({ effective_to: sql`now()` })
-          .where('community_id', '=', communityId)
-          .where('effective_to', 'is', null)
-          .execute();
-      }
+    if (fromClusterId) {
       await trx
-        .insertInto('app.cluster_community_memberships')
-        .values({
-          cluster_id: input.clusterId,
-          community_id: communityId,
-          reason: input.reason,
-          changed_by: actor.id,
-          // Start strictly after the closed row so the period check always holds.
-          effective_from: sql`now() + interval '1 microsecond'`,
-        })
+        .updateTable('app.cluster_community_memberships')
+        .set({ effective_to: sql`now()` })
+        .where('community_id', '=', communityId)
+        .where('effective_to', 'is', null)
         .execute();
+    }
+    await trx
+      .insertInto('app.cluster_community_memberships')
+      .values({
+        cluster_id: toClusterId,
+        community_id: communityId,
+        reason,
+        changed_by: actor.id,
+        // Start strictly after the closed row so the period check always holds.
+        effective_from: sql`now() + interval '1 microsecond'`,
+      })
+      .execute();
 
-      const community = toCommunity(await this.communityQuery(trx).where('c.id', '=', communityId).executeTakeFirstOrThrow());
-      await auditAdmin(trx, actor, requestId, {
-        action: 'community.cluster_assigned',
-        targetType: 'community',
-        targetId: communityId,
-        reason: input.reason,
-        before: { clusterId: current.cluster_id },
-        after: { clusterId: input.clusterId },
-      });
-      return community;
+    await auditAdmin(trx, actor, requestId, {
+      action: 'community.cluster_assigned',
+      targetType: 'community',
+      targetId: communityId,
+      reason,
+      before: { clusterId: fromClusterId },
+      after: { clusterId: toClusterId },
+    });
+  }
+
+  /**
+   * ADM-03: assign or move several communities into one cluster, all or nothing.
+   * Every community must be visible to the admin (its current cluster in scope,
+   * or unassigned for global admins) and the target cluster must be in scope.
+   * Communities already in the cluster are reported and left unchanged.
+   */
+  async assignCommunitiesToCluster(
+    actor: AdminActor,
+    requestId: string,
+    clusterId: string,
+    input: AssignClusterCommunitiesInput,
+  ): Promise<AssignClusterCommunitiesResult> {
+    const ids = [...new Set(input.communityIds)].sort();
+    return this.tx(actor, async (trx) => {
+      await this.activeTargetCluster(trx, actor, clusterId);
+
+      // Lock every community up front, in id order, so two bulk moves cannot deadlock.
+      await trx.selectFrom('app.communities').select('id').where('id', 'in', ids).orderBy('id').forUpdate().execute();
+      const rows = await trx
+        .selectFrom('app.communities as c')
+        .leftJoin('app.cluster_community_memberships as m', (j) => j.onRef('m.community_id', '=', 'c.id').on('m.effective_to', 'is', null))
+        .leftJoin('app.clusters as cl', 'cl.id', 'm.cluster_id')
+        .select(['c.id', 'c.name', 'm.cluster_id', 'cl.name as cluster_name'])
+        .where('c.id', 'in', ids)
+        .execute();
+      const byId = new Map(rows.map((r) => [r.id, r]));
+      // Missing and out-of-scope look the same (existence is never revealed).
+      const missing = input.communityIds
+        .map((cid, i) => ({ cid, i }))
+        .filter(({ cid }) => {
+          const r = byId.get(cid);
+          return !r || !inScope(actor, r.cluster_id);
+        });
+      if (missing.length) {
+        throw new AppError(
+          'NOT_FOUND',
+          missing.length === 1 ? 'Community not found' : `${missing.length} communities not found`,
+          missing.map(({ i }) => ({ path: `communityIds.${i}`, message: 'Community not found' })),
+        );
+      }
+
+      const results: AssignClusterCommunitiesResult['results'] = [];
+      for (const cid of ids) {
+        const r = byId.get(cid)!;
+        if (r.cluster_id === clusterId) {
+          results.push({ communityId: cid, communityName: r.name, outcome: 'ALREADY_IN_CLUSTER', fromClusterId: r.cluster_id, fromClusterName: r.cluster_name });
+          continue;
+        }
+        await this.moveCommunity(trx, actor, requestId, cid, r.cluster_id, clusterId, input.reason);
+        results.push({
+          communityId: cid,
+          communityName: r.name,
+          outcome: r.cluster_id ? 'MOVED' : 'ASSIGNED',
+          fromClusterId: r.cluster_id,
+          fromClusterName: r.cluster_name,
+        });
+      }
+      results.sort((a, b) => a.communityName.localeCompare(b.communityName));
+      return {
+        clusterId,
+        assigned: results.filter((x) => x.outcome === 'ASSIGNED').length,
+        moved: results.filter((x) => x.outcome === 'MOVED').length,
+        skipped: results.filter((x) => x.outcome === 'ALREADY_IN_CLUSTER').length,
+        results,
+      };
+    });
+  }
+
+  /** ADM-03: current member communities of a cluster, with structure counts. */
+  async clusterCommunities(actor: AdminActor, clusterId: string): Promise<ClusterCommunityMember[]> {
+    if (!inScope(actor, clusterId)) throw notFound('Cluster');
+    return this.tx(actor, async (trx) => {
+      const cluster = await trx.selectFrom('app.clusters').select('id').where('id', '=', clusterId).executeTakeFirst();
+      if (!cluster) throw notFound('Cluster');
+      const rows = await trx
+        .selectFrom('app.cluster_community_memberships as m')
+        .innerJoin('app.communities as c', 'c.id', 'm.community_id')
+        .innerJoin('app.cities as ci', 'ci.id', 'c.city_id')
+        .select(['c.id', 'c.name', 'c.code', 'c.city_id', 'ci.name as city_name', 'c.status', 'm.effective_from', 'm.reason'])
+        .select((eb) => [
+          eb
+            .selectFrom('app.towers as t')
+            .whereRef('t.community_id', '=', 'c.id')
+            .where('t.status', '=', 'ACTIVE')
+            .select(sql<number>`count(*)::int`.as('n'))
+            .as('tower_count'),
+          eb
+            .selectFrom('app.flats as f')
+            .whereRef('f.community_id', '=', 'c.id')
+            .where('f.status', '=', 'ACTIVE')
+            .select(sql<number>`count(*)::int`.as('n'))
+            .as('flat_count'),
+        ])
+        .where('m.cluster_id', '=', clusterId)
+        .where('m.effective_to', 'is', null)
+        .orderBy(sql`lower(c.name)`)
+        .orderBy('c.id')
+        .limit(1000)
+        .execute();
+      return rows.map((r) => ({
+        communityId: r.id,
+        name: r.name,
+        code: r.code,
+        cityId: r.city_id,
+        cityName: r.city_name,
+        status: r.status,
+        towerCount: r.tower_count ?? 0,
+        flatCount: r.flat_count ?? 0,
+        since: iso(r.effective_from),
+        reason: r.reason,
+      }));
     });
   }
 
@@ -716,10 +857,10 @@ export class LocationService {
 
   // -------------------------------------------------------- expansion votes
 
-  /** ADM-03A: Super Admin reviews aggregated city/community expansion votes. */
-  async voteAggregates(actor: AdminActor): Promise<ExpansionVoteAggregate[]> {
+  /** ADM-03A: Super Admin reviews aggregated city/community expansion votes (filters + sort). */
+  async voteAggregates(actor: AdminActor, p: Partial<ExpansionVoteQuery> = {}): Promise<ExpansionVoteAggregate[]> {
     if (!actor.isSuperAdmin) throw forbidden('Only the Super Admin can review expansion votes');
-    const rows = await this.db
+    let q = this.db
       .selectFrom('app.expansion_votes')
       .select([
         'level',
@@ -728,11 +869,28 @@ export class LocationService {
         sql<number>`count(*)::int`.as('vote_count'),
         sql<Date>`min(created_at)`.as('first_vote_at'),
         sql<Date>`max(created_at)`.as('last_vote_at'),
-      ])
-      .groupBy(['level', sql`lower(city_name)`, sql`coalesce(lower(community_name), '')`])
-      .orderBy('vote_count', 'desc')
-      .limit(500)
-      .execute();
+      ]);
+    if (p.level) q = q.where('level', '=', p.level);
+    if (p.city) q = q.where('city_name', 'ilike', likeContains(p.city));
+    if (p.q) {
+      const pattern = likeContains(p.q);
+      q = q.where((eb) => eb.or([eb('city_name', 'ilike', pattern), eb('community_name', 'ilike', pattern)]));
+    }
+    let grouped = q.groupBy(['level', sql`lower(city_name)`, sql`coalesce(lower(community_name), '')`]);
+    switch (p.sort ?? 'votes') {
+      case 'recent':
+        grouped = grouped.orderBy(sql`max(created_at)`, 'desc');
+        break;
+      case 'oldest':
+        grouped = grouped.orderBy(sql`min(created_at)`, 'asc');
+        break;
+      case 'name':
+        grouped = grouped.orderBy(sql`lower(min(city_name))`).orderBy(sql`coalesce(lower(min(community_name)), '')`);
+        break;
+      default:
+        grouped = grouped.orderBy('vote_count', 'desc').orderBy(sql`max(created_at)`, 'desc');
+    }
+    const rows = await grouped.limit(p.limit ?? 500).execute();
     return rows.map((r) => ({
       level: r.level,
       cityName: r.city_name,
@@ -794,6 +952,7 @@ function toCommunity(
     postal_code: string | null;
     location_lat: string | null;
     location_lng: string | null;
+    geofence_radius_m?: number | null;
     status: Community['status'];
     cluster_id: string | null;
     cluster_name: string | null;
@@ -808,6 +967,7 @@ function toCommunity(
     addressLine: r.address_line,
     postalCode: r.postal_code,
     location: geo(r.location_lat, r.location_lng),
+    ...(r.geofence_radius_m != null ? { geofenceRadiusM: r.geofence_radius_m } : {}),
     status: r.status,
     clusterId: r.cluster_id,
     clusterName: r.cluster_name,

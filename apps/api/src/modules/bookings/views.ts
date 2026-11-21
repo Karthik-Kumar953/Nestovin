@@ -9,7 +9,7 @@ const iso = (d: Date | string | null) => (d === null ? null : new Date(d).toISOS
  */
 export async function bookingViews(
   trx: Tx,
-  f: { id?: string; status?: string | undefined; communityId?: string | undefined; limit?: number; before?: { at: string; id: string } | undefined },
+  f: { id?: string; status?: string | undefined; communityId?: string | undefined; residentId?: string | undefined; limit?: number; before?: { at: string; id: string } | undefined },
 ): Promise<AdminBooking[] & BookingView[]> {
   let q = trx
     .selectFrom('app.bookings as b')
@@ -50,6 +50,7 @@ export async function bookingViews(
   if (f.id) q = q.where('b.id', '=', f.id);
   if (f.status) q = q.where('b.status', '=', f.status as BookingView['status']);
   if (f.communityId) q = q.where('b.community_id', '=', f.communityId);
+  if (f.residentId) q = q.where('b.resident_id', '=', f.residentId);
   if (f.before) {
     const before = f.before;
     q = q.where((eb) => eb.or([eb('b.created_at', '<', new Date(before.at)), eb.and([eb('b.created_at', '=', new Date(before.at)), eb('b.id', '<', before.id)])]));

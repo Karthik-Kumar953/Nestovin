@@ -79,6 +79,31 @@ export const importRowSchema = z.object({
 });
 export type ImportRow = z.infer<typeof importRowSchema>;
 
+/**
+ * GET /import-batches/:id/rows query. Page with `afterRow` (keyset, from
+ * `nextAfterRow`) or `offset` (jump to a page). `status` filters rows:
+ * error = has errors; warning = warnings but no errors; ok = neither;
+ * problem = errors or warnings; all = every row. When `status` is omitted the
+ * older `onlyProblems` flag applies (default true = problem).
+ */
+export const importRowsQuerySchema = z.object({
+  status: z.enum(['all', 'error', 'warning', 'ok', 'problem']).optional(),
+  onlyProblems: z.enum(['true', 'false']).default('true').transform((v) => v === 'true'),
+  afterRow: z.coerce.number().int().min(1).optional(),
+  offset: z.coerce.number().int().min(0).max(IMPORT_LIMITS.maxRows).optional(),
+  limit: z.coerce.number().int().min(1).max(500).default(100),
+});
+export type ImportRowsQuery = z.infer<typeof importRowsQuerySchema>;
+
+export const importRowsPageSchema = z.object({
+  items: z.array(importRowSchema),
+  /** Pass as `afterRow` for the next page; null on the last page. */
+  nextAfterRow: z.number().int().nullable(),
+  /** Rows matching the filter (whole batch), for page counts. */
+  total: z.number().int(),
+});
+export type ImportRowsPage = z.infer<typeof importRowsPageSchema>;
+
 export const importDecisionSchema = z.object({
   reason: z.string().trim().max(500).optional(),
 });

@@ -1,138 +1,210 @@
 'use client';
 
 import { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import type { AdminTicket, TicketStatus } from '@nestovin/contracts';
 import { ExportButton } from '../../components/ExportButton';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { AdminTicket, TicketCategory, TicketStatus } from '@nestovin/contracts';
+import { useQueueCounts } from '../../components/Layout';
 import { api, ApiError, qs } from '../../lib/api';
 import { usePagedList } from '../../lib/hooks';
 import { can } from '../../lib/permissions';
+import { useNavigate } from '../../lib/router';
 import { useMe } from '../../auth/AuthProvider';
-import { Link } from '../../lib/router';
-import { Button, DataTable, ErrorBanner, FilterSelect, formatDateTime, Modal, PageHeader, SelectInput, StatusBadge, TextInput, Toolbar } from '../../components/ui';
+import {
+  Button,
+  DataTable,
+  ErrorBanner,
+  Facts,
+  FilterSelect,
+  formatDate,
+  formatDateTime,
+  Modal,
+  PageHeader,
+  Panel,
+  SelectInput,
+  StatusBadge,
+  Tabs,
+  TextInput,
+  Toolbar,
+  useToast,
+} from '../../components/ui';
+import { ClockAlert, Inbox, OctagonAlert, Plus, Tag, TriangleAlert } from '../../components/icons';
+import { EscalationBadge, isFinished, PRIORITY_OPTIONS, PriorityText, TICKET_STATUS_LABEL, TicketStatusBadge, useTicketCategories } from './shared';
 
-export const TICKET_STATUS_LABEL: Record<TicketStatus, string> = {
-  OPEN: 'Open',
-  ASSIGNED: 'Assigned',
-  IN_PROGRESS: 'In progress',
-  WAITING: 'Waiting on resident',
-  RESOLVED: 'Resolved',
-  CLOSED: 'Closed',
-};
+export { EscalationBadge, TICKET_STATUS_LABEL, TicketStatusBadge, useTicketCategories } from './shared';
 
-export function TicketStatusBadge({ status }: { status: TicketStatus }) {
-  const tone = status === 'OPEN' ? 'warning' : status === 'RESOLVED' || status === 'CLOSED' ? 'neutral' : 'info';
-  return <span className={`badge badge-${tone}`}>{TICKET_STATUS_LABEL[status]}</span>;
-}
+type View = 'open' | 'mine' | 'escalated' | 'all';
+const STATUS_OPTIONS = (Object.keys(TICKET_STATUS_LABEL) as TicketStatus[]).map((s) => ({ value: s, label: TICKET_STATUS_LABEL[s] }));
 
-export function EscalationBadge({ level }: { level: 'NONE' | 'CLUSTER_ADMIN' | 'SUPER_ADMIN' }) {
-  if (level === 'NONE') return null;
-  return <span className="badge badge-warning">{level === 'CLUSTER_ADMIN' ? 'With Cluster Admin' : 'With Super Admin'}</span>;
-}
-
-export function useTicketCategories() {
-  return useQuery({ queryKey: ['ticket-categories'], queryFn: () => api<{ items: TicketCategory[] }>('/v1/admin/ticket-categories') });
-}
-
-/** ADM-13 support queue. Escalation and working-day deadlines arrive in Phase 7. */
+/** ADM-13 support queue: urgent tickets first; deadlines count working days (ADR-014). */
 export function TicketsPage() {
   const me = useMe();
-  const [view, setView] = useState('open');
+  const navigate = useNavigate();
+  const [view, setView] = useState<View>('open');
+  const [status, setStatus] = useState('');
+  const [priority, setPriority] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const categories = useTicketCategories();
-  const filters =
-    view === 'open' ? { open: 'true' } : view === 'mine' ? { mine: 'true', open: 'true' } : view === 'escalated' ? { escalated: 'true' } : view === 'all' ? {} : { status: view };
-  const list = usePagedList<AdminTicket>(['tickets'], `/v1/admin/tickets${qs({ ...filters, categoryId, limit: 50 })}`);
+  const { dashboard } = useQueueCounts();
+
+  // A chosen status replaces the "open only" flag so e.g. Resolved can be picked from any view.
+  const flags = view === 'open' ? { open: status ? undefined : 'true' } : view === 'mine' ? { mine: 'true', open: status ? undefined : 'true' } : view === 'escalated' ? { escalated: 'true' } : {};
+  const list = usePagedList<AdminTicket>(['tickets'], `/v1/admin/tickets${qs({ ...flags, status, categoryId, priority, limit: 50 })}`);
+  const rows = list.rows;
   const [managing, setManaging] = useState(false);
+
+  const queues = dashboard.data?.sections.queues?.data?.items;
+  const qn = (k: string) => queues?.find((q) => q.key === k)?.count ?? null;
+  const overdue = qn('tickets_overdue');
+  const escalated = qn('tickets_escalated');
+  const filtered = Boolean(status || priority || categoryId);
 
   return (
     <>
       <PageHeader
         title="Support tickets"
-        description="Issues raised by residents in your clusters. Urgent tickets are listed first."
+        description="Issues raised by residents in your clusters. Urgent tickets are listed first; deadlines skip Sundays and holidays."
         actions={
-          can(me, 'support', 'edit') ? (
-            <Button variant="secondary" onClick={() => setManaging(true)}>
-              Categories
-            </Button>
-          ) : null
+          <>
+            <ExportButton path="/v1/admin/exports/tickets" module="support" fileName="tickets.csv" />
+            {can(me, 'support', 'edit') ? (
+              <Button variant="secondary" icon={Tag} onClick={() => setManaging(true)}>
+                Categories
+              </Button>
+            ) : null}
+          </>
         }
+      />
+      {queues ? (
+        <Facts
+          items={[
+            { label: 'Open', value: qn('tickets_open') ?? '—', icon: Inbox },
+            { label: 'Overdue', value: overdue ?? '—', tone: overdue ? 'red' : undefined, icon: ClockAlert, note: overdue ? 'Past their working-day deadline' : undefined },
+            { label: 'Escalated', value: escalated ?? '—', tone: escalated ? 'amber' : undefined, icon: TriangleAlert },
+          ]}
+        />
+      ) : null}
+      <Tabs
+        label="View"
+        value={view}
+        onChange={setView}
+        items={[
+          { value: 'open', label: 'Open' },
+          { value: 'mine', label: 'Assigned to me' },
+          { value: 'escalated', label: 'Escalated' },
+          { value: 'all', label: 'All tickets' },
+        ]}
       />
       <Toolbar>
-        <ExportButton path="/v1/admin/exports/tickets" module="support" fileName="tickets.csv" />
-        <select className="input input-compact" aria-label="View" value={view} onChange={(e) => setView(e.target.value)}>
-          <option value="open">Open tickets</option>
-          <option value="mine">Assigned to me</option>
-          <option value="escalated">Escalated</option>
-          <option value="RESOLVED">Resolved</option>
-          <option value="CLOSED">Closed</option>
-          <option value="all">All tickets</option>
-        </select>
-        <FilterSelect
-          value={categoryId}
-          onChange={setCategoryId}
-          label="Category"
-          options={(categories.data?.items ?? []).map((c) => ({ value: c.id, label: c.name }))}
-        />
+        <FilterSelect value={status} onChange={setStatus} label="Status" options={STATUS_OPTIONS} />
+        <FilterSelect value={priority} onChange={setPriority} label="Priority" options={PRIORITY_OPTIONS} />
+        <FilterSelect value={categoryId} onChange={setCategoryId} label="Category" options={(categories.data?.items ?? []).map((c) => ({ value: c.id, label: c.name }))} />
+        {filtered ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setStatus('');
+              setPriority('');
+              setCategoryId('');
+            }}
+          >
+            Clear filters
+          </Button>
+        ) : null}
       </Toolbar>
-      <DataTable
-        caption="Support tickets"
-        loading={list.isLoading}
-        error={list.error}
-        rows={list.rows}
-        rowKey={(t) => t.id}
-        emptyTitle="No tickets"
-        emptyBody={view === 'open' ? 'There are no open tickets right now.' : undefined}
-        columns={[
-          {
-            header: 'Ticket',
-            cell: (t) => (
-              <>
-                <Link to={`/support/tickets/${t.id}`}>
-                  <strong>{t.subject}</strong>
-                </Link>
-                <div className="muted">
-                  {t.reference} · {t.categoryName}
+      <Panel flush>
+        <DataTable
+          flush
+          caption="Support tickets"
+          loading={list.isLoading}
+          error={list.error}
+          rows={rows}
+          rowKey={(t) => t.id}
+          onRowClick={(t) => navigate(`/support/tickets/${t.id}`)}
+          emptyTitle={filtered ? 'No tickets match these filters' : view === 'mine' ? 'Nothing assigned to you' : 'No tickets'}
+          emptyBody={
+            filtered ? (
+              'Try clearing a filter.'
+            ) : view === 'open' ? (
+              'There are no open tickets right now.'
+            ) : undefined
+          }
+          columns={[
+            {
+              header: 'Ticket',
+              cell: (t) => (
+                <span className="primary-cell">
                   {t.urgent ? (
                     <>
-                      {' '}
-                      · <span className="badge badge-error">Urgent</span>
+                      <span className="badge badge-error">
+                        <OctagonAlert size={12} aria-hidden /> Urgent
+                      </span>{' '}
                     </>
                   ) : null}
-                </div>
-              </>
-            ),
-          },
-          {
-            header: 'Resident',
-            cell: (t) => (
-              <>
-                <div>{t.resident.fullName ?? t.resident.phone}</div>
-                <div className="muted">{t.flat ? `${t.flat.communityName} · ${t.flat.towerName} · ${t.flat.flatNumber}` : 'No residence'}</div>
-              </>
-            ),
-          },
-          {
-            header: 'Status',
-            cell: (t) => (
-              <>
-                <TicketStatusBadge status={t.status} />
-                {t.escalationLevel !== 'NONE' ? <div><EscalationBadge level={t.escalationLevel} /></div> : null}
-                {t.overdue ? <div><span className="badge badge-error">Overdue</span></div> : t.dueAt && !['RESOLVED', 'CLOSED'].includes(t.status) ? <div className="muted">Due {formatDateTime(t.dueAt)}</div> : null}
-              </>
-            ),
-          },
-          { header: 'Owner', cell: (t) => t.ownerName ?? <span className="muted">Unassigned</span> },
-          { header: 'Raised', cell: (t) => formatDateTime(t.createdAt) },
-        ]}
-        footer={
-          list.hasMore ? (
-            <Button variant="ghost" onClick={list.loadMore} busy={list.loadingMore}>
-              Load more
-            </Button>
-          ) : null
-        }
-      />
+                  {t.subject}
+                  <span className="sub">
+                    {t.reference} · {t.categoryName} · {formatDate(t.createdAt)}
+                  </span>
+                </span>
+              ),
+            },
+            {
+              header: 'Resident',
+              cell: (t) => (
+                <span className="primary-cell">
+                  {t.resident.fullName ?? t.resident.phone}
+                  <span className="sub">{t.flat ? `${t.flat.towerName} · ${t.flat.flatNumber}, ${t.flat.communityName}` : 'No residence'}</span>
+                </span>
+              ),
+            },
+            {
+              header: 'Status',
+              cell: (t) => (
+                <span className="row" style={{ gap: 4, flexWrap: 'wrap' }}>
+                  <TicketStatusBadge status={t.status} />
+                  <EscalationBadge level={t.escalationLevel} />
+                </span>
+              ),
+            },
+            { header: 'Priority', cell: (t) => <PriorityText priority={t.priority} /> },
+            {
+              header: 'Due',
+              cell: (t) =>
+                isFinished(t.status) || !t.dueAt ? (
+                  <span className="faint">—</span>
+                ) : t.overdue ? (
+                  <span className="badge badge-error" title={`Was due ${formatDateTime(t.dueAt)}`}>
+                    <ClockAlert size={12} aria-hidden /> Overdue
+                  </span>
+                ) : (
+                  formatDateTime(t.dueAt)
+                ),
+            },
+            {
+              header: 'Owner',
+              cell: (t) =>
+                t.ownerName ?? (
+                  <span className="chip" style={{ borderStyle: 'dashed' }}>
+                    Unassigned
+                  </span>
+                ),
+            },
+          ]}
+          footer={
+            list.hasMore ? (
+              <div className="row-between">
+                <span />
+                {list.hasMore ? (
+                  <Button variant="ghost" onClick={list.loadMore} busy={list.loadingMore}>
+                    Load more
+                  </Button>
+                ) : null}
+              </div>
+            ) : null
+          }
+        />
+      </Panel>
       {managing ? <CategoriesDialog onClose={() => setManaging(false)} /> : null}
     </>
   );
@@ -140,6 +212,7 @@ export function TicketsPage() {
 
 function CategoriesDialog({ onClose }: { onClose: () => void }) {
   const qc = useQueryClient();
+  const toast = useToast();
   const categories = useTicketCategories();
   const [name, setName] = useState('');
   const save = useMutation({
@@ -147,64 +220,65 @@ function CategoriesDialog({ onClose }: { onClose: () => void }) {
       v.id
         ? api(`/v1/admin/ticket-categories/${v.id}`, { method: 'PATCH', body: { name: v.name, status: v.status } })
         : api('/v1/admin/ticket-categories', { method: 'POST', body: { name: v.name } }),
-    onSuccess: async () => {
+    onSuccess: async (_d, v) => {
       setName('');
+      toast(v.id ? (v.status === 'ACTIVE' ? 'Category activated' : 'Category deactivated') : 'Category added');
       await qc.invalidateQueries({ queryKey: ['ticket-categories'] });
     },
   });
   const err = save.error instanceof ApiError ? save.error : null;
   return (
     <Modal open title="Ticket categories" onClose={onClose}>
-      <p className="muted">Residents pick one of the active categories when they raise a ticket.</p>
-      <DataTable
-        caption="Ticket categories"
-        loading={categories.isLoading}
-        error={categories.error}
-        rows={categories.data?.items}
-        rowKey={(c) => c.id}
-        columns={[
-          { header: 'Category', cell: (c) => c.name },
-          { header: 'Status', cell: (c) => <StatusBadge status={c.status} /> },
-          {
-            header: 'Actions',
-            className: 'actions',
-            cell: (c) => (
-              <Button variant="ghost" onClick={() => save.mutate({ id: c.id, name: c.name, status: c.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' })}>
-                {c.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
-              </Button>
-            ),
-          },
-        ]}
-      />
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          save.mutate({ name });
-        }}
-      >
-        <TextInput label="New category" value={name} onChange={(e) => setName(e.target.value)} error={err?.field('name')} />
-        <Button type="submit" busy={save.isPending} disabled={name.trim().length < 2}>
-          Add
-        </Button>
-      </form>
-      <ErrorBanner error={err?.fields.length ? null : save.error} />
+      <div className="stack">
+        <p className="muted">Residents pick one of the active categories when they raise a ticket. Inactive categories stay on existing tickets.</p>
+        <DataTable
+          caption="Ticket categories"
+          loading={categories.isLoading}
+          error={categories.error}
+          rows={categories.data?.items}
+          rowKey={(c) => c.id}
+          emptyTitle="No categories yet"
+          emptyBody="Add the first category below."
+          columns={[
+            { header: 'Category', cell: (c) => c.name },
+            { header: 'Status', cell: (c) => <StatusBadge status={c.status} /> },
+            {
+              header: 'Actions',
+              className: 'actions',
+              cell: (c) => (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  busy={save.isPending && save.variables?.id === c.id}
+                  onClick={() => save.mutate({ id: c.id, name: c.name, status: c.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' })}
+                >
+                  {c.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+                </Button>
+              ),
+            },
+          ]}
+        />
+        <form
+          className="row"
+          style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            save.mutate({ name });
+          }}
+        >
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <TextInput label="New category" value={name} onChange={(e) => setName(e.target.value)} error={err?.field('name')} />
+          </div>
+          <Button type="submit" icon={Plus} busy={save.isPending && !save.variables?.id} disabled={name.trim().length < 2}>
+            Add
+          </Button>
+        </form>
+        <ErrorBanner error={err?.fields.length ? null : save.error} />
+      </div>
     </Modal>
   );
 }
 
 export function PrioritySelect({ value, onChange, disabled }: { value: string; onChange: (v: string) => void; disabled?: boolean }) {
-  return (
-    <SelectInput
-      label="Priority"
-      value={value}
-      disabled={disabled}
-      onChange={(e) => onChange(e.target.value)}
-      options={[
-        { value: 'LOW', label: 'Low' },
-        { value: 'NORMAL', label: 'Normal' },
-        { value: 'HIGH', label: 'High' },
-      ]}
-    />
-  );
+  return <SelectInput label="Priority" value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)} options={PRIORITY_OPTIONS} />;
 }

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import {
   adminTicketUpdateSchema,
+  assignTicketSchema,
   enquiryStatusSchema,
   escalateTicketSchema,
   holidaySchema,
@@ -9,6 +10,7 @@ import {
   patchEnquirySchema,
   patchTicketSchema,
   ticketStatusSchema,
+  ticketPrioritySchema,
   upsertTicketCategorySchema,
   uuidSchema,
 } from '@nestovin/contracts';
@@ -23,6 +25,7 @@ const flag = z.enum(['true', 'false']).transform((v) => v === 'true').optional()
 const ticketQuery = paginationQuerySchema.extend({
   status: ticketStatusSchema.optional(),
   categoryId: uuidSchema.optional(),
+  priority: ticketPrioritySchema.optional(),
   mine: flag,
   open: flag,
   escalated: flag,
@@ -53,6 +56,13 @@ export function supportAdminRoutes(deps: AppDeps): Router {
   });
   r.patch('/tickets/:id', authorize('support', 'edit'), validateBody(patchTicketSchema), async (req, res) => {
     res.json(await svc.adminPatch(adminOf(req), req.requestId, id(req.params.id), req.body));
+  });
+  // Assignment (ADM-13): eligible admins hold support:edit and cover the ticket's cluster.
+  r.get('/tickets/:id/assignees', authorize('support', 'edit'), async (req, res) => {
+    res.json({ items: await svc.assignees(adminOf(req), id(req.params.id)) });
+  });
+  r.post('/tickets/:id/assign', authorize('support', 'edit'), validateBody(assignTicketSchema), async (req, res) => {
+    res.json(await svc.assign(adminOf(req), req.requestId, id(req.params.id), req.body.adminId));
   });
   r.post('/tickets/:id/escalate', authorize('support', 'edit'), validateBody(escalateTicketSchema), async (req, res) => {
     res.json(await svc.adminEscalate(adminOf(req), req.requestId, id(req.params.id), req.body.reason));

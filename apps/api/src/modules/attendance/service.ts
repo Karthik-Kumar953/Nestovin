@@ -1,6 +1,7 @@
 import { createHmac, randomBytes, randomInt, randomUUID, timingSafeEqual } from 'node:crypto';
 import { sql } from 'kysely';
-import type { AttendanceRecord, CheckInInput, CheckInResult, Correction, ResidentVisit, VisitCode } from '@nestovin/contracts';
+import type { AdminFeedback, AttendanceRecord, CheckInInput, CheckInResult, Correction, ResidentVisit, VisitCode } from '@nestovin/contracts';
+import { decodeCursor, toPage } from '../../lib/pagination';
 import type { Database, Tx } from '../../db/database';
 import { withTx } from '../../db/database';
 import { inScope, toDbClaims, type AdminActor } from '../../auth/permissions';
@@ -330,6 +331,72 @@ export class AttendanceService {
         noShow: r.no_show_kind ? { kind: r.no_show_kind, note: r.no_show_note } : null,
         feedback: r.rating ? { rating: r.rating, comment: r.comment } : null,
       }));
+    });
+  }
+
+  /**
+   * ADM-12: resident feedback on completed visits, newest first, keyset paged.
+   * RLS keeps it inside the admin's clusters; a community filter outside scope is NOT_FOUND.
+   */
+  async feedbackList(
+    actor: AdminActor,
+    p: {
+      limit: number;
+      cursor?: string | undefined;
+      communityId?: string | undefined;
+      employeeId?: string | undefined;
+      minRating?: number | undefined;
+      maxRating?: number | undefined;
+      withComment?: boolean | undefined;
+    },
+  ): Promise<{ items: AdminFeedback[]; nextCursor: string | null }> {
+    return withTx(this.db, toDbClaims(actor), async (trx) => {
+      if (p.communityId) await visibleCommunity(trx, actor, p.communityId);
+      const cursor = decodeCursor(p.cursor);
+      let q = trx
+        .selectFrom('app.visit_feedback as fb')
+        .innerJoin('app.service_occurrences as o', 'o.id', 'fb.occurrence_id')
+        .innerJoin('app.services as s', 's.id', 'o.service_id')
+        .innerJoin('app.flats as f', 'f.id', 'fb.flat_id')
+        .innerJoin('app.towers as t', 't.id', 'f.tower_id')
+        .innerJoin('app.communities as c', 'c.id', 'o.community_id')
+        .leftJoin('app.resident_profiles as rp', 'rp.id', 'fb.resident_id')
+        .leftJoin('app.employees as e', 'e.id', 'fb.employee_id')
+        .select([
+          'fb.occurrence_id', 'fb.rating', 'fb.comment', 'fb.created_at', 'fb.resident_id', 'rp.full_name as resident_name',
+          'o.scheduled_date', 's.name as service_name', 'f.flat_number', 't.name as tower_name', 'c.id as community_id', 'c.name as community_name',
+          'e.id as employee_id', 'e.full_name as employee_name', 'e.employee_code',
+        ]);
+      if (p.communityId) q = q.where('o.community_id', '=', p.communityId);
+      if (p.employeeId) q = q.where('fb.employee_id', '=', p.employeeId);
+      if (p.minRating !== undefined) q = q.where('fb.rating', '>=', p.minRating);
+      if (p.maxRating !== undefined) q = q.where('fb.rating', '<=', p.maxRating);
+      if (p.withComment) q = q.where('fb.comment', 'is not', null).where(sql`length(trim(fb.comment))`, '>', 0);
+      if (cursor) {
+        q = q.where((eb) =>
+          eb.or([
+            eb('fb.created_at', '<', new Date(cursor.v)),
+            eb.and([eb('fb.created_at', '=', new Date(cursor.v)), eb('fb.occurrence_id', '<', cursor.id)]),
+          ]),
+        );
+      }
+      const rows = await q.orderBy('fb.created_at', 'desc').orderBy('fb.occurrence_id', 'desc').limit(p.limit + 1).execute();
+      const page = toPage(rows, p.limit, (r) => ({ v: new Date(r.created_at).toISOString(), id: r.occurrence_id }));
+      return {
+        items: page.items.map((r) => ({
+          occurrenceId: r.occurrence_id,
+          rating: r.rating,
+          comment: r.comment,
+          createdAt: iso(r.created_at)!,
+          visitDate: r.scheduled_date,
+          serviceName: r.service_name,
+          resident: { id: r.resident_id, fullName: r.resident_name },
+          worker: r.employee_id ? { id: r.employee_id, fullName: r.employee_name!, employeeCode: r.employee_code! } : null,
+          community: { id: r.community_id, name: r.community_name },
+          flat: { flatNumber: r.flat_number, towerName: r.tower_name },
+        })),
+        nextCursor: page.nextCursor,
+      };
     });
   }
 

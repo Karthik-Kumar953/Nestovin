@@ -14,6 +14,8 @@ export const ERROR_CODES = [
   'INTERNAL',
   /** Temporary: the database was busy (lock or statement timeout). Safe to retry. */
   'UNAVAILABLE',
+  /** Separation of duties (ADM-14): the admin who prepared or submitted a payroll run cannot approve it. */
+  'SAME_PREPARER_APPROVER',
 ] as const;
 export type ErrorCode = (typeof ERROR_CODES)[number];
 

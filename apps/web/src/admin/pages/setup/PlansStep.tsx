@@ -6,7 +6,8 @@ import { WEEKDAYS, type CatalogueVersionDetail, type Plan, type PlanComponent, t
 import { api, ApiError } from '../../lib/api';
 import { can } from '../../lib/permissions';
 import { useMe } from '../../auth/AuthProvider';
-import { Button, EmptyState, ErrorBanner, InfoBanner, Modal, SelectInput, Spinner, TextArea, TextInput } from '../../components/ui';
+import { Button, EmptyState, ErrorBanner, InfoBanner, Modal, SelectInput, Skeleton, TextArea, TextInput, useConfirm, useToast } from '../../components/ui';
+import { FilePen, Plus, Trash2 } from '../../components/icons';
 import { useVersions } from './SetupPage';
 import { useServices, useTasks, useWindows } from './BasicsSteps';
 
@@ -31,46 +32,67 @@ const FREQ_LABEL: Record<TaskFrequency, string> = { PER_VISIT: 'Every visit', DA
 export function DraftBar({ communityId }: { communityId: string }) {
   const me = useMe();
   const qc = useQueryClient();
+  const confirm = useConfirm();
+  const toast = useToast();
   const versions = useVersions(communityId);
   const create = useMutation({
     mutationFn: () => api<CatalogueVersionDetail>(`/v1/admin/communities/${communityId}/catalogue-versions`, { method: 'POST', body: { copyFromPublished: true } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['catalogue-versions', communityId] }),
+    onSuccess: async (v) => {
+      await qc.invalidateQueries({ queryKey: ['catalogue-versions', communityId] });
+      toast(`Draft version ${v.versionNo} started`);
+    },
   });
   const discard = useMutation({
     mutationFn: (id: string) => api(`/v1/admin/catalogue-versions/${id}`, { method: 'DELETE' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['catalogue-versions', communityId] }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ['catalogue-versions', communityId] });
+      toast('Draft discarded');
+    },
   });
-  if (versions.isLoading) return <Spinner />;
+  if (versions.isLoading) return <Skeleton height={56} />;
   const { draft, published } = versions.data ?? { draft: null, published: null };
+  const onDiscard = async () => {
+    if (!draft) return;
+    const r = await confirm({
+      title: `Discard draft version ${draft.versionNo}?`,
+      body: `Every plan, service and price in this draft is deleted. This cannot be undone. ${published ? `Residents keep seeing published version ${published.versionNo}.` : ''}`,
+      confirmLabel: 'Discard draft',
+      tone: 'danger',
+    });
+    if (r.ok) discard.mutate(draft.id);
+  };
   return (
-    <div className="card row" style={{ justifyContent: 'space-between' }}>
+    <div className="stack-sm">
+      <div className={`banner ${draft ? 'banner-info' : 'banner-warning'}`} style={{ alignItems: 'center', flexWrap: 'wrap' }}>
+        <FilePen size={16} />
+        <div style={{ flex: 1, minWidth: 200 }}>
+          {draft ? (
+            <>
+              Editing <strong>draft version {draft.versionNo}</strong>. Residents keep seeing {published ? `published version ${published.versionNo}` : 'nothing'} until you
+              publish.
+            </>
+          ) : published ? (
+            <>
+              Version {published.versionNo} is <strong>published</strong> and frozen. Start a new draft to change plans or prices.
+            </>
+          ) : (
+            <>No catalogue yet. Start a draft to build plans.</>
+          )}
+        </div>
+        <div className="row">
+          {!draft && can(me, 'catalogue_pricing', 'create') ? (
+            <Button size="sm" icon={Plus} onClick={() => create.mutate()} busy={create.isPending}>
+              {published ? `New draft from version ${published.versionNo}` : 'Start draft'}
+            </Button>
+          ) : null}
+          {draft && can(me, 'catalogue_pricing', 'delete') ? (
+            <Button variant="ghost" size="sm" icon={Trash2} onClick={() => void onDiscard()} busy={discard.isPending}>
+              Discard draft
+            </Button>
+          ) : null}
+        </div>
+      </div>
       <ErrorBanner error={create.error ?? discard.error} />
-      <div>
-        {draft ? (
-          <>
-            Editing <strong>draft version {draft.versionNo}</strong>. Residents keep seeing{' '}
-            {published ? `published version ${published.versionNo}` : 'nothing'} until you publish.
-          </>
-        ) : published ? (
-          <>
-            Version {published.versionNo} is <strong>published</strong> and frozen. Start a new draft to change plans or prices.
-          </>
-        ) : (
-          <>No catalogue yet. Start a draft to build plans.</>
-        )}
-      </div>
-      <div className="row">
-        {!draft && can(me, 'catalogue_pricing', 'create') ? (
-          <Button onClick={() => create.mutate()} busy={create.isPending}>
-            {published ? `New draft from version ${published.versionNo}` : 'Start draft'}
-          </Button>
-        ) : null}
-        {draft && can(me, 'catalogue_pricing', 'delete') ? (
-          <Button variant="ghost" onClick={() => discard.mutate(draft.id)} busy={discard.isPending}>
-            Discard draft
-          </Button>
-        ) : null}
-      </div>
     </div>
   );
 }
@@ -84,6 +106,26 @@ export function PlansStep({ communityId }: { communityId: string }) {
   const [planEditor, setPlanEditor] = useState<Plan | 'new' | null>(null);
   const [componentEditor, setComponentEditor] = useState<{ plan: Plan; component: PlanComponent | null } | null>(null);
   const qc = useQueryClient();
+  const confirm = useConfirm();
+  const toast = useToast();
+  const askRemovePlan = async (p: Plan) => {
+    const r = await confirm({
+      title: `Delete plan ${p.name}?`,
+      body: `${p.name}, its services and its prices are removed from this draft. Published versions are not affected.`,
+      confirmLabel: 'Delete plan',
+      tone: 'danger',
+    });
+    if (r.ok) removePlan.mutate(p.id, { onSuccess: () => toast(`${p.name} deleted`) });
+  };
+  const askRemoveComponent = async (p: Plan, c: PlanComponent) => {
+    const r = await confirm({
+      title: `Remove this service from ${p.name}?`,
+      body: `The service and its tasks are removed from ${p.name} in this draft, along with any prices set for it. Published versions are not affected.`,
+      confirmLabel: 'Remove service',
+      tone: 'danger',
+    });
+    if (r.ok) removeComponent.mutate(c.id, { onSuccess: () => toast('Service removed') });
+  };
   const removePlan = useMutation({
     mutationFn: (planId: string) => api<CatalogueVersionDetail>(`/v1/admin/plans/${planId}`, { method: 'DELETE' }),
     onSuccess: (d) => qc.setQueryData(['catalogue-version', d.id], d),
@@ -104,7 +146,9 @@ export function PlansStep({ communityId }: { communityId: string }) {
       <ErrorBanner error={detail.error ?? removePlan.error ?? removeComponent.error} />
       {editable ? (
         <div>
-          <Button onClick={() => setPlanEditor('new')}>Add plan</Button>
+          <Button icon={Plus} onClick={() => setPlanEditor('new')}>
+            Add plan
+          </Button>
         </div>
       ) : null}
       {detail.data && detail.data.plans.length === 0 ? <EmptyState title="No plans in this version yet" /> : null}
@@ -127,7 +171,7 @@ export function PlansStep({ communityId }: { communityId: string }) {
                 <Button variant="ghost" onClick={() => setPlanEditor(p)}>
                   Edit
                 </Button>
-                <Button variant="danger" onClick={() => removePlan.mutate(p.id)}>
+                <Button variant="danger" onClick={() => void askRemovePlan(p)}>
                   Delete
                 </Button>
               </div>
@@ -141,7 +185,7 @@ export function PlansStep({ communityId }: { communityId: string }) {
               component={c}
               editable={editable}
               onEdit={() => setComponentEditor({ plan: p, component: c })}
-              onDelete={() => removeComponent.mutate(c.id)}
+              onDelete={() => void askRemoveComponent(p, c)}
             />
           ))}
         </div>

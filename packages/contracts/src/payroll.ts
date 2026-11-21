@@ -39,6 +39,10 @@ export const payrollRunSummarySchema = z.object({
   netPaise: z.number().int(),
   paidPaise: z.number().int(),
   preparedAt: z.string(),
+  /** Admin who created this run version. Cannot approve it (SAME_PREPARER_APPROVER). */
+  preparedBy: uuidSchema.nullable(),
+  /** Admin who approved or returned it. */
+  reviewedBy: uuidSchema.nullable(),
   reviewedAt: z.string().nullable(),
   returnReason: z.string().nullable(),
 });
@@ -74,7 +78,11 @@ export const payrollLineSchema = z.object({
 });
 export type PayrollLine = z.infer<typeof payrollLineSchema>;
 
-export const payrollRunDetailSchema = payrollRunSummarySchema.extend({ lines: z.array(payrollLineSchema) });
+export const payrollRunDetailSchema = payrollRunSummarySchema.extend({
+  lines: z.array(payrollLineSchema),
+  /** Admin who sent it for review (from the audit trail); also cannot approve it. */
+  submittedBy: uuidSchema.nullable().optional(),
+});
 export type PayrollRunDetail = z.infer<typeof payrollRunDetailSchema>;
 
 export const createPayrollRunSchema = z.object({ month });

@@ -226,6 +226,20 @@ export const setResidentStatusSchema = z.object({
 });
 export type SetResidentStatusInput = z.infer<typeof setResidentStatusSchema>;
 
+/**
+ * PATCH /residents/:id (ADM-05). Contact details only: the phone number is the
+ * resident's sign-in identity and cannot be changed here. Send at least one field.
+ */
+export const adminUpdateResidentSchema = z
+  .object({
+    fullName: z.string().trim().min(2).max(120).optional(),
+    email: z.email().trim().toLowerCase().nullable().optional(),
+    version: versionSchema,
+  })
+  .strict()
+  .refine((v) => v.fullName !== undefined || v.email !== undefined, { message: 'Change the name or the email', path: ['fullName'] });
+export type AdminUpdateResidentInput = z.infer<typeof adminUpdateResidentSchema>;
+
 export const verificationRequestSchema = z.object({
   id: uuidSchema,
   decision: z.enum(['PENDING', 'APPROVED', 'REJECTED']),
