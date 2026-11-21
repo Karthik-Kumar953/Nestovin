@@ -1,6 +1,7 @@
 import { loadEnv } from './config/env';
 import { createLogger } from './lib/logger';
 import { createDatabase } from './db/database';
+import { assertRestrictedRole } from './db/role-guard';
 import { createSupabaseTokenVerifier } from './auth/token-verifier';
 import { createAdminActorLoader } from './auth/admin-actor-loader';
 import { createSupabaseAuthAdmin } from './integrations/auth-admin';
@@ -18,6 +19,13 @@ import { createGoogleGeocoder } from './integrations/maps';
 const env = loadEnv();
 const logger = createLogger(env.LOG_LEVEL, env.NODE_ENV === 'development');
 const db = createDatabase(env.DATABASE_URL, env.DATABASE_SSL_CA_PATH);
+try {
+  const role = await assertRestrictedRole(db);
+  logger.info({ role }, 'database role checked');
+} catch (err) {
+  logger.fatal({ err }, 'refusing to start: unsafe database role');
+  process.exit(1);
+}
 
 const paymentsProvider =
   env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET

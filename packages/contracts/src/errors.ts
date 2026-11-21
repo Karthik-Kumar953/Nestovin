@@ -12,6 +12,8 @@ export const ERROR_CODES = [
   'RATE_LIMITED',
   'BUSINESS_RULE_VIOLATION',
   'INTERNAL',
+  /** Temporary: the database was busy (lock or statement timeout). Safe to retry. */
+  'UNAVAILABLE',
 ] as const;
 export type ErrorCode = (typeof ERROR_CODES)[number];
 
