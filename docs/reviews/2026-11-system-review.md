@@ -2,6 +2,12 @@
 
 **Date:** 21 Nov 2026
 **Reviewer:** architecture review session (read-only for code), using `.claude/skills/database-architect/SKILL.md`
+**Revision 2:** brought up to the upgraded skill (lead commit `3042918` on `gaps-before-apps`). Changes:
+- Each finding now names the Supabase Postgres rule file that backs it, on a **Rules** line. The files are from `supabase-postgres-best-practices/references/*.md`; "none" means no rule file covers the finding.
+- New sections: lifecycle per aggregate, concurrency matrix, trade-offs against the Supabase rules, and growth signals.
+- Six new findings (H-7, M-15 … M-17, L-10, L-11).
+
+The read-only Supabase MCP was not signed in, so all of this is still derived from the migrations.
 **Scope:** all 30 migrations in `supabase/migrations` (`20261120000100` … `20261129000800`), `apps/api/src/**`
 (every module, the job runner, integrations and auth), checked against `docs/Architecture/data-model.md`,
 ADR-001 … ADR-017 and the workflows document.
@@ -15,9 +21,15 @@ The ER diagram of the real schema is in [`erd.md`](erd.md).
 | Severity | Count | What it means here |
 |---|---|---|
 | Critical | 0 | — |
-| High | 6 | Will happen in normal operation, or loses money/state when it does |
-| Medium | 14 | Defence-in-depth gaps, races with narrow windows, operability, API gaps |
-| Low | 9 | Polish with a concrete but small failure |
+| High | 7 | Will happen in normal operation, or loses money/state when it does |
+| Medium | 17 | Defence-in-depth gaps, races with narrow windows, operability, API gaps, growth |
+| Low | 11 | Polish with a concrete but small failure |
+
+**Ranked by blast radius:**
+1. **Access isolation:** H-1, M-1, M-10.
+2. **Money:** H-2, H-3, H-7, H-4, M-2, M-3.
+3. **Integrity in normal use:** H-5, H-6, M-9, M-13, M-17.
+4. **Performance at the expected scale:** 5k–50k flats, 1k–5k workers, a few million visits a year. Findings: M-6, M-15, M-16, M-14, M-7.
 
 The foundations are strong. Money is integer paise with a CHECK on every amount, snapshots are immutable by
 trigger, provider payment ids are unique, there's a no-double-booking exclusion constraint, and every Tier A
@@ -40,6 +52,7 @@ four places:
 ## High
 
 ### H-1 Cluster moves leave operational scope stale; new rows are stamped with the old cluster
+**Rules:** `security-rls-basics` (the scope column a policy reads must be correct, not just present), `schema-constraints` (stamp in the database, not in each service)
 
 **Evidence**
 - `apps/api/src/modules/locations/service.ts:440-483`: `assignCluster` closes and opens `cluster_community_memberships` and changes nothing else.
@@ -142,6 +155,7 @@ grant execute on function app.move_community_scope(uuid) to app_api;
    - a booking created after the move has `cluster_id = B`
 
 ### H-2 A verified payment is rolled back, with no record and no exception, if its business effect throws
+**Rules:** none directly. This is an ADR-006 money invariant: evidence first, effect second
 
 **Evidence**
 - `apps/api/src/modules/bookings/payments.ts:141-193`: `settle` runs one transaction. It inserts the `payment_transactions` row (147-161), then calls `applyPurpose` → `createSubscription` (181, 254, 260-299).
@@ -186,6 +200,7 @@ if (outcome) return review(outcome.reason, outcome.detail);
 - A second test calls `renew()` twice concurrently and expects one `CONFLICT`.
 
 ### H-3 Webhook events are acknowledged even when processing fails, and are never retried; refunds have no reconciliation
+**Rules:** `data-upsert` (`ON CONFLICT … DO UPDATE … WHERE` to re-claim), `lock-skip-locked` (reprocess job)
 
 **Evidence**
 - `apps/api/src/modules/bookings/payments.ts:316-341`:
@@ -233,6 +248,7 @@ Code changes:
 - Run `reprocessEvents()` on a seeded unprocessed event and assert it gets processed.
 
 ### H-4 Money POSTs are not idempotent: `Idempotency-Key` is optional and a replay is an error, not the original response
+**Rules:** `data-upsert` (check-then-insert race in `renew`), `schema-constraints`
 
 **Evidence**
 - ADR-004: "an `Idempotency-Key` header is **required** on POSTs that create money or bookings".
@@ -297,6 +313,7 @@ Code changes:
 - Send it without a key and expect 400.
 
 ### H-5 Job runner: the lease is shorter than a worst-case tick, the outbox has no row claim, and one failing job starves the rest
+**Rules:** `lock-skip-locked`, `lock-short-transactions`, `lock-advisory` (see the trade-off section: a lease row is right here)
 
 **Evidence**
 - `apps/api/src/jobs/runner.ts:32`: lease = `intervalMs/1000 - 5` = **55 s**. It is never extended.
@@ -344,6 +361,7 @@ Code changes:
 - Make `payments.maintenance` throw and assert `processOutbox` still ran.
 
 ### H-6 Business "today" is computed in UTC; ADR-015's no-same-day rule and date guards break from 00:00 to 05:30 IST
+**Rules:** `schema-data-types` (business dates are `date` in the IST calendar; `timestamptz` only for instants)
 
 **Evidence**
 `new Date().toISOString().slice(0, 10)` (a UTC date) is used as the business date in many places:
@@ -374,11 +392,50 @@ At 01:00 IST on 22 Nov, `today()` is `2026-11-21`, so "tomorrow" is the 22nd:
 **Test**
 With fake timers at `2026-11-21T20:00:00Z` (01:30 IST on the 22nd), `createBooking` with `startDate = '2026-11-22'` must be refused, and `businessToday()` must return `2026-11-22`.
 
+### H-7 Payment reconciliation polls the same 50 orders every minute and starves newer ones at the expected scale
+**Rules:** `query-partial-indexes`, `data-n-plus-one`, `lock-short-transactions`
+
+**Evidence**
+`apps/api/src/modules/bookings/payments.ts:434-444` selects open orders with:
+- `status in ('CREATED','EXPIRED')`
+- `provider_order_id is not null`
+- `created_at` within the last 3 days
+- `limit 50`
+- **no `ORDER BY`** and no "last checked" marker
+
+For each order it makes one Razorpay HTTP call plus one `settle` transaction (`:445-455`). An order stays in that set until it is paid or 3 days old. Every abandoned checkout becomes `EXPIRED` and is never marked as checked. No index matches the predicate, since `payment_orders_open_idx` covers only `CREATED` by `expires_at` (`20261123000100_demand_booking_payments.sql:296`), so this is a sequential scan of `payment_orders` every minute.
+
+**Failure scenario**
+At 20k flats, a few hundred checkouts are abandoned in any 3-day window, so the set holds far more than 50 orders. Without ordering, Postgres returns the same physical-first 50 rows every minute until they age out. Then:
+1. A resident pays, the app is killed before `/payments/verify`, and the webhook is lost (or hits H-3).
+2. This is exactly the case ADR-006 says reconciliation covers.
+3. The order is not among the 50 oldest, so it is not checked for up to about 3 days, then for only a few ticks before it ages out.
+4. The resident has paid but sees "awaiting payment". Meanwhile the API makes 50 pointless Razorpay calls a minute (72k a day) for orders nobody will pay.
+
+**Fix**
+
+```sql
+alter table app.payment_orders add column last_checked_at timestamptz, add column check_count integer not null default 0;
+create index payment_orders_reconcile_idx on app.payment_orders (last_checked_at nulls first, created_at)
+  where status in ('CREATED', 'EXPIRED') and provider_order_id is not null;
+```
+
+Code changes:
+1. Select with `order by last_checked_at nulls first, created_at desc limit 50`.
+2. Only pick an order when the backoff allows it: `last_checked_at is null or last_checked_at < now() - (interval '2 minutes' * power(2, least(check_count, 8)))`.
+3. Set `last_checked_at = now(), check_count = check_count + 1` after each check, in a short transaction.
+4. Move the Razorpay call outside any transaction (`lock-short-transactions`).
+
+**Test**
+- Seed 200 open orders and run the reconciliation step 4 times with a fake provider that records the ids it was asked about. Assert all 200 were checked once before any was checked twice.
+- `EXPLAIN` uses `payment_orders_reconcile_idx`.
+
 ---
 
 ## Medium
 
 ### M-1 Tier A write policies check ownership, not state, so owners may change approval columns
+**Rules:** `security-rls-basics`, `security-privileges` (column-level grants)
 
 **Evidence** (`USING` and `WITH CHECK` accept the owner; grants are table-wide `UPDATE`)
 - `attendance_corrections`: an employee can update their own correction to `status = 'APPROVED'` (`20261125000100_attendance.sql:155-158,169`).
@@ -436,6 +493,7 @@ create policy attendance_events_access on app.attendance_events
 For each table, with employee or resident claims, attempt the forbidden update directly and expect `42501`. Also expect an employee insert into `attendance_events` for an unassigned occurrence to fail.
 
 ### M-2 "Append-only" and "immutable once approved" are not enforced for three money records
+**Rules:** `security-privileges`
 
 **Evidence**
 - **`payment_transactions`:** only DELETE is blocked (`20261123000100_demand_booking_payments.sql:371-372`). `app_api` has table-wide UPDATE (`:450`), so `amount_paise`, `provider_payment_id` and `order_id` are writable.
@@ -473,11 +531,22 @@ create trigger payroll_line_items_frozen before insert or update or delete on ap
 -- payroll_runs: APPROVED -> no further status change (RETURNED / back to DRAFT)
 ```
 
+**Concurrency gap behind the same invariant**
+`payroll/service.ts:340-352`: `lineInRun` locks only the line (`forUpdate('l')`) and reads `r.status` without a lock. `submit` and `approve` lock the run (`runOf`, `:334-338`). So:
+1. `addItem` reads the run as `DRAFT`.
+2. `submit` commits `IN_REVIEW`.
+3. `addItem` commits a new entry into a run that reviewers now believe is frozen.
+
+The trigger above reads the run status unlocked and has the same race. Fix it by locking the run first in `lineInRun`, then the line, in that order everywhere (`lock-deadlock-prevention`). The trigger can also take `for share` on the run row.
+
 **Test**
 - `update app.payment_transactions set amount_paise = 1` as `app_api` → `42501`.
+- Interleave `addItem` and `submit` with a barrier. One of them must fail, or the item must be visible in the submitted totals.
 - Delete a line of an approved run → `check_violation`.
 
 ### M-3 The balance-expiry job can overwrite CONVERTED with EXPIRED
+**Rules:** `lock-short-transactions` (state-guarded single-statement update: `where id = ### M-3 The balance-expiry job can overwrite CONVERTED with EXPIRED
+ and status = …`)
 
 **Evidence**
 `apps/api/src/modules/bookings/payments.ts:482-495`. The overdue list is read, then each request is updated with `where id = r.id` and **no status predicate**. A concurrent `settle` that started just before the deadline commits `CONVERTED` and a `CONFIRMED` booking (`:238-253`). The job's UPDATE waits on the row lock, re-checks only `id`, and writes `EXPIRED`.
@@ -495,6 +564,7 @@ Add `.where('status', '=', 'BALANCE_DUE')` to the update and skip the booking up
 Hold a `settle` transaction open, run `maintenance()` with `now` after the deadline, commit the settle, and assert the request is `CONVERTED`.
 
 ### M-4 A Razorpay HTTP call runs inside the booking database transaction
+**Rules:** `lock-short-transactions` (no HTTP inside a transaction), `conn-pooling`
 
 **Evidence**
 - `payments.ts:96-107`: `provider.createOrder` (15 s timeout) runs inside the caller's `withTx`.
@@ -521,6 +591,7 @@ Split checkout into two transactions:
 Use a fake provider that sleeps 2 s, fire 12 parallel `createBooking` calls with pool size 10, and assert `/ready` still answers within 1 s.
 
 ### M-5 The webhook endpoint accepts unbounded unauthenticated writes, and invalid events occupy the dedupe key
+**Rules:** `security-privileges` (an unauthenticated path should not write)
 
 **Evidence**
 - `routes.ts:193-199`: no rate limit.
@@ -539,6 +610,7 @@ Use a fake provider that sleeps 2 s, fire 12 parallel `createBooking` calls with
 An unsigned POST returns 400 and `provider_events` row count is unchanged.
 
 ### M-6 RLS helper functions are called per row (not wrapped in `select`)
+**Rules:** `security-rls-performance`
 
 **Evidence**
 Policies call `app.claim_household_flat_ids()`, `app.claim_employee_occurrence_ids()` and `app.claim_employee_offered_occurrence_ids()`. These are STABLE SECURITY DEFINER functions, so they cannot be inlined, and each runs a query. They appear directly in `= any (...)`:
@@ -572,6 +644,7 @@ create policy service_occurrences_access on app.service_occurrences
 - Keep the existing RLS tests green to prove the semantics did not change.
 
 ### M-7 No retention for high-churn tables
+**Rules:** `monitor-vacuum-analyze`, `schema-partitioning` (later; see growth signals)
 
 **Evidence**
 Nothing deletes from any of these:
@@ -598,6 +671,7 @@ Grant `delete` on those tables to the job role only.
 Seed old rows, run `retention()`, and assert they are gone and recent rows remain.
 
 ### M-8 Designed invariants that were never built
+**Rules:** `schema-constraints`
 
 `data-model.md` and ADR-004 promise the following. None of them exists in the migrations, and the code does not compensate.
 
@@ -642,6 +716,7 @@ Update `data-model.md` for every "Partial" or "No" row that is a deliberate defe
 A `CONFIRMED` booking has two transitions (`PENDING_PAYMENT` → `CONFIRMED`) with `actor_kind = 'system'`.
 
 ### M-9 Auto-assignment skips the hard eligibility checks of ADR-005
+**Rules:** none (an ADR-005 rule; make it a database trigger, per the skill's "prefer invariants the database enforces")
 
 **Evidence**
 - `apps/api/src/modules/workforce/allocation.ts:449-461`: the job inserts a STANDING assignment after `occurrenceReasons` only (leave, overlap, daily limit).
@@ -660,6 +735,7 @@ In `maintain()`, call `employeeBasics(trx, o.employee_id, o.service_id, o.cluste
 Set an employee `NOT_READY` after their standing assignment, run `maintain()`, and expect no new `occurrence_assignments` for them.
 
 ### M-10 No database-level guard that the API connects as the restricted role
+**Rules:** `security-privileges` ("never use superuser for application queries"), `security-rls-basics`
 
 **Evidence**
 - `apps/api/src/config/env.ts:18-19` documents that `DATABASE_URL` must be `app_api`, but nothing checks it.
@@ -681,6 +757,7 @@ select current_user, r.rolbypassrls, r.rolsuper
 `loadEnv` plus a boot test with a stub DB that returns `rolbypassrls = true` throws.
 
 ### M-11 Webhooks, OTP hook and job outcomes have no metrics or alerts
+**Rules:** `monitor-pg-stat-statements`
 
 **Evidence**
 - Failures are only log lines:
@@ -706,6 +783,7 @@ H-3 and H-5 failures persist for days unnoticed. Finance finds the refund gap at
 A unit test asserts that the counters increment on failure paths.
 
 ### M-12 External side effects inside DB transactions, rolled back but not compensated
+**Rules:** `lock-short-transactions`
 
 **Evidence**
 - `workforce/admin-service.ts:284-285`: `authAdmin.setBanned` (Supabase Admin API) runs inside the employee-update transaction, before the audit insert.
@@ -722,51 +800,165 @@ Commit first, then call `setBanned`. On failure, queue a retry: an outbox row wi
 **Test**
 With a fake `authAdmin` and a forced audit failure, assert `setBanned` was not called.
 
+### M-15 No statement, lock or idle-in-transaction timeout for the runtime roles
+**Rules:** `lock-short-transactions` (`statement_timeout`), `conn-idle-timeout`, `conn-limits`
+
+**Evidence**
+`grep -rn "statement_timeout\|lock_timeout\|idle_in_transaction" supabase apps/api` finds nothing. The roles are created bare (`20261120000100_app_schema_and_roles.sql:20-29`). The pool is 10 connections per instance (`db/database.ts:31`). Several paths take row locks and then wait on something slow:
+- `settle` locks `payment_orders` then `bookings` and `slots`
+- payroll locks a line
+- allocation locks an occurrence and then the employee
+- M-4: a Razorpay call inside a transaction
+
+**Failure scenario**
+1. A maintenance tick's `settle` holds the `slots` row lock while a slow statement runs (for example M-6's per-row policy function on a large scan).
+2. Every resident checkout for that slot queues behind the lock with no `lock_timeout`.
+3. Each waiting request holds one of the 10 pooled connections.
+4. In seconds the pool is exhausted and the whole API, including `/ready`, stops answering. Nothing aborts the stuck statement.
+
+**Fix** (role-level defaults apply to every pooled server connection made as that role):
+
+```sql
+alter role app_api    set statement_timeout = '15s';
+alter role app_api    set lock_timeout = '5s';
+alter role app_api    set idle_in_transaction_session_timeout = '30s';
+alter role app_worker set statement_timeout = '120s';
+alter role app_worker set lock_timeout = '10s';
+alter role app_worker set idle_in_transaction_session_timeout = '60s';
+```
+
+Map SQLSTATE `55P03` (lock_not_available) and `57014` (query_canceled) to a retryable 503 in `lib/errors.ts`. The import-grid commit and other known-long admin paths may `set local statement_timeout = '60s'`.
+
+**Test**
+1. In one transaction, `select … for update` a slot and sleep.
+2. A concurrent `createBooking` on the same slot fails within about 5 s with 503, not a hang.
+3. `show statement_timeout` under the `app_api` login returns `15s`.
+
+### M-16 Every-minute maintenance queries have no matching index; at volume they scan the largest tables
+**Rules:** `query-partial-indexes`, `query-missing-indexes`, `query-composite-indexes`
+
+**Evidence** (each runs once a minute; existing indexes are listed in the ERD)
+
+| Query | Location | Predicate | Usable index today |
+|---|---|---|---|
+| Unassigned visits for auto-assign | `allocation.ts:432-446` | `o.status = 'SCHEDULED' and o.starts_at is not null and o.scheduled_date >= today`, anti-join on active assignment | none. `occurrences_cluster_date_idx` leads with `cluster_id`, which isn't filtered here, so it is a **seq scan of `service_occurrences`** |
+| Subscriptions to end | `payments.ts:506-512` | `status in (…) and period_end < today` | none (`subscriptions_flat_idx` leads with `flat_id`) |
+| Unpaid continuous bookings to lapse | `payments.ts:522-528` | `mode = 'CONTINUOUS' and status = 'PENDING_PAYMENT' and start_date < today` | none |
+| Overdue balances | `payments.ts:482-489` | `r.status = 'BALANCE_DUE'` | none (`demand_requests_cycle_idx` leads with `cycle_id`) |
+| Reconciliation | `payments.ts:434-444` | see H-7 | none |
+
+**Failure scenario**
+`service_occurrences` grows by about 3M rows a year at the expected scale. After a year, the auto-assign query sequentially scans several million rows every minute, plus a hash anti-join against `occurrence_assignments`. That is roughly 1–3 s of I/O per tick on a small Supabase instance. It competes with the API for the same CPU and cache, and stretches H-5's tick past its lease.
+
+**Fix**
+
+```sql
+create index service_occurrences_unassigned_idx on app.service_occurrences (scheduled_date)
+  where status = 'SCHEDULED' and starts_at is not null;
+create index subscriptions_live_end_idx on app.subscriptions (period_end)
+  where status in ('PENDING_ACTIVATION', 'ACTIVE');
+create index bookings_unpaid_continuous_idx on app.bookings (start_date)
+  where mode = 'CONTINUOUS' and status = 'PENDING_PAYMENT';
+create index demand_requests_balance_due_idx on app.demand_requests (allocated_slot_id)
+  where status = 'BALANCE_DUE';
+```
+
+These tables are small today, so building inside the migration transaction is fine now. After launch, see L-11.
+
+**Test**
+A `db` test seeds 50k occurrences (mostly `COMPLETED`) and asserts that `EXPLAIN` of each maintenance query shows an `Index Scan` or `Bitmap Index Scan` on the new index.
+
+### M-17 Check-in can succeed for a worker who was replaced a moment earlier
+**Rules:** `lock-deadlock-prevention` (lock everything you read for the decision, in one consistent order)
+
+**Evidence**
+- `apps/api/src/modules/attendance/service.ts:146-157`: `assignedVisit` selects the occurrence **joined to its ACTIVE assignment** with `forUpdate('o')`, which locks only the occurrence row.
+- `workforce/allocation.ts:378-411`: replacement locks the occurrence, marks the assignment `REPLACED` and inserts a new one.
+
+Under READ COMMITTED, Postgres's EvalPlanQual re-checks the locked occurrence row after the replacement commits. It does **not** re-fetch the unlocked assignment row, so the check-in still sees the old `employee_id`.
+
+**Failure scenario**
+1. At 08:59:59 Operations replaces worker A with worker B for a 09:00 visit.
+2. At the same moment, A (already at the door) checks in.
+3. A's transaction waits on the occurrence lock, then proceeds with the stale assignment, sets the visit `IN_PROGRESS` and records A's attendance event.
+4. B arrives and gets "already checked in". The ACTIVE assignment says B, but the attendance evidence and payroll inputs say A.
+
+**Fix**
+Lock both rows: use `.forUpdate()` without the `'o'` qualifier, which locks every joined table. Lock order is occurrence then assignment on both paths (consistent with `lock-deadlock-prevention`). Alternatively, re-read the ACTIVE assignment after the lock and compare.
+
+**Test**
+1. Open a replacement transaction and hold it after the assignment update.
+2. Start a check-in for A, then commit the replacement.
+3. Expect the check-in to fail with 404 "Visit".
+
 ---
 
 ## Low
 
 ### L-1 The catalogue draft-only trigger checks only the new row's version on UPDATE
+**Rules:** `schema-constraints`
 `20261121000300_fix_catalogue_trigger.sql:9-25` resolves the version from `coalesce(new, old)`, so `NEW` on UPDATE.
 - **Failure:** `update app.plans set catalogue_version_id = <draft> where id = <published plan>` moves a plan out of a published version, because the check sees DRAFT. No code does this today.
 - **Fix:** on UPDATE, also resolve and check `old`'s version; or make `catalogue_version_id` / `plan_id` / `plan_component_id` immutable with a `before update` check.
 - **Test:** the update above raises `check_violation`.
 
 ### L-2 `attach_approved_family(p_phone)` trusts its argument instead of the claim
+**Rules:** `security-rls-performance` (its SECURITY DEFINER guidance: "always check the calling user's identity inside the function")
 `20261122000200_attach_family_function.sql:13-55` is granted to `app_api` and takes any phone. Today it is only called with the JWT phone (`residents/auth.ts:69`).
 - **Failure:** a later caller passes a phone from input, and a third party's approved request is attached on their behalf before they sign in. The impact is limited to what was approved.
 - **Fix:** take no argument. Resolve the phone from `app.resident_profiles where id = app.claim_user_id()` and require `claim_actor_kind() = 'resident'`.
 - **Test:** calling it under admin claims raises `42501`.
 
 ### L-3 The attendance OTP pepper reuses `IP_HASH_SALT`
+**Rules:** none
 `modules/attendance/routes.ts:28`, `exports/routes.ts:93`.
 - **Failure:** rotating the IP salt (a privacy action) silently invalidates every live visit code, and one leaked secret covers two purposes.
 - **Fix:** add a separate `ATTENDANCE_CODE_PEPPER` (min 32) to `env.ts`.
 - **Test:** an env test requires it outside `test`.
 
 ### L-4 RLS is enabled but not forced
+**Rules:** `security-rls-basics` ("force RLS even for table owners")
 No migration has `force row level security`.
 - **Failure:** today `app_api` does not own the tables, so it is fine. If a later migration is run as `app_api`, or ownership is changed for a tool, the owner bypasses every policy.
 - **Fix:** `alter table … force row level security` on each Tier A table. This is harmless for `postgres` (BYPASSRLS) and the SECURITY DEFINER helpers it owns.
 - **Test:** the existing RLS suite still passes.
 
 ### L-5 The polymorphic `payment_orders.(ref_type, ref_id)` has no existence check
+**Rules:** `schema-constraints`
 `20261123000100_demand_booking_payments.sql:274-275`.
 - **Failure:** a bug passes a booking id with `ref_type = 'DEMAND_REQUEST'`. The order is created and paid, and `applyPurpose` returns RECORD_NOT_PAYABLE, so the money goes to review rather than being lost. The cost is a support case.
 - **Fix:** add a `before insert` trigger that checks the referenced row exists, in the same community and for the same resident.
 - **Test:** inserting a mismatched ref raises `foreign_key_violation`.
 
 ### L-6 Refund webhooks match the approval only by exact amount
+**Rules:** none
 `payments.ts:385-392`.
 - **Failure:** Finance approves ₹500 but issues ₹400 in the Razorpay dashboard. The ₹400 is recorded as UNAPPROVED. The ₹500 approval stays `APPROVED` forever and counts against the refundable balance (`admin-service.ts:813-820`), blocking a correct later refund.
 - **Fix:** match the oldest `APPROVED` record with `amount >= refund`. Then mark it processed, with a `processed_amount_paise` column, or raise `PARTIAL_REFUND` for review.
 - **Test:** approve 500, process 400, and expect one record linked plus an exception.
 
 ### L-7 A re-created auth user with the same phone locks the resident out
+**Rules:** `data-upsert`
 `residents/auth.ts:47-52` handles a conflict on `id` only. `resident_profiles.phone` is unique (`20261122000100_residents_and_support.sql:14`).
 - **Failure:** the user deletes their account in Supabase and signs up again with the same phone. The insert raises 23505 on `phone`, and every request returns 409 or 500 forever.
 - **Fix:** on a phone conflict, take the documented route: support re-links, or an admin "merge account" action. Map the error to a clear message.
 - **Test:** seed a profile with a phone and sign in with a new `sub` and the same phone. Expect a clear error code, not 500.
+
+### L-10 Timestamp cursors are truncated to milliseconds, so rows can be skipped at page boundaries
+**Rules:** `data-pagination`
+
+The residents, tickets, bookings and payments lists page on `(created_at desc, id desc)`. The code is right in shape, but the cursor value is `new Date(created_at).toISOString()`, which has millisecond precision. Postgres stores microseconds. Evidence: `residents/admin-service.ts:62-67`, `support/service.ts:218-224`, `bookings/admin-service.ts:684,721`.
+- **Failure:** two tickets are created in the same millisecond, `…00.123456` and `…00.123200`, and the first is the last row of page 1. Page 2 asks for `created_at < '…00.123Z'`. The second ticket is newer than that and never appears on any page. Rows written in one transaction share an identical `now()`, which makes this likely for any batch.
+- **Fix:** carry the database's own text value in the cursor. Select `t.created_at::text as cursor_at` and compare `t.created_at < ${v}::timestamptz`. Alternatively, sort by a monotonic `bigint` column.
+- **Test:** insert 3 tickets with `created_at` values `.123456`, `.123300` and `.122000`, and page with `limit=1`. All 3 must be returned.
+
+### L-11 The migration runner wraps each file in a transaction, so indexes on large tables can't be built `CONCURRENTLY`
+**Rules:** skill checklist §4 ("build indexes CONCURRENTLY where the migration runner allows it"); `schema-constraints`
+
+`apps/api/scripts/db-migrate.ts:3,66` runs every migration inside `begin … commit`. `CREATE INDEX CONCURRENTLY` cannot run in a transaction block.
+- **Failure:** after launch, adding M-16's index on a multi-million-row `service_occurrences` takes a `SHARE` lock for the whole build. Check-ins, completions and visit generation block for that time, and every worker sees errors mid-shift.
+- **Fix:** support a first-line directive, `-- migrate:no-transaction`, which runs the file without `begin`. Use it only for single-statement `create index concurrently` files. For constraints on large tables, add them `NOT VALID` and `VALIDATE` in a later file.
+- **Test:** a runner unit test where a file with the directive executes outside a transaction, checked through `pg_current_xact_id_if_assigned()` being null.
 
 ---
 
@@ -788,6 +980,7 @@ The overall picture is good:
 The findings below are the ones that name a concrete failure. Two are new; the rest refer back to findings above.
 
 ### M-13 The forced password change can be skipped with one API call
+**Rules:** none (an auth-flow defect)
 **Evidence:**
 - `apps/api/src/modules/workforce/employee-service.ts:119-122`: `POST /v1/employee/me/password-changed` clears `must_change_password` without checking anything.
 - `requireEmployee` lets this path through while the flag is set (`:66-67`), and the flag is the only gate.
@@ -804,6 +997,7 @@ The findings below are the ones that name a concrete failure. Two are new; the r
 **Test:** with a fake auth admin that reports no password change, `POST /me/password-changed` returns 409 and the flag stays `true`.
 
 ### M-14 Lists and exports that are silently truncated or unbounded
+**Rules:** `data-pagination`, `data-n-plus-one`
 **Evidence:**
 - **Attendance export:** `GET /v1/admin/exports/attendance` uses `AttendanceService.records`, which has `.limit(500)` (`attendance/service.ts:311`, `exports/routes.ts:91-104`). The CSV gives no sign that it was cut.
   - The other exports use the shared 10,000-row cap.
@@ -830,12 +1024,14 @@ The findings below are the ones that name a concrete failure. Two are new; the r
 - **Exposed database messages:** RLS `WITH CHECK` violations surface as 403 (`lib/errors.ts:56-57`), and trigger messages that start with "Cannot" are shown to clients (`lib/errors.ts:55`). These are intended, human-readable and leak no data. Fine.
 
 ### L-8 Cluster-scoped finance admins see payroll runs with partial totals
+**Rules:** `security-rls-basics` (an unscoped Tier B table read next to scoped Tier A rows)
 `GET /payroll-runs`, `GET /payroll-runs/:id` and `/export` skip `requireGlobal`; the write routes enforce it (`payroll/service.ts:71-73,115-126,282-293`). `payroll_runs` has no RLS, so a cluster-scoped admin with `finance_payroll:view` sees every run, but the line totals (RLS-filtered) cover only their cluster.
 - **Failure:** the screen shows "Net ₹1.2L, paid ₹1.2L, fully paid" for a run that is short company-wide, because the other clusters' lines are filtered out.
 - **Fix:** apply `requireGlobal` to the read routes too (ADR-017 already says payroll is a global-scope function), or label the totals as "your clusters".
 - **Test:** a cluster admin gets 403 on `GET /payroll-runs`.
 
 ### L-9 Not-found returns 422 on four actor-bound routes
+**Rules:** none
 `cancelDemandRequest` (`resident-service.ts:265-270`), change-request cancel (`change-requests.ts:106-107`), leave cancel (`employee-service.ts:192-193`) and mark-read (`notifications/service.ts:92`) throw `BUSINESS_RULE` when the row does not exist or is not the caller's. Every other route returns 404.
 - **Failure:** clients can't tell "already cancelled" from "not yours or gone", and the apps show a business-rule toast for a stale id.
 - **Fix:** select the row first and return `notFound` when it is missing. Keep the 422 for a wrong state.
@@ -868,7 +1064,7 @@ The findings below are the ones that name a concrete failure. Two are new; the r
   - one pending correction per visit
 - **No double-booked employee:** the `btree_gist` exclusion on `occurrence_assignments` (`20261124000100:207-209`).
 - **No overlapping salary periods:** the exclusion on `compensation_profiles` (`20261127000100:29-31`).
-- **Foreign keys:** every reference has one. `ON DELETE RESTRICT` is the default. CASCADE is used only for true children (catalogue children of a draft, grants of a role, import rows, payroll lines of a run, demand preferences). `20261128000100_fk_indexes.sql` indexes every FK column; I spot-checked 20 of them against the migrations.
+- **Foreign keys:** every reference has one. `ON DELETE RESTRICT` is the default. CASCADE is used only for true children (catalogue children of a draft, grants of a role, import rows, payroll lines of a run, demand preferences). `20261128000100_fk_indexes.sql` indexes every FK column; I spot-checked 20 of them against the migrations (`schema-foreign-key-indexes`).
 - **CHECKs:**
   - every status column has one, and each matches its code map
   - money: `amount_paise > 0`, `<> 0` with the sign tied to reversals
@@ -887,7 +1083,7 @@ The findings below are the ones that name a concrete failure. Two are new; the r
   - `provider_events.event_id`, `payment_transactions.provider_payment_id`, `payment_orders.provider_order_id`, `attendance_events (employee_id, client_event_id)` and `notification_outbox.dedupe_key` are unique
   - all of them are used by `ON CONFLICT` or caught
   - `salary_payments` refuses duplicate bank references, and `expense_entries.salary_payment_id` is unique (one expense per payment)
-- **Money:** all `bigint` paise and computed on the server. Checkout and webhook settlement lock the order (`FOR UPDATE`) before the duplicate check, so concurrent checkout, webhook and reconciliation for one payment have exactly one effect.
+- **Money:** all `bigint` paise and computed on the server; every timestamp is `timestamptz` (`schema-data-types`). Checkout and webhook settlement lock the order (`FOR UPDATE`) before the duplicate check, so concurrent checkout, webhook and reconciliation for one payment have exactly one effect.
 - **Slot capacity:** re-checked under a slot row lock at payment time, as ADR-015 requires.
 - **Concurrency:** a version column plus the stamping trigger on every editable table. Payroll payment recording locks the line before the overpayment check.
 
@@ -927,38 +1123,93 @@ The findings below are the ones that name a concrete failure. Two are new; the r
 
 **System design**
 - **Third-party timeouts:** every outbound call has one: Razorpay 15 s, FCM 15 s, Resend 15 s, MSG91 10 s, Google 10 s. No call is retried inline, which is correct for non-idempotent order creation.
-- **Outbox:** written in the same transaction as the business change (`notify()`), with a dedupe key and backoff up to 6 attempts and then DEAD.
+- **Outbox:** written in the same transaction as the business change (`data-upsert` on `dedupe_key`) (`notify()`), with a dedupe key and backoff up to 6 attempts and then DEAD.
 - **Occurrence generation:** idempotent (`ON CONFLICT (component, date, visit_no) DO NOTHING`) and uses the community timezone for `starts_at`.
 - **Job lease:** an atomic UPDATE on a lease row, the right choice behind the transaction pooler (H-5 is about its duration, not the mechanism).
 - **Configuration:** validated at boot with Zod, and the process refuses an unsafe production configuration. Secrets come only from the environment.
 
-## Scaling limits of the current design (no action needed for V1)
-- **One in-process tick** does all background work serially. It is fine up to a few thousand visits a day. Past that, move jobs to a separate worker process (ADR-003's pg-boss or the outbox table with `SKIP LOCKED`), so API latency and job duration stop sharing a pool of 10 connections.
-- **Rate limiting** does one Postgres upsert per limited request. At high OTP volume, this is the hottest write path. Partitioning by day, or moving to the edge, is the next step.
-- **`audit_events`, `attendance_events` and `notifications`** are the high-volume tables. Monthly partitioning (data-model §18) becomes worthwhile above roughly 10M rows.
-- **Admin scope is a comma-separated claim** that `claim_has_cluster` parses per row. That is fine for tens of clusters. Above about 100 clusters per admin, pass an array claim and use `= any`.
+---
+
+## Lifecycle per aggregate
+
+For each aggregate this lists who moves it, what the database guarantees at each step, and what happens on a retry, a crash or a concurrent edit. "Code" means the guarantee exists only in TypeScript.
+
+| Aggregate | Transitions and actor | Database guarantees | Retry / crash / concurrent edit |
+|---|---|---|---|
+| **Demand request** | Resident creates (`AWAITING_PAYMENT`) and may cancel. `settle` moves it to `COMMITTED`. Admin allocation moves it to `BALANCE_DUE`. Balance `settle` moves it to `CONVERTED`. The job moves it to `CANCELLED` (cycle closed) or `EXPIRED` (balance overdue). | Status CHECK. One live request per flat per cycle (partial UK). Snapshot is immutable and `initial + remaining = total`. Disclosure is required when a percentage is set. | **Retry:** create is blocked by the UK; pay reuses the open order. **Crash:** `settle` is atomic, but H-2 applies. **Concurrent:** `settle` locks the request; the overdue job does not re-check status (M-3). |
+| **Booking** | Resident creates (`PENDING_PAYMENT`). `settle` moves it to `CONFIRMED` or `REVIEW_REQUIRED`. The job moves it to `EXPIRED` (unpaid at start date or balance overdue). | Status CHECK. `demand_request_id` is unique. Nothing limits live bookings per flat or per renewed subscription. | **Retry:** a duplicate booking is created (H-4). **Crash:** atomic. **Concurrent:** `settle` locks booking then slot; renewals race (H-2). |
+| **Subscription** | `settle` creates it (`PENDING_ACTIVATION`). The first standing assignment for every component moves it to `ACTIVE`. The job moves it to `ENDED`. Nothing moves it to `CANCELLED` yet (policy OPEN). | Status CHECK. `period_end >= period_start`. One renewal per subscription (partial UK). Components are copied from the snapshot. | **Retry:** created only inside `settle`, so idempotent through `provider_payment_id`. **Concurrent:** the `ENDED` update is state-guarded. **Gap:** a cluster move strands it (H-1). |
+| **Occurrence** | The job generates it (`SCHEDULED`). Auto-assign or an admin moves it to `ASSIGNED`. Worker check-in moves it to `IN_PROGRESS`, then completion, no-show or correction. Leave approval moves it back to `SCHEDULED`. | UK on (component, date, visit_no), so generation is idempotent. One ACTIVE assignment per visit. **No double-booked worker** (exclusion constraint). Attendance evidence is immutable by trigger. | **Retry:** check-in is idempotent through `client_event_id`. **Concurrent:** replacement and check-in both lock the occurrence, but check-in does not lock the assignment (M-17); auto-assign skips eligibility (M-9). |
+| **Payment order** | `orderFor` creates it (`CREATED`). `settle` moves it to `PAID` or `REVIEW_REQUIRED`. The job moves it to `EXPIRED`, and a late payment still settles. | One PAID per (ref, purpose) (partial UK). `provider_order_id` and `idempotency_key` are unique. `provider_payment_id` is unique on transactions. | **Retry:** checkout, webhook and reconciliation all lock the order first, giving exactly one effect. **Crash:** a webhook crash mid-processing is never retried (H-3). **Starvation:** reconciliation can miss orders (H-7). |
+| **Ticket** | Resident creates (`OPEN`). Support moves it through `ASSIGNED`, `IN_PROGRESS` and `WAITING` to `RESOLVED` and `CLOSED`, with reopen allowed. The job escalates it. | Status CHECK. Updates and escalations are append-only. Version column. | **Concurrent:** PATCH locks the row and checks the version (`support/service.ts:253-255`). Escalation is idempotent through `next_escalation_at`. **Gap:** a cluster move strands it (H-1). |
+| **Payroll run** | An admin with global scope creates it (`DRAFT`), submits it (`IN_REVIEW`), then approves it (`APPROVED`) or returns it (`RETURNED`, which creates a new version). | One open and one APPROVED run per month (partial UKs). Payments are append-only, references are unique, and each expense links to one payment. **Lines are not frozen after approval** (M-2). | **Concurrent:** submit and approve lock the run; entries lock only the line (M-2). Payment recording locks the line before the overpayment check. |
+| **Residence membership** | Resident registers (`PENDING`). Admin moves it to `VERIFIED` or `REJECTED`. The Primary revokes family members through a definer function. A change request ends it. | One VERIFIED PRIMARY per flat. One active membership per resident. FAMILY ⇔ `primary_membership_id`. | **Concurrent:** verification approval locks the request (`residents/admin-service.ts:186-198`). **Gap:** RLS lets the owner write `status` (M-1). |
+
+## Concurrency matrix
+
+| Race | Made safe by | Verdict |
+|---|---|---|
+| Webhook vs checkout callback vs reconciliation for one payment | `FOR UPDATE` on `payment_orders`, then a `provider_payment_id` lookup and unique key (`payments.ts:142-145`) | Safe |
+| Two residents buying the last seat of a continuous slot | `FOR UPDATE` on `slots` at settle plus `slot_usage` (`payments.ts:228,246`); the loser goes to REVIEW_REQUIRED with a refund exception | Safe (by design, ADR-015) |
+| Two admins allocating to demand-led slots | `FOR UPDATE` on every slot of the set before counting (`bookings/admin-service.ts:573,587`) | Safe |
+| Two admins approving one residence or family request | `FOR UPDATE` on the request plus the one-primary UK | Safe |
+| Two admins deciding one leave request | `FOR UPDATE` plus a `status = 'PENDING'` check (`workforce/admin-service.ts:495-498`) | Safe |
+| Two admins assigning the same worker to overlapping visits | `FOR UPDATE` on `employees` plus the exclusion constraint | Safe |
+| Admin replacement vs worker check-in | Occurrence lock only | **Unsafe (M-17)** |
+| Payroll entry vs submit | Line lock only | **Unsafe (M-2)** |
+| Two renewals of one subscription | Unlocked existence check | **Unsafe (H-2, H-4)** |
+| Balance payment vs overdue job at the deadline | Job update without a status predicate | **Unsafe (M-3)** |
+| Two API instances running the tick | Lease row, which expires mid-tick | **Unsafe (H-5)** |
+| Two outbox workers | None | **Unsafe (H-5)** |
+| Resident re-issuing a code while the worker is checking in | Check-in locks the newest valid challenge; issuing expires older ones | Safe: at worst the worker retries with the new code |
+
+## Trade-offs against the Supabase rules for this setup
+
+The Nestovin setup is API-only access, custom claims through `SET LOCAL`, and the pooler in transaction mode. Four rules need interpreting for it:
+- **`security-rls-basics` uses `auth.uid()` and the `authenticated` role.** Nestovin deliberately does not let clients reach Postgres (ADR-001). Claims come from `current_setting('app.*', true)` set by the API, so the `(select auth.uid())` advice translates to wrapping the `app.claim_*()` helpers (M-6). This is sound as long as the API is the only `app_api` client, which is why M-10 (assert the role at boot) matters.
+- **`lock-advisory` recommends advisory locks over lock rows.** Session advisory locks break behind the transaction pooler. Transaction-level `pg_try_advisory_xact_lock` would work, but only for one transaction, and the tick spans dozens. The lease row is therefore the right choice. It just needs a lease long enough, a release at the end, and per-row claims inside (H-5).
+- **`schema-primary-keys` recommends `bigint identity` or UUIDv7 over random UUIDv4.** Every business table uses `gen_random_uuid()`. IDs appear in URLs and the apps, so sequential bigints would leak volumes. Random keys spread index inserts, but at expected volumes (single-digit millions of rows a year) the cost is small. **Signal to revisit:** index size of `service_occurrences_pkey` above about 1 GB, or insert latency on `attendance_events` and `notifications` above 5 ms at p95. Then switch new high-volume tables to UUIDv7 (`uuidv7()` is built into Postgres 18; on earlier versions generate it in the API) or `bigint identity` for internal-only rows. `audit_events` and `ticket_updates` already use identity.
+- **`conn-prepared-statements`:** node-postgres sends unnamed statements unless a name is given, and Kysely never names them (`db/database.ts:34-35`). Checked, fine for transaction mode.
+
+## Growth signals (no action now; the trigger for each is named)
+
+| Area | Today | When to act | Action |
+|---|---|---|---|
+| `service_occurrences`, `occurrence_assignments`, `attendance_events` | Unpartitioned; about 3M, 3M and 3M rows a year at expected scale | Above about 50M rows, or when old-visit queries need `scheduled_date` pruning (`schema-partitioning` suggests 100M) | Range-partition `service_occurrences` and `attendance_events` by month of `scheduled_date` / `server_time`. Keep `occurrence_assignments` unpartitioned for as long as possible: an exclusion constraint on a partitioned parent must compare the partition key with `=`. Per-partition constraints would miss overlaps across a month boundary. |
+| `audit_events`, `notifications`, `notification_outbox` | Append-heavy, no retention (M-7) | After M-7's retention lands: table above 20M rows, or autovacuum on it running for more than 10 min | Monthly partitions plus partition drop for retention. Tune per-table `autovacuum_vacuum_scale_factor` (`monitor-vacuum-analyze`). |
+| One in-process tick | All jobs serial in the API process | p95 tick duration above 30 s, or any lease overlap logged after H-5 | Split into a worker process (ADR-003: pg-boss or outbox with `SKIP LOCKED`), with its own pool. |
+| Pool of 10 per instance | Fine | Supavisor client connections above 70% of the plan limit, or pool wait time above 50 ms at p95 | Raise `max` per instance within the plan's pooler limit (`conn-limits`). Add instances rather than connections. |
+| Rate-limit upserts | One write per limited request | OTP or checkout above about 50 rps sustained | Day-partitioned buckets or edge rate limiting. |
+| Admin cluster claim | Comma string parsed per row | More than about 100 clusters per admin | Array claim and `= any`. |
+| Read replicas | Not needed | Admin reporting and exports above about 20% of primary CPU (`monitor-pg-stat-statements`) | Route exports and overview to a Supabase read replica. |
 
 ---
 
 ## Prioritised fix plan
 
-Each step is one PR-sized change with its tests. The order puts money and scope correctness first, then the job seams, then defence in depth.
+Each step is one PR-sized change with its tests. Steps are ordered by blast radius: money and access isolation first, then integrity in normal use, then performance.
 
 | # | Fix | Findings | Size |
 |---|---|---|---|
 | 1 | Savepoint around `applyPurpose`; lock the subscription in `renew`; `bookings_one_live_renewal` index | H-2 | S |
 | 2 | Webhook: re-claim unprocessed events, 500 on failure, `reprocessEvents` job; stop storing unsigned events; webhook rate limit | H-3, M-5 | M |
-| 3 | `idempotency_keys` table and middleware, required on money POSTs | H-4 | M |
-| 4 | Cluster move: `current_cluster_of`, insert-time stamping triggers, `move_community_scope`, block or end standing assignments on move | H-1 | M |
-| 5 | Job runner: per-step isolation, longer lease with release, outbox row claim with `SKIP LOCKED`, Resend idempotency key | H-5 | S |
-| 6 | `businessToday()` everywhere, `current_date` replaced in SQL, lint rule | H-6 | S |
-| 7 | Balance-expiry status predicate; Razorpay call moved out of the DB transaction | M-3, M-4 | S |
-| 8 | Owner-guard triggers and stricter employee insert policies; column grants and payroll freeze triggers | M-1, M-2 | M |
-| 9 | Auto-assign uses full eligibility; boot-time role assertion; side effects after commit | M-9, M-10, M-12 | S |
-| 9a | Server-verified password change; attendance export paging and schedule span cap | M-13, M-14 | S |
-| 10 | Wrap RLS helper calls in `(select …)` | M-6 | S |
-| 11 | Retention job; metrics and alerts | M-7, M-11 | M |
-| 12 | `status_transitions` (or amend ADR-004) and data-model doc refresh | M-8 | M |
-| 13 | Low findings | L-1 … L-9 | S each |
+| 3 | Reconciliation ordering, backoff and index; Razorpay calls outside transactions | H-7, M-4 | S |
+| 4 | `idempotency_keys` table and middleware, required on money POSTs | H-4 | M |
+| 5 | Cluster move: `current_cluster_of`, insert-time stamping triggers, `move_community_scope`, block or end standing assignments on move | H-1 | M |
+| 6 | Role timeouts (`statement_timeout`, `lock_timeout`, `idle_in_transaction_session_timeout`) and 503 mapping; boot-time role assertion | M-15, M-10 | S |
+| 7 | Job runner: per-step isolation, longer lease with release, outbox row claim with `SKIP LOCKED`, Resend idempotency key | H-5 | S |
+| 8 | `businessToday()` everywhere, `current_date` replaced in SQL, lint rule | H-6 | S |
+| 9 | Balance-expiry status predicate; check-in locks the assignment; payroll lock order (run, then line) | M-3, M-17, M-2 (race) | S |
+| 10 | Owner-guard triggers and stricter employee insert policies; column grants and payroll freeze triggers | M-1, M-2 | M |
+| 11 | Auto-assign uses full eligibility; side effects after commit; server-verified password change | M-9, M-12, M-13 | S |
+| 12 | Maintenance partial indexes; wrap RLS helper calls in `(select …)`; runner `no-transaction` directive | M-16, M-6, L-11 | S |
+| 13 | Attendance export paging, schedule span cap, candidate N+1; microsecond cursors | M-14, L-10 | S |
+| 14 | Retention job; metrics and alerts | M-7, M-11 | M |
+| 15 | `status_transitions` (or amend ADR-004) and data-model doc refresh | M-8 | M |
+| 16 | Remaining Low findings | L-1 … L-9 | S each |
 
-Steps 1–3 should land before any real money moves. Step 4 must land before the first community is moved between clusters. Steps 5 and 6 should land before a second API instance is deployed or the app is used after midnight IST, which in practice means before launch.
+Timing:
+- **Steps 1–4** before any real money moves.
+- **Step 5** before the first community is moved between clusters.
+- **Steps 6–8** before a second API instance or real overnight use (after midnight IST), which in practice means before launch.
+- **Steps 12–14** before about six months of production data.
