@@ -2,7 +2,7 @@ import { View } from 'react-native';
 import { router } from 'expo-router';
 import { CheckCircle2, Circle, CircleX, GraduationCap, Hourglass, ShieldCheck, Sparkles } from 'lucide-react-native';
 import type { Me } from '../lib/types';
-import { BrandImage, Button, Card, Muted, ProgressRing, Stagger, Text, c } from '../ui';
+import { BrandImage, Button, Card, Muted, Pill, ProgressRing, Stagger, Text, c } from '../ui';
 
 /** Readiness numbers from /me: required checks, qualifications, training. */
 export function readinessOf(me: Me) {
@@ -41,10 +41,7 @@ export function NotReadyCard({ me }: { me: Me }) {
           <View className="flex-row items-center gap-4 bg-warning-surface/60 p-5">
             <ProgressRing value={r.progress} label={`${Math.round(r.progress * 100)}%`} color={c.tealAction} />
             <View className="flex-1 gap-1">
-              <View className="flex-row items-center gap-1.5">
-                <Hourglass size={16} color={c.warningText} />
-                <Text className="font-semibold text-[13px] uppercase tracking-wider text-warning-text">Not ready yet</Text>
-              </View>
+              <Pill label="Not ready yet" tone="warning" icon={Hourglass} />
               <Text className="font-heading text-xl text-charcoal">Almost ready to start work</Text>
               <Muted>HR will assign visits once these are done.</Muted>
             </View>

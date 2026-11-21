@@ -154,7 +154,7 @@ function Plans({
                 accessibilityRole="tab"
                 aria-selected={on}
                 accessibilityLabel={k === 'all' ? 'All plans' : SERVICE_VISUAL[k].label}
-                className={`flex-row items-center gap-1.5 rounded-full px-4 min-h-[44px] border ${on ? 'bg-teal border-teal' : 'bg-white border-line'}`}
+                className={`flex-row items-center gap-1.5 rounded-full px-4 min-h-[48px] border ${on ? 'bg-teal border-teal' : 'bg-white border-line'}`}
               >
                 <Icon
                   name={k === 'all' ? 'grid-outline' : SERVICE_VISUAL[k].icon}

@@ -178,7 +178,7 @@ export default function PickSlot() {
                     accessibilityRole="radio"
                     aria-checked={on}
                     accessibilityLabel={longDate(d)}
-                    className={`w-[64px] items-center rounded-lg py-3 border-[1.5px] ${on ? 'bg-teal border-teal' : 'bg-white border-line'}`}
+                    className={`min-w-[64px] px-2 items-center rounded-lg py-3 border-[1.5px] ${on ? 'bg-teal border-teal' : 'bg-white border-line'}`}
                   >
                     <Text
                       variant="caption"

@@ -64,7 +64,7 @@ export function ResultMark({ tone, size = 112 }: { tone: 'success' | 'warning' |
     icon.value = withDelay(140, withSpring(1, { damping: 9, stiffness: 220 }));
     ring.value = withDelay(120, withTiming(1, { duration: 900, easing: Easing.out(Easing.quad) }));
   }, [icon, reduce, ring, scale]);
-  const fill = { success: c.greenAction, warning: '#B45309', error: c.errorText }[tone];
+  const fill = { success: c.greenAction, warning: c.warningText, error: c.errorText }[tone];
   const halo = { success: c.successSurface, warning: c.warningSurface, error: c.errorSurface }[tone];
   const circle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   const glyph = useAnimatedStyle(() => ({ transform: [{ scale: icon.value }], opacity: icon.value }));
@@ -132,7 +132,7 @@ export function FloatingAction({ label, icon: Icon, onPress, hint }: { label: st
   const content = (
     <View className="min-h-[56px] flex-row items-center justify-center gap-2.5 px-6">
       <Icon size={22} color={c.white} strokeWidth={2.25} />
-      <Text allowFontScaling className="font-semibold text-[17px] text-white">
+      <Text allowFontScaling className="font-semibold text-lead text-white">
         {label}
       </Text>
     </View>
@@ -140,7 +140,7 @@ export function FloatingAction({ label, icon: Icon, onPress, hint }: { label: st
   if (Platform.OS === 'android') {
     return (
       <View className="absolute bottom-5 right-5" style={shadow.float}>
-        <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} accessibilityHint={hint} android_ripple={{ color: 'rgba(255,255,255,0.2)' }} className="overflow-hidden rounded-2xl bg-teal-action">
+        <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} accessibilityHint={hint} android_ripple={{ color: `${c.white}33` }} className="overflow-hidden rounded-2xl bg-teal-action">
           {content}
         </Pressable>
       </View>

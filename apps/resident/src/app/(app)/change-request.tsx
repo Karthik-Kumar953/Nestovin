@@ -12,6 +12,7 @@ import {
   Icon,
   PressScale,
   Screen,
+  SkeletonList,
   SuccessCheck,
   Text,
   colors,
@@ -20,6 +21,7 @@ import {
 import { api, errorMessage } from '../../lib/api';
 import { addDays, longDate, ymd } from '../../lib/format';
 import { keys, useMe } from '../../lib/queries';
+import { ErrorState } from '../../components/common';
 
 /** RES-05/14: occupancy change (Primary only) or moving out, chosen with the native date picker. Reviewed by our team. */
 export default function ChangeRequest() {
@@ -27,9 +29,9 @@ export default function ChangeRequest() {
   const me = useMe();
   const m = me.data?.membership;
   const primary = m?.kind === 'PRIMARY';
-  const [kind, setKind] = useState<'OCCUPANCY_CHANGE' | 'MOVE_OUT' | null>(
-    primary ? null : 'MOVE_OUT',
-  );
+  const [chosen, setKind] = useState<'OCCUPANCY_CHANGE' | 'MOVE_OUT' | null>(null);
+  // Family members can only move out, so that choice is made for them once their details load.
+  const kind = chosen ?? (m && !primary ? 'MOVE_OUT' : null);
   const [occupancy, setOccupancy] = useState<'OWNER' | 'TENANT' | null>(null);
   const [date, setDate] = useState<Date | null>(null);
   const [iosPicker, setIosPicker] = useState(false);
@@ -73,7 +75,25 @@ export default function ChangeRequest() {
             until then.
           </Text>
         </View>
-        <Button title="Back to household" onPress={() => router.replace('/household')} />
+        <Button
+          title="Back to household"
+          icon="people-outline"
+          onPress={() => router.replace('/household')}
+        />
+      </Screen>
+    );
+  }
+  if (me.isLoading) {
+    return (
+      <Screen title="Change residence" onBack={() => router.back()}>
+        <SkeletonList count={2} />
+      </Screen>
+    );
+  }
+  if (!me.data) {
+    return (
+      <Screen title="Change residence" onBack={() => router.back()}>
+        <ErrorState error={me.error} onRetry={() => void me.refetch()} />
       </Screen>
     );
   }
@@ -102,6 +122,7 @@ export default function ChangeRequest() {
             {send.error ? <Banner tone="error">{errorMessage(send.error)}</Banner> : null}
             <Button
               title="Send for review"
+              icon="send-outline"
               loading={send.isPending}
               disabled={!ready}
               onPress={() => send.mutate()}

@@ -46,6 +46,7 @@ import {
   today,
 } from '../../../lib/format';
 import { visitStatus } from '../../../lib/status';
+import { errorMessage } from '../../../lib/api';
 import { SERVICE_VISUAL, img, serviceIcon, type ServiceKind } from '../../../assets/images';
 import { ErrorState, FloatingAction, OfflineNotice, Timeline } from '../../../components/common';
 import { VisitRow } from '../../../components/VisitRow';
@@ -120,11 +121,25 @@ export default function Home() {
         <View className="-mt-16">
           {visits.isLoading ? (
             <SkeletonCard lines={3} />
+          ) : visits.error && !visits.data ? (
+            <Card>
+              <ErrorState error={visits.error} onRetry={() => void visits.refetch()} compact />
+            </Card>
           ) : (
             <TodayCard focus={focus} isToday={Boolean(todays[0])} bookings={bookings.data ?? []} />
           )}
         </View>
         <OfflineNotice />
+        {(bookings.error && !bookings.data) || (requests.error && !requests.data) ? (
+          <Banner
+            tone="error"
+            title="Your bookings did not load"
+            action="Try again"
+            onAction={() => void Promise.all([bookings.refetch(), requests.refetch()])}
+          >
+            {errorMessage(bookings.error ?? requests.error)}
+          </Banner>
+        ) : null}
         <Attention bookings={bookings.data ?? []} requests={requests.data ?? []} />
 
         {coming.length ? (
@@ -260,9 +275,7 @@ function TodayCard({
         <View className="flex-row items-center gap-3">
           <IconTile icon={serviceIcon(focus.serviceName)} size={52} />
           <View className="flex-1">
-            <Text variant="h2" className="text-[22px] leading-[30px]">
-              {focus.serviceName}
-            </Text>
+            <Text variant="h3">{focus.serviceName}</Text>
             <Text variant="body" tone="muted">
               {at ? `Starts ${at}` : 'Time to be confirmed'}
             </Text>

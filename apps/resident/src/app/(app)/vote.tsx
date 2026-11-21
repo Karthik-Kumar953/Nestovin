@@ -10,12 +10,14 @@ import {
   Illustration,
   Screen,
   SegmentedControl,
+  SkeletonList,
   SuccessCheck,
   Text,
   haptics,
 } from '@nestovin/ui-native';
-import { api, errorMessage } from '../../lib/api';
+import { api, ApiError, errorMessage } from '../../lib/api';
 import { img } from '../../assets/images';
+import { ErrorState } from '../../components/common';
 
 /** RES-02A: interest vote for a city or community Nestovin does not serve yet. */
 export default function Vote() {
@@ -40,21 +42,23 @@ export default function Vote() {
     onError: () => haptics.error(),
   });
 
-  if (vote.isSuccess) {
+  // RES-02A: one vote per place. A repeat vote is not an error for the resident; it is already counted.
+  const already = vote.error instanceof ApiError && vote.error.status === 409;
+  if (vote.isSuccess || already) {
     return (
       <Screen title="Thank you" onBack={() => router.back()}>
         <View className="items-center gap-4 pt-8">
           <SuccessCheck />
           <Text variant="h2" className="text-center">
-            Your vote is in
+            {already ? 'Your vote is already counted' : 'Your vote is in'}
           </Text>
-          <Text
-            variant="body"
-            tone="muted"
-            className="text-center"
-          >{`We use votes to decide where Nestovin goes next. We will let you know if ${name.trim()} goes live.`}</Text>
+          <Text variant="body" tone="muted" className="text-center">
+            {already
+              ? `You have voted for ${name.trim()} before, and that vote still counts. Each person gets one vote per place.`
+              : `Thank you for voting for ${name.trim()}. We use votes to decide where Nestovin goes next. A vote does not register you for service.`}
+          </Text>
         </View>
-        <Button title="Done" onPress={() => router.back()} />
+        <Button title="Done" icon="checkmark" onPress={() => router.back()} />
       </Screen>
     );
   }
@@ -68,6 +72,7 @@ export default function Vote() {
           {vote.error ? <Banner tone="error">{errorMessage(vote.error)}</Banner> : null}
           <Button
             title="Send my vote"
+            icon="megaphone-outline"
             loading={vote.isPending}
             disabled={name.trim().length < 2 || (level === 'COMMUNITY' && !cityId)}
             onPress={() => vote.mutate()}
@@ -93,6 +98,10 @@ export default function Vote() {
       {level === 'COMMUNITY' ? (
         <View className="gap-3">
           <Text variant="h3">City</Text>
+          {cities.isLoading ? <SkeletonList count={2} /> : null}
+          {cities.error && !cities.data ? (
+            <ErrorState error={cities.error} onRetry={() => void cities.refetch()} compact />
+          ) : null}
           {(cities.data?.items ?? []).map((c) => (
             <ChoiceTile
               key={c.id}
@@ -116,6 +125,7 @@ export default function Vote() {
         onChangeText={setName}
         maxLength={120}
         placeholder={level === 'CITY' ? 'For example: Pune' : 'For example: Green Meadows'}
+        autoCapitalize="words"
       />
     </Screen>
   );

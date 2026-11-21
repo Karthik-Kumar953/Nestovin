@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import Animated, { FadeIn, LinearTransition, ReduceMotion, ZoomIn } from 'react-native-reanimated';
 import { Building2, CalendarDays, Check, CheckCircle2, Clock3, Hourglass, X } from 'lucide-react-native';
 import { useQueryClient } from '@tanstack/react-query';
@@ -8,7 +8,7 @@ import { flatLabel, longDay, relativeDay, timeWindow } from '../../lib/format';
 import { haptic } from '../../lib/haptics';
 import { qk, useMe, useOffers, useRespondOffer } from '../../lib/queries';
 import type { OvertimeOffer } from '../../lib/types';
-import { BrandImage, Button, EmptyState, ErrorState, LoadingList, Muted, Pill, Screen, Section, ServiceIcon, Stagger, Text, c, shadow } from '../../ui';
+import { BrandImage, Button, EmptyState, ErrorState, LoadingList, Muted, Pill, Screen, Section, ServiceIcon, Stagger, Text, c, confirmAction, notify, shadow, useLargeText } from '../../ui';
 
 type View_ = { label: string; tone: 'warning' | 'teal' | 'success' | 'neutral' | 'error'; detail: string };
 
@@ -83,6 +83,7 @@ function OfferCard({ offer, meId, justAccepted, onAnswered }: { offer: OvertimeO
   const { mine, view } = stateOf(offer, meId);
   const canAnswer = offer.status === 'OPEN' && mine === 'PENDING';
   const v = offer.visit;
+  const large = useLargeText();
 
   const answer = (response: 'ACCEPTED' | 'REJECTED') =>
     respond.mutate(
@@ -94,23 +95,20 @@ function OfferCard({ offer, meId, justAccepted, onAnswered }: { offer: OvertimeO
         },
         onError: (e) => {
           haptic.error();
-          Alert.alert('Could not send your answer', errorMessage(e));
+          notify('Could not send your answer', errorMessage(e));
         },
       },
     );
   const decline = () =>
-    Alert.alert('Decline this offer?', 'Operations will offer this visit to someone else.', [
-      { text: 'Keep it', style: 'cancel' },
-      { text: 'Decline', style: 'destructive', onPress: () => answer('REJECTED') },
-    ]);
+    confirmAction({ title: 'Decline this offer?', message: 'Operations will offer this visit to someone else.', cancelLabel: 'Keep it', confirmLabel: 'Decline', onConfirm: () => answer('REJECTED') });
 
   return (
     <Animated.View layout={LinearTransition.duration(260).reduceMotion(ReduceMotion.System)} style={[{ borderRadius: 28, borderCurve: 'continuous', backgroundColor: c.surface }, canAnswer ? shadow.float : shadow.card]}>
       <View className="overflow-hidden rounded-2xl border border-line/70 bg-surface">
       <View className="gap-3 p-5">
-        <View className="flex-row items-center justify-between">
+        <View className="flex-row flex-wrap items-center justify-between gap-2">
           <Pill label={view.label} tone={view.tone} icon={view.tone === 'teal' ? Hourglass : view.tone === 'success' ? CheckCircle2 : undefined} />
-          <Text className="font-semibold text-[15px] text-ink-secondary">{relativeDay(v.scheduledDate)}</Text>
+          <Text className="font-semibold text-body-sm text-ink-secondary">{relativeDay(v.scheduledDate)}</Text>
         </View>
         <View className="flex-row items-center gap-3">
           <ServiceIcon serviceName={v.serviceName} size="lg" />
@@ -135,15 +133,15 @@ function OfferCard({ offer, meId, justAccepted, onAnswered }: { offer: OvertimeO
               >
                 <Check size={20} color={c.white} strokeWidth={3} />
               </Animated.View>
-              <Text className="flex-1 text-[15px] text-teal-deep">Thanks. We told Operations you can do it. You will get an update when it is confirmed.</Text>
+              <Text className="flex-1 text-body-sm text-teal-deep">Thanks. We told Operations you can do it. You will get an update when it is confirmed.</Text>
             </View>
           </Animated.View>
         ) : null}
       </View>
       {canAnswer ? (
-        <View className="flex-row gap-3 border-t border-line/60 p-4">
-          <Button title="Decline" variant="secondary" icon={X} onPress={decline} disabled={respond.isPending} className="flex-1" />
-          <Button title="Accept" icon={Check} busy={respond.isPending && respond.variables?.response === 'ACCEPTED'} disabled={respond.isPending} onPress={() => answer('ACCEPTED')} className="flex-1" />
+        <View className={`gap-3 border-t border-line/60 p-4 ${large ? 'flex-col-reverse' : 'flex-row'}`}>
+          <Button title="Decline" variant="secondary" icon={X} onPress={decline} disabled={respond.isPending} className={large ? undefined : 'flex-1'} />
+          <Button title="Accept" icon={Check} busy={respond.isPending && respond.variables?.response === 'ACCEPTED'} disabled={respond.isPending} onPress={() => answer('ACCEPTED')} className={large ? undefined : 'flex-1'} />
         </View>
       ) : null}
       </View>
@@ -155,7 +153,7 @@ function Row({ icon: Icon, text }: { icon: typeof Clock3; text: string }) {
   return (
     <View className="flex-row items-center gap-2.5">
       <Icon size={18} color={c.tealDeep} />
-      <Text className="text-[15px]">{text}</Text>
+      <Text className="flex-1 text-body-sm">{text}</Text>
     </View>
   );
 }

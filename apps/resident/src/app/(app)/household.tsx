@@ -22,9 +22,15 @@ import {
 } from '@nestovin/ui-native';
 import { api, ApiError, errorMessage } from '../../lib/api';
 import { toE164 } from '../../lib/auth';
-import { keys, useChangeRequests, useHousehold, useMe } from '../../lib/queries';
+import {
+  keys,
+  useChangeRequests,
+  useHousehold,
+  useMe,
+  type ChangeRequest,
+} from '../../lib/queries';
 import { CHANGE_STATUS } from '../../lib/status';
-import { phone, shortDate } from '../../lib/format';
+import { phone, shortDate, ymd } from '../../lib/format';
 import { img } from '../../assets/images';
 import { ErrorState } from '../../components/common';
 
@@ -53,6 +59,17 @@ export default function HouseholdScreen() {
       api<Household>(`/v1/resident/household/members/${id}`, { method: 'DELETE' }),
     onSuccess: set,
   });
+  const cancelChange = useMutation({
+    mutationFn: (id: string) =>
+      api<{ items: ChangeRequest[] }>(`/v1/resident/change-requests/${id}/cancel`, {
+        method: 'POST',
+      }),
+    onSuccess: (d) => {
+      haptics.success();
+      qc.setQueryData(keys.changes, d);
+    },
+    onError: () => haptics.error(),
+  });
   const m = me.data?.membership;
   const h = household.data;
   const confirmRemove = (id: string, name: string) =>
@@ -61,12 +78,23 @@ export default function HouseholdScreen() {
       { text: 'Remove', style: 'destructive', onPress: () => remove.mutate(id) },
     ]);
 
+  const confirmCancelRequest = (id: string, name: string) =>
+    Alert.alert(`Cancel the request for ${name}?`, 'You can send a new request later.', [
+      { text: 'Keep request', style: 'cancel' },
+      { text: 'Cancel request', style: 'destructive', onPress: () => cancelReq.mutate(id) },
+    ]);
+  const confirmCancelChange = (id: string) =>
+    Alert.alert('Withdraw this change request?', 'Your current details stay as they are.', [
+      { text: 'Keep request', style: 'cancel' },
+      { text: 'Withdraw', style: 'destructive', onPress: () => cancelChange.mutate(id) },
+    ]);
+
   return (
     <Screen
       title="Household"
       onBack={() => router.back()}
       onRefresh={() => void Promise.all([household.refetch(), changes.refetch()])}
-      refreshing={household.isRefetching}
+      refreshing={household.isRefetching || changes.isRefetching}
     >
       {m ? (
         <Card padded={false}>
@@ -116,7 +144,9 @@ export default function HouseholdScreen() {
                         title="Remove"
                         variant="tertiary"
                         size="sm"
+                        icon="person-remove-outline"
                         block={false}
+                        loading={remove.isPending && remove.variables === x.membershipId}
                         onPress={() => confirmRemove(x.membershipId, x.fullName ?? x.phone)}
                       />
                     ) : undefined
@@ -160,8 +190,10 @@ export default function HouseholdScreen() {
                       title="Cancel"
                       variant="tertiary"
                       size="sm"
+                      icon="close-circle-outline"
                       block={false}
-                      onPress={() => cancelReq.mutate(r.id)}
+                      loading={cancelReq.isPending && cancelReq.variables === r.id}
+                      onPress={() => confirmCancelRequest(r.id, r.fullName)}
                     />
                   ) : null}
                 </View>
@@ -185,6 +217,13 @@ export default function HouseholdScreen() {
               Changes to verified details are reviewed by our team.
             </Text>
           </View>
+          {changes.isLoading ? <SkeletonList count={1} /> : null}
+          {changes.error && !changes.data ? (
+            <ErrorState error={changes.error} onRetry={() => void changes.refetch()} compact />
+          ) : null}
+          {cancelChange.error ? (
+            <Banner tone="error">{errorMessage(cancelChange.error)}</Banner>
+          ) : null}
           {(changes.data ?? []).map((c) => {
             const st = CHANGE_STATUS[c.status] ?? {
               label: c.status.toLowerCase(),
@@ -200,10 +239,27 @@ export default function HouseholdScreen() {
                   </Text>
                   <StatusChip label={st.label} tone={st.tone} />
                 </View>
+                {c.createdAt ? (
+                  <Text
+                    variant="sm"
+                    tone="muted"
+                  >{`Sent ${shortDate(ymd(new Date(c.createdAt)))}`}</Text>
+                ) : null}
                 {c.reviewNote ? (
                   <Text variant="sm" tone="muted">
                     {c.reviewNote}
                   </Text>
+                ) : null}
+                {c.status === 'PENDING' ? (
+                  <Button
+                    title="Withdraw request"
+                    variant="tertiary"
+                    size="sm"
+                    icon="close-circle-outline"
+                    block={false}
+                    loading={cancelChange.isPending && cancelChange.variables === c.id}
+                    onPress={() => confirmCancelChange(c.id)}
+                  />
                 ) : null}
               </View>
             );

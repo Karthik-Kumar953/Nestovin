@@ -12,7 +12,7 @@ import { haptic } from '../lib/haptics';
 import { qk } from '../lib/queries';
 import { supabase } from '../lib/supabase';
 import type { Me } from '../lib/types';
-import { Banner, Button, Field, Muted, Screen, Stagger, Text, Title } from '../ui';
+import { Banner, Button, Field, Muted, Screen, Stagger, Text, Title, c } from '../ui';
 
 /** EMP-02: Employee ID + password. The Employee ID maps to an internal staff email (ADR-012). */
 export default function SignIn() {
@@ -64,7 +64,7 @@ export default function SignIn() {
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: true, title: '', headerTransparent: true, headerBackTitle: 'Back', headerTintColor: '#00796B' }} />
+      <Stack.Screen options={{ headerShown: true, title: '', headerTransparent: true, headerBackTitle: 'Back', headerTintColor: c.tealAction }} />
       <Screen edges={['bottom', 'left', 'right']} footer={<Button title="Sign in" icon={LogIn} busy={busy} onPress={() => void submit()} />}>
         <View className="h-24" />
         <Stagger index={0}>

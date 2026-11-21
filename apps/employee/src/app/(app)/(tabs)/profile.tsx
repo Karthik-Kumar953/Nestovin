@@ -1,4 +1,4 @@
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BadgeCheck, Building2, CalendarCheck2, CalendarOff, ChevronRight, Clock3, GraduationCap, LogOut, Phone, ReceiptIndianRupee, ShieldCheck, TimerReset } from 'lucide-react-native';
@@ -9,27 +9,25 @@ import { daysLabel, initials, longDay } from '../../../lib/format';
 import { unregisterPush } from '../../../lib/push';
 import { qk, useMe } from '../../../lib/queries';
 import { supabase } from '../../../lib/supabase';
-import { Avatar, Button, Card, ErrorState, ListRow, LoadingList, Muted, Pill, Rings, Screen, Section, ServiceIcon, Stagger, Text, c, gradients } from '../../../ui';
+import { Avatar, Button, Card, ErrorState, ListRow, LoadingList, Muted, Pill, Rings, Screen, Section, ServiceIcon, Stagger, Text, c, confirmAction, gradients } from '../../../ui';
 
 /** EMP-03: own profile (read-only in V1; HR edits), links and sign-out. */
 export default function Profile() {
   const qc = useQueryClient();
   const me = useMe();
   const signOut = () =>
-    Alert.alert('Sign out?', 'You will need your Employee ID and password to sign in again.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Sign out',
-        style: 'destructive',
-        onPress: () =>
-          void (async () => {
-            await unregisterPush();
-            await supabase.auth.signOut();
-            qc.clear();
-            router.replace('/welcome');
-          })(),
-      },
-    ]);
+    confirmAction({
+      title: 'Sign out?',
+      message: 'You will need your Employee ID and password to sign in again.',
+      confirmLabel: 'Sign out',
+      onConfirm: () =>
+        void (async () => {
+          await unregisterPush();
+          await supabase.auth.signOut();
+          qc.clear();
+          router.replace('/welcome');
+        })(),
+    });
 
   if (!me.data) {
     return <Screen title="Me">{me.error ? <ErrorState error={me.error} onRetry={() => void me.refetch()} /> : <LoadingList rows={3} />}</Screen>;
@@ -123,7 +121,7 @@ export default function Profile() {
       <View className="pt-2">
         <Button title="Sign out" variant="secondary" icon={LogOut} onPress={signOut} />
       </View>
-      <Muted className="text-center text-[13px]">Nestovin Worker {Constants.expoConfig?.version ?? ''}</Muted>
+      <Muted className="text-center text-label">Nestovin Worker {Constants.expoConfig?.version ?? ''}</Muted>
     </Screen>
   );
 }

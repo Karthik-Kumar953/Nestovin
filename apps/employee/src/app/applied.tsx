@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
-import { IdCard, PhoneCall, ShieldCheck } from 'lucide-react-native';
+import { Check, IdCard, PhoneCall, ShieldCheck } from 'lucide-react-native';
 import { haptic } from '../lib/haptics';
 import { Button, Muted, ResultMark, Screen, Stagger, Text, Title, c } from '../ui';
 
@@ -15,7 +15,7 @@ const NEXT = [
 export default function Applied() {
   useEffect(() => haptic.success(), []);
   return (
-    <Screen footer={<Button title="Done" onPress={() => router.dismissTo('/welcome')} />}>
+    <Screen footer={<Button title="Done" icon={Check} onPress={() => router.dismissTo('/welcome')} />}>
       <View className="items-center pt-6">
         <ResultMark tone="success" />
       </View>

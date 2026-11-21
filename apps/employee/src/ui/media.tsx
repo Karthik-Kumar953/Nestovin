@@ -36,12 +36,12 @@ type Fallback = { icon: LucideIcon; colors: readonly [string, string, ...string[
 const FALLBACKS: Record<ImageName, Fallback> = {
   'wrk-onboarding-hero': { icon: Building2, colors: gradients.hero, tint: c.white },
   'wrk-team': { icon: Users, colors: gradients.hero, tint: c.white },
-  'wrk-training-1': { icon: GraduationCap, colors: ['#E3F2EF', '#C9E8E1'], tint: c.tealDeep },
-  'wrk-training-2': { icon: ChefHat, colors: ['#EAF5E4', '#D3ECC8'], tint: c.greenAction },
-  'wrk-training-3': { icon: HandHeart, colors: ['#E6F0F7', '#CFE2EF'], tint: '#1E5A7A' },
-  'svc-maid': { icon: Sparkles, colors: ['#E3F2EF', '#BFE3DB'], tint: c.tealDeep },
-  'svc-cook': { icon: ChefHat, colors: ['#FFF5E1', '#FBE3B4'], tint: '#9A5B00' },
-  'svc-caretaker': { icon: HandHeart, colors: ['#EAF5E4', '#CDE8C1'], tint: c.greenAction },
+  'wrk-training-1': { icon: GraduationCap, colors: gradients.mintStrong, tint: c.tealDeep },
+  'wrk-training-2': { icon: ChefHat, colors: gradients.success, tint: c.greenAction },
+  'wrk-training-3': { icon: HandHeart, colors: gradients.mint, tint: c.tealDeep },
+  'svc-maid': { icon: Sparkles, colors: gradients.mintStrong, tint: c.tealDeep },
+  'svc-cook': { icon: ChefHat, colors: gradients.success, tint: c.greenAction },
+  'svc-caretaker': { icon: HandHeart, colors: gradients.mint, tint: c.tealDeep },
   'community-towers': { icon: Building2, colors: gradients.hero, tint: c.white },
   'ill-verify-review': { icon: FileClock, colors: gradients.warning, tint: c.warningText },
   'ill-verified': { icon: ShieldCheck, colors: gradients.success, tint: c.successText },
@@ -122,10 +122,11 @@ export function BrandImage({
   );
 }
 
+/** Brand palette only: teal and green, told apart by the icon, never by colour alone. */
 const SERVICE_ICON: Record<'maid' | 'cook' | 'caretaker', { icon: LucideIcon; bg: string; fg: string }> = {
-  maid: { icon: Sparkles, bg: '#E0F2EF', fg: c.tealDeep },
-  cook: { icon: ChefHat, bg: '#FFF1D6', fg: '#8A5200' },
-  caretaker: { icon: HandHeart, bg: '#E4F3DE', fg: c.greenAction },
+  maid: { icon: Sparkles, bg: c.teal100, fg: c.tealDeep },
+  cook: { icon: ChefHat, bg: c.successSurface, fg: c.greenAction },
+  caretaker: { icon: HandHeart, bg: c.teal200, fg: c.tealDeep },
 };
 
 export function ServiceIcon({ serviceName, size = 'md' }: { serviceName: string; size?: 'sm' | 'md' | 'lg' }) {
@@ -144,7 +145,7 @@ export function Avatar({ initials, size = 64 }: { initials: string; size?: numbe
     <LinearGradient colors={[c.tealAction, c.tealDeep]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: size, height: size, borderRadius: size / 2, alignItems: 'center', justifyContent: 'center' }}>
       <View accessible={false} style={{ position: 'absolute', top: 0, left: 0, borderRadius: size / 2, overflow: 'hidden' }}>
         <Svg width={size} height={size} viewBox="0 0 64 64">
-          <Path d="M0 44 C 18 34, 40 58, 64 40 L64 64 L0 64 Z" fill="#FFFFFF" fillOpacity={0.08} />
+          <Path d="M0 44 C 18 34, 40 58, 64 40 L64 64 L0 64 Z" fill={c.white} fillOpacity={0.08} />
         </Svg>
       </View>
       <Text allowFontScaling={false} className="font-heading text-white" style={{ fontSize: size * 0.36 }}>

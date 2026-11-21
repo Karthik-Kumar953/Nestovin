@@ -201,7 +201,7 @@ function CodeView({
           accessible
           accessibilityLabel="QR code for the worker to scan"
         >
-          <QRCode value={code.qr} size={196} color={colors.charcoal} backgroundColor="#FFFFFF" />
+          <QRCode value={code.qr} size={196} color={colors.charcoal} backgroundColor={colors.white} />
         </View>
       </Animated.View>
 

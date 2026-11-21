@@ -1,9 +1,11 @@
 import { createContext, use, useEffect, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 import type { Session } from '@supabase/supabase-js';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from './supabase';
 import { demoMode } from './env';
 import { demoSession } from './demo';
+import { unregisterPush } from './push';
 
 interface AuthState {
   session: Session | null;
@@ -21,6 +23,7 @@ const AuthContext = createContext<AuthState>({
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(false);
+  const qc = useQueryClient();
 
   useEffect(() => {
     if (demoMode) {
@@ -32,7 +35,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(data.session);
       setReady(true);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      // Drop the previous resident's cached household, bookings and inbox when the session ends.
+      if (event === 'SIGNED_OUT') qc.clear();
+      setSession(s);
+    });
     const appState = AppState.addEventListener('change', (state) => {
       if (state === 'active') void supabase.auth.startAutoRefresh();
       else void supabase.auth.stopAutoRefresh();
@@ -41,11 +48,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sub.subscription.unsubscribe();
       appState.remove();
     };
-  }, []);
+  }, [qc]);
 
   return (
     <AuthContext.Provider
-      value={{ session, ready, signOut: async () => void (await supabase.auth.signOut()) }}
+      value={{
+        session,
+        ready,
+        signOut: async () => {
+          // Remove this device's push token first, or the next person on this phone gets our updates.
+          await unregisterPush();
+          await supabase.auth.signOut();
+          qc.clear();
+        },
+      }}
     >
       {children}
     </AuthContext.Provider>

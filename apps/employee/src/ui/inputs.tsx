@@ -26,7 +26,7 @@ export function CodeInput({ value, onChange, error, autoFocus }: { value: string
               key={i}
               className={`h-[64px] flex-1 items-center justify-center rounded-md border-2 bg-surface ${error ? 'border-error-text' : active ? 'border-teal-action' : d.trim() ? 'border-teal-action/40' : 'border-line'}`}
             >
-              <Text allowFontScaling={false} className="font-heading text-[30px] text-charcoal">
+              <Text allowFontScaling={false} className="font-heading text-title text-charcoal">
                 {d.trim()}
               </Text>
             </View>
@@ -93,7 +93,7 @@ export function RangeCalendar({ start, end, onChange, min = isoDay() }: { start:
       </View>
       <View className="flex-row">
         {WEEKDAYS.map((w, i) => (
-          <Text key={i} maxFontSizeMultiplier={GRID_MAX_FONT_SCALE} className="flex-1 text-center font-semibold text-[13px] text-ink-secondary" accessible={false}>
+          <Text key={i} maxFontSizeMultiplier={GRID_MAX_FONT_SCALE} className="flex-1 text-center font-semibold text-label text-ink-secondary" accessible={false}>
             {w}
           </Text>
         ))}

@@ -8,7 +8,7 @@ import { ChefHat, HandHeart, Send, Sparkles } from 'lucide-react-native';
 import { createApplicantSchema } from '@nestovin/contracts';
 import { ApiError, api, errorMessage } from '../lib/api';
 import { haptic } from '../lib/haptics';
-import { Banner, BrandImage, Button, Chip, Field, Heading, Muted, Screen, Stagger, Text } from '../ui';
+import { Banner, BrandImage, Button, Chip, Field, Heading, Muted, Screen, Stagger, Text, c } from '../ui';
 
 type Input = z.input<typeof createApplicantSchema>;
 type Output = z.output<typeof createApplicantSchema>;
@@ -53,7 +53,7 @@ export default function Apply() {
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: true, title: 'Apply', headerBackTitle: 'Back', headerTintColor: '#00796B', headerShadowVisible: false, headerStyle: { backgroundColor: '#F5FAF9' } }} />
+      <Stack.Screen options={{ headerShown: true, title: 'Apply', headerBackTitle: 'Back', headerTintColor: c.tealAction, headerShadowVisible: false, headerStyle: { backgroundColor: c.background } }} />
       <Screen edges={['bottom', 'left', 'right']} footer={<Button title="Send my application" icon={Send} busy={isSubmitting} onPress={() => void onSubmit()} />}>
         <Stagger index={0}>
           <View className="flex-row items-center gap-4 rounded-xl bg-mint p-4">
@@ -87,7 +87,7 @@ export default function Apply() {
         </Stagger>
         <Stagger index={2}>
           <View className="gap-2.5">
-            <Text className="font-medium text-[15px]">
+            <Text className="font-medium text-body-sm">
               Work you can do <Text className="text-ink-secondary">(choose any)</Text>
             </Text>
             <Controller

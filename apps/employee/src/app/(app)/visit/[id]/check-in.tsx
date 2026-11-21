@@ -3,7 +3,7 @@ import { Linking, Pressable, View } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
-import { Camera, CloudUpload, Hash, LocateFixed, LocateOff, Loader, MapPin, QrCode, RotateCcw, Settings, X } from 'lucide-react-native';
+import { AlertTriangle, Camera, Check, CloudUpload, Hash, LocateFixed, LocateOff, Loader, MapPin, QrCode, RotateCcw, ScanLine, Settings, X } from 'lucide-react-native';
 import type { CheckInInput, CheckInResult } from '@nestovin/contracts';
 import { ApiError, errorMessage } from '../../../../lib/api';
 import { flatLabel, timeWindow } from '../../../../lib/format';
@@ -12,7 +12,7 @@ import { newClientEventId } from '../../../../lib/ids';
 import { oneShotLocation, type Fix } from '../../../../lib/location';
 import { useOnline } from '../../../../lib/net';
 import { useCheckIn, useVisit } from '../../../../lib/queries';
-import { BrandImage, Button, CodeInput, IconButton, Muted, ResultMark, Screen, ServiceIcon, Stagger, Text, c } from '../../../../ui';
+import { BrandImage, Button, CodeInput, IconButton, Muted, ResultMark, Screen, ServiceIcon, Stagger, Text, c, shadow } from '../../../../ui';
 
 type Method = 'OTP' | 'QR';
 type Outcome =
@@ -127,7 +127,7 @@ export default function CheckIn() {
           ) : outcome?.kind === 'offline' || outcome?.kind === 'error' ? (
             <Button title="Send again" icon={CloudUpload} busy={mutation.isPending} onPress={() => void send(outcome.payload)} />
           ) : method === 'OTP' ? (
-            <Button title="Check in" busy={mutation.isPending} disabled={code.length !== 6} onPress={() => void submit('OTP', code)} />
+            <Button title="Check in" icon={ScanLine} busy={mutation.isPending} disabled={code.length !== 6} onPress={() => void submit('OTP', code)} />
           ) : undefined
         }
       >
@@ -193,7 +193,7 @@ function Segmented({ value, onChange }: { value: Method; onChange: (m: Method) =
             accessibilityState={{ selected: on }}
             accessibilityLabel={o.label}
             className={`min-h-[48px] flex-1 flex-row items-center justify-center gap-2 rounded-md ${on ? 'bg-surface' : ''}`}
-            style={on ? { shadowColor: '#0F3D37', shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 1 } : undefined}
+            style={on ? shadow.card : undefined}
           >
             <o.icon size={20} color={on ? c.tealDeep : c.textSecondary} strokeWidth={2} />
             <Text className={on ? 'font-semibold text-teal-deep' : 'font-medium text-ink-secondary'}>{o.label}</Text>
@@ -254,10 +254,8 @@ function Scanner({ onScan, busy }: { onScan: (data: string) => void; busy: boole
           }
         />
         <View pointerEvents="none" className="absolute inset-0 items-center justify-center">
-          <View className="h-[240px] w-[240px]">
-            {(['top-0 left-0 border-l-4 border-t-4 rounded-tl-2xl', 'top-0 right-0 border-r-4 border-t-4 rounded-tr-2xl', 'bottom-0 left-0 border-b-4 border-l-4 rounded-bl-2xl', 'bottom-0 right-0 border-b-4 border-r-4 rounded-br-2xl'] as const).map((k) => (
-              <View key={k} className={`absolute h-10 w-10 border-white ${k}`} />
-            ))}
+          {/* Viewfinder: one even frame (no thick corner brackets) on a light tint. */}
+          <View className="h-[240px] w-[240px] rounded-2xl border-2 border-white/90 bg-white/10">
             <Animated.View style={[{ position: 'absolute', left: 16, right: 16, top: 20, height: 2, backgroundColor: c.mintStrong, opacity: 0.9 }, lineStyle]} />
           </View>
         </View>
@@ -279,7 +277,7 @@ function LocationChip({ fix, onRetry }: { fix: Fix | 'pending'; onRetry: () => v
     return (
       <View className="flex-row items-center gap-3 rounded-lg bg-subtle p-4" accessibilityLiveRegion="polite">
         <Loader size={20} color={c.textSecondary} />
-        <Text className="flex-1 text-[15px] text-ink-secondary">Getting your location once for this check-in…</Text>
+        <Text className="flex-1 text-body-sm text-ink-secondary">Getting your location once for this check-in…</Text>
       </View>
     );
   }
@@ -288,7 +286,7 @@ function LocationChip({ fix, onRetry }: { fix: Fix | 'pending'; onRetry: () => v
     return (
       <View className="flex-row items-center gap-3 rounded-lg bg-mint p-4" accessibilityLiveRegion="polite">
         <LocateFixed size={20} color={c.tealDeep} />
-        <Text className="flex-1 text-[15px] text-teal-deep">
+        <Text className="flex-1 text-body-sm text-teal-deep">
           Location ready{acc !== null ? ` · accurate to ${acc} m` : ''}. It is saved only with this check-in.
         </Text>
       </View>
@@ -299,11 +297,11 @@ function LocationChip({ fix, onRetry }: { fix: Fix | 'pending'; onRetry: () => v
     <View className="gap-3 rounded-lg bg-warning-surface p-4" accessibilityLiveRegion="polite">
       <View className="flex-row items-center gap-3">
         <LocateOff size={20} color={c.warningText} />
-        <Text className="flex-1 text-[15px] text-warning-text">{text}</Text>
+        <Text className="flex-1 text-body-sm text-warning-text">{text}</Text>
       </View>
-      <View className="flex-row gap-2">
-        <Button title="Retry location" size="md" variant="secondary" icon={MapPin} onPress={onRetry} className="flex-1" />
-        {fix.status === 'denied' ? <Button title="Settings" size="md" variant="ghost" onPress={() => void Linking.openSettings()} /> : null}
+      <View className="gap-2">
+        <Button title="Retry location" size="md" variant="secondary" icon={MapPin} onPress={onRetry} />
+        {fix.status === 'denied' ? <Button title="Open settings" size="md" variant="ghost" icon={Settings} onPress={() => void Linking.openSettings()} /> : null}
       </View>
     </View>
   );
@@ -316,7 +314,7 @@ function ResultPanel({ tone, title, body, hint }: { tone: 'warning' | 'error'; t
       <Text accessibilityRole="header" className="text-center font-heading text-2xl text-charcoal">
         {title}
       </Text>
-      <Text className="text-center text-[17px] leading-6 text-ink">{body}</Text>
+      <Text className="text-center text-lead text-ink">{body}</Text>
       {hint ? <Muted className="text-center">{hint}</Muted> : null}
     </View>
   );
@@ -330,7 +328,7 @@ function Verified({ result, visitId }: { result: CheckInResult; visitId: string 
       <Screen
         footer={
           <>
-            <Button title="Done" onPress={() => router.dismissTo({ pathname: '/visit/[id]', params: { id: visitId } })} />
+            <Button title="Done" icon={Check} onPress={() => router.dismissTo({ pathname: '/visit/[id]', params: { id: visitId } })} />
           </>
         }
       >
@@ -339,7 +337,7 @@ function Verified({ result, visitId }: { result: CheckInResult; visitId: string 
         </View>
         <Stagger index={2}>
           <View className="items-center gap-2" accessibilityLiveRegion="assertive">
-            <Text accessibilityRole="header" className="text-center font-display text-[32px] leading-10 text-charcoal">
+            <Text accessibilityRole="header" className="text-center font-display text-title text-charcoal">
               {flagged ? 'Checked in' : 'You are checked in'}
             </Text>
             <Muted className="text-center">{flagged ? 'Your check-in is saved. Operations will review the location; you can start work now.' : 'Have a good visit. Tap Complete visit when you finish.'}</Muted>
@@ -350,11 +348,12 @@ function Verified({ result, visitId }: { result: CheckInResult; visitId: string 
             <View className="gap-2 rounded-xl bg-warning-surface p-4">
               <Text className="font-semibold text-warning-text">Flagged for review</Text>
               {result.flags.map((f) => (
-                <Text key={f} className="text-[15px] text-warning-text">
-                  • {FLAG_TEXT[f] ?? f.replace(/_/g, ' ').toLowerCase()}
-                </Text>
+                <View key={f} className="flex-row gap-2.5">
+                  <AlertTriangle size={18} color={c.warningText} style={{ marginTop: 2 }} />
+                  <Text className="flex-1 text-body-sm text-warning-text">{FLAG_TEXT[f] ?? f.replace(/_/g, ' ').toLowerCase()}</Text>
+                </View>
               ))}
-              <Text className="text-[15px] text-warning-text">If this is wrong, you can request a correction from the visit.</Text>
+              <Text className="text-body-sm text-warning-text">If this is wrong, you can request a correction from the visit.</Text>
             </View>
           </Stagger>
         ) : null}

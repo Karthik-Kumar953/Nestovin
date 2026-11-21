@@ -260,7 +260,7 @@ export default function PlanDetail() {
                   onPress={() => setShowAllTasks(!showAllTasks)}
                   accessibilityRole="button"
                   aria-expanded={showAllTasks}
-                  className="min-h-[44px] justify-center"
+                  className="min-h-[48px] justify-center"
                 >
                   <Text variant="label" tone="brand">
                     {showAllTasks ? 'Show fewer tasks' : `Show all ${tasks.length} tasks`}

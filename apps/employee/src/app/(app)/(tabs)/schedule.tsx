@@ -40,7 +40,7 @@ export default function Schedule() {
     <Screen title="Schedule" onRefresh={() => qc.invalidateQueries({ queryKey: qk.scheduleAll })}>
       <View className="flex-row items-center gap-2">
         <IconButton icon={ChevronLeft} label="Previous week" onPress={() => moveWeek(-1)} />
-        <Text accessibilityRole="header" className="flex-1 text-center font-semibold text-[17px]">{`${range.format(parseDay(week))} – ${range.format(parseDay(end))}`}</Text>
+        <Text accessibilityRole="header" className="flex-1 text-center font-semibold text-lead">{`${range.format(parseDay(week))} – ${range.format(parseDay(end))}`}</Text>
         <IconButton icon={ChevronRight} label="Next week" onPress={() => moveWeek(1)} />
       </View>
       <View className="flex-row gap-1" accessibilityRole="tablist">
@@ -59,7 +59,7 @@ export default function Schedule() {
                 accessibilityLabel={`${longDay(d)}, ${count} ${count === 1 ? 'visit' : 'visits'}`}
                 className={`min-h-[72px] flex-1 items-center justify-center gap-1 rounded-lg ${on ? 'bg-teal-action' : d === today ? 'border-[1.5px] border-teal-action/50 bg-surface' : 'bg-surface'}`}
               >
-                <Text maxFontSizeMultiplier={GRID_MAX_FONT_SCALE} className={`text-[12px] ${on ? 'font-semibold text-white/90' : 'text-ink-secondary'}`}>{wd.format(parseDay(d))}</Text>
+                <Text maxFontSizeMultiplier={GRID_MAX_FONT_SCALE} className={`text-caption ${on ? 'font-semibold text-white/90' : 'text-ink-secondary'}`}>{wd.format(parseDay(d))}</Text>
                 <Text maxFontSizeMultiplier={GRID_MAX_FONT_SCALE} className={`font-heading text-lg ${on ? 'text-white' : 'text-charcoal'}`}>{Number(d.slice(8))}</Text>
                 <View className="h-1.5 flex-row gap-0.5">
                   {Array.from({ length: Math.min(count, 3) }, (_, i) => (

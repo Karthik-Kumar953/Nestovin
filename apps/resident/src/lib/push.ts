@@ -16,6 +16,9 @@ Notifications.setNotificationHandler({
   }),
 });
 
+/** The token this session registered, so sign-out can remove it again. */
+let registeredToken: string | null = null;
+
 /**
  * Registers this device's native push token (FCM on Android, APNs on iOS) with
  * the API (RES-13). Push needs a development/production build with Firebase
@@ -38,16 +41,31 @@ export async function registerForPush(): Promise<'registered' | 'denied' | 'unav
       current.granted || current.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
     if (!granted) granted = (await Notifications.requestPermissionsAsync()).granted;
     if (!granted) return 'denied';
-    const token = await Notifications.getDevicePushTokenAsync();
+    const token = String((await Notifications.getDevicePushTokenAsync()).data);
     await api('/v1/resident/devices', {
       method: 'POST',
-      body: { token: String(token.data), platform: Platform.OS === 'ios' ? 'ios' : 'android' },
+      body: { token, platform: Platform.OS === 'ios' ? 'ios' : 'android' },
     });
+    registeredToken = token;
     return 'registered';
   } catch {
     // Missing Firebase config (google-services.json) or Expo Go: in-app inbox still works.
     return 'unavailable';
   }
+}
+
+/**
+ * Stops pushes for this account on this device (call before the session ends, while the API
+ * still accepts the token). Never blocks sign-out for more than a few seconds.
+ */
+export async function unregisterPush(): Promise<void> {
+  const token = registeredToken;
+  if (!token) return;
+  registeredToken = null;
+  await Promise.race([
+    api('/v1/resident/devices/remove', { method: 'POST', body: { token } }).catch(() => undefined),
+    new Promise((r) => setTimeout(r, 3000)),
+  ]);
 }
 
 /** Notifications already routed, so a cold-start response is never replayed when the layout re-renders. */

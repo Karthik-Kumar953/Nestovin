@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { View } from 'react-native';
 import { Redirect, Stack } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useReducedMotion } from 'react-native-reanimated';
@@ -8,7 +7,7 @@ import { useAuth } from '../../lib/auth';
 import { registerForPush } from '../../lib/push';
 import { useMe } from '../../lib/queries';
 import { supabase } from '../../lib/supabase';
-import { Skeleton, c } from '../../ui';
+import { AppLoading, c } from '../../ui';
 
 /**
  * Signed-in area. Guards: a session, an active employee (/me succeeds) and a
@@ -28,18 +27,10 @@ export default function AppLayout() {
     if (me.data && !me.data.mustChangePassword) void registerForPush();
   }, [me.data]);
 
-  if (!ready) return null;
+  if (!ready) return <AppLoading />;
   if (!session || unauth) return <Redirect href="/welcome" />;
   if (me.data?.mustChangePassword) return <Redirect href="/change-password" />;
-  if (!me.data && me.isPending) {
-    return (
-      <View style={{ flex: 1, backgroundColor: c.background, padding: 20, paddingTop: 80, gap: 16 }}>
-        <Skeleton className="h-10 w-2/3" />
-        <Skeleton className="h-56" />
-        <Skeleton className="h-24" />
-      </View>
-    );
-  }
+  if (!me.data && me.isPending) return <AppLoading />;
 
   const header = {
     headerShown: true,

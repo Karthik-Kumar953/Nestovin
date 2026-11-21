@@ -533,6 +533,8 @@ export async function demoApi<T>(
     };
   else if (route === '/household') out = household();
   else if (route === '/change-requests' && method === 'GET') out = { items: [] };
+  else if (m(/^\/change-requests\/[^/]+\/cancel$/)) out = { items: [] };
+  else if (route === '/devices/remove') out = { removed: true };
   else if (route === '/cities')
     out = {
       items: [

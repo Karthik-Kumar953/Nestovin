@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ClipboardCheck, Send, UserCheck } from 'lucide-react-native';
+import { Check, ClipboardCheck, Send, UserCheck } from 'lucide-react-native';
+import { VisitLookupState } from '../../../../components/visit';
 import { ApiError, errorMessage } from '../../../../lib/api';
 import { flatLabel, longDay } from '../../../../lib/format';
 import { haptic } from '../../../../lib/haptics';
@@ -17,7 +18,8 @@ const OPTIONS: { value: Change; title: string; detail: string; icon: typeof User
 /** ADM-12A: the worker explains; Operations decides. The original evidence is never edited. */
 export default function Correction() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const visit = useVisit(id).data;
+  const query = useVisit(id);
+  const visit = query.data;
   const m = useVisitAction<{ requestedChange: Change; explanation: string }>(id, 'corrections');
   const [change, setChange] = useState<Change | null>(null);
   const [text, setText] = useState('');
@@ -40,13 +42,13 @@ export default function Correction() {
 
   if (done) {
     return (
-      <Screen edges={['bottom', 'left', 'right']} footer={<Button title="Done" onPress={() => router.back()} />}>
+      <Screen edges={['bottom', 'left', 'right']} footer={<Button title="Done" icon={Check} onPress={() => router.back()} />}>
         <View className="items-center pt-8">
           <ResultMark tone="success" />
         </View>
         <Stagger index={2}>
           <View className="items-center gap-2" accessibilityLiveRegion="assertive">
-            <Text accessibilityRole="header" className="text-center font-display text-[28px] leading-9 text-charcoal">
+            <Text accessibilityRole="header" className="text-center font-display text-title text-charcoal">
               Request sent
             </Text>
             <Muted className="text-center">Operations will review it. You will get an update with their decision.</Muted>
@@ -56,15 +58,15 @@ export default function Correction() {
     );
   }
 
+  if (!visit) return <VisitLookupState query={query} />;
+
   return (
     <Screen edges={['bottom', 'left', 'right']} footer={<Button title="Send request" icon={Send} busy={m.isPending} disabled={!change} onPress={() => void submit()} />}>
-      {visit ? (
-        <Muted>
-          {visit.serviceName} · {flatLabel(visit.flat)} · {longDay(visit.scheduledDate)}
-        </Muted>
-      ) : null}
+      <Muted>
+        {visit.serviceName} · {flatLabel(visit.flat)} · {longDay(visit.scheduledDate)}
+      </Muted>
       <View className="gap-3" accessibilityRole="radiogroup">
-        <Text className="font-medium text-[15px]">What should be corrected?</Text>
+        <Text className="font-medium text-body-sm">What should be corrected?</Text>
         {OPTIONS.map((o) => {
           const on = change === o.value;
           return (

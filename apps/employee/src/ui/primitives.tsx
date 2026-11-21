@@ -15,7 +15,7 @@ const cx = (...parts: (string | false | null | undefined)[]) => parts.filter(Boo
 
 // ---------------------------------------------------------------- text
 
-const SIZE = /^text-(xs|sm|base|lg|xl|[2-9]xl|\[\d+px\])$/;
+const SIZE = /^text-(xs|sm|base|lg|xl|[2-9]xl|caption|label|body-sm|lead|stat|title|title-android|metric|hero|\[\d+px\])$/;
 const ALIGN = /^text-(left|center|right|justify)$/;
 const FAMILY = /^font-(display|heading|title|body|medium|semibold)$/;
 
@@ -38,7 +38,7 @@ export function Text({ className, ...props }: TextProps & { className?: string }
 }
 export function Title({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <RNText accessibilityRole="header" allowFontScaling className={cx('font-heading text-[30px] leading-[38px] text-charcoal', Platform.OS === 'android' && 'font-title text-[28px] leading-9', className)}>
+    <RNText accessibilityRole="header" allowFontScaling className={cx(Platform.OS === 'android' ? 'font-title text-title-android' : 'font-heading text-title', 'text-charcoal', className)}>
       {children}
     </RNText>
   );
@@ -51,14 +51,17 @@ export function Heading({ children, className }: { children: ReactNode; classNam
   );
 }
 export function Label({ children, className }: { children: ReactNode; className?: string }) {
-  return <RNText allowFontScaling className={cx('font-semibold text-[13px] uppercase tracking-wider text-ink-secondary', className)}>{children}</RNText>;
+  return <RNText allowFontScaling className={cx('font-semibold text-label uppercase tracking-wider text-ink-secondary', className)}>{children}</RNText>;
 }
 export function Muted({ children, className }: { children: ReactNode; className?: string }) {
   const sized = (className ?? '').split(/\s+/).some((p) => SIZE.test(p));
-  return <RNText allowFontScaling className={textClass(cx(!sized && 'text-[15px] leading-[22px]', 'text-ink-secondary', className))}>{children}</RNText>;
+  return <RNText allowFontScaling className={textClass(cx(!sized && 'text-body-sm', 'text-ink-secondary', className))}>{children}</RNText>;
 }
 
 // ---------------------------------------------------------------- press feedback
+
+/** Teal-deep at 8% for Android ripples on light surfaces. */
+const RIPPLE = `${c.tealDeep}14`;
 
 /** Subtle 0.97 press scale (HIG/MD) without moving neighbours. Reduce Motion: opacity only. */
 export function PressScale({
@@ -102,7 +105,7 @@ export function PressScale({
         accessibilityLabel={accessibilityLabel}
         accessibilityHint={accessibilityHint}
         accessibilityState={{ disabled: !!disabled, ...accessibilityState }}
-        android_ripple={{ color: 'rgba(0,105,92,0.08)', foreground: true }}
+        android_ripple={{ color: RIPPLE, foreground: true }}
         className={className}
       >
         {children}
@@ -155,7 +158,7 @@ export function Button({
       ) : (
         <>
           {Icon ? <Icon size={size === 'lg' ? 22 : 20} color={fg} strokeWidth={2} /> : null}
-          <RNText allowFontScaling style={{ color: fg }} className={cx('font-semibold', size === 'lg' ? 'text-[17px]' : 'text-base')}>
+          <RNText allowFontScaling style={{ color: fg }} className={cx('font-semibold', size === 'lg' ? 'text-lead' : 'text-base')}>
             {title}
           </RNText>
         </>
@@ -185,11 +188,11 @@ export function Card({ children, className, ...rest }: ViewProps & { className?:
 
 export const shadow = {
   card: Platform.select({
-    ios: { shadowColor: '#0F3D37', shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 6 } },
+    ios: { shadowColor: c.shadow, shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 6 } },
     default: { elevation: 1 },
   }),
   float: Platform.select({
-    ios: { shadowColor: '#0F3D37', shadowOpacity: 0.16, shadowRadius: 24, shadowOffset: { width: 0, height: 12 } },
+    ios: { shadowColor: c.shadow, shadowOpacity: 0.16, shadowRadius: 24, shadowOffset: { width: 0, height: 12 } },
     default: { elevation: 6 },
   }),
 };
@@ -204,7 +207,7 @@ export function Pill({ label, tone = 'neutral', icon: Icon, className }: { label
   return (
     <View className={cx('flex-row items-center gap-1.5 self-start rounded-full px-3 py-1.5', className)} style={{ backgroundColor: t.bg }}>
       {Icon ? <Icon size={14} color={t.fg} strokeWidth={2.25} /> : <View className="h-2 w-2 rounded-full" style={{ backgroundColor: t.dot }} />}
-      <RNText allowFontScaling className="font-semibold text-[13px]" style={{ color: t.fg }}>
+      <RNText allowFontScaling className="font-semibold text-label" style={{ color: t.fg }}>
         {label}
       </RNText>
     </View>
@@ -247,7 +250,7 @@ export function Field({
   const isSecret = !!secureTextEntry;
   return (
     <View className="gap-1.5">
-      <RNText allowFontScaling className="font-medium text-[15px] text-ink">
+      <RNText allowFontScaling className="font-medium text-body-sm text-ink">
         {label}
         {optional ? <RNText className="font-body text-ink-secondary"> (optional)</RNText> : null}
       </RNText>
@@ -267,7 +270,7 @@ export function Field({
           secureTextEntry={isSecret && !reveal}
           multiline={multiline}
           textAlignVertical={multiline ? 'top' : 'center'}
-          className={cx('flex-1 self-stretch px-4 font-body text-[17px] text-ink', multiline ? 'min-h-[108px] py-3.5' : 'min-h-[52px]')}
+          className={cx('flex-1 self-stretch px-4 font-body text-lead text-ink', multiline ? 'min-h-[108px] py-3.5' : 'min-h-[52px]')}
           onFocus={(e) => {
             setFocused(true);
             input.onFocus?.(e);

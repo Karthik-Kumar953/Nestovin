@@ -1,13 +1,15 @@
 import { View } from 'react-native';
+import type { UseQueryResult } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BadgeCheck, Building2, CheckCheck, ChevronRight, Clock3, ScanLine } from 'lucide-react-native';
+import { BadgeCheck, Building2, CheckCheck, ChevronRight, Clock3, ScanLine, Sun } from 'lucide-react-native';
 import { servicePhoto } from '../assets/images';
+import { ApiError } from '../lib/api';
 import { flatLabel, time, timeWindow } from '../lib/format';
 import { visitStatus } from '../lib/queries';
 import type { VisitTask } from '@nestovin/contracts';
-import type { Visit } from '../lib/types';
-import { BrandImage, Button, Muted, Pill, PressScale, PulseDot, ServiceIcon, Text, c, shadow, toneColors, useLargeText } from '../ui';
+import type { Visit, VisitDetail } from '../lib/types';
+import { BrandImage, Button, EmptyState, ErrorState, LoadingList, Muted, Screen, Pill, PressScale, PulseDot, ServiceIcon, Text, c, gradients, shadow, toneColors, useLargeText } from '../ui';
 
 export const isOpen = (v: Visit) => v.status === 'ASSIGNED' || v.status === 'SCHEDULED';
 export const isLive = (v: Visit) => v.status === 'IN_PROGRESS';
@@ -49,7 +51,7 @@ export function Tasks({ tasks, max }: { tasks: VisitTask[]; max?: number }) {
             {/* One wrapping Text so long names stay inside the card at large text sizes. */}
             <Text className="text-sm text-ink">
               {t.name}
-              {f && t.frequency !== 'PER_VISIT' ? <Text className="text-[13px] text-ink-secondary"> · {f}</Text> : null}
+              {f && t.frequency !== 'PER_VISIT' ? <Text className="text-label text-ink-secondary"> · {f}</Text> : null}
             </Text>
           </View>
         );
@@ -75,17 +77,17 @@ export function NextVisitCard({ visit }: { visit: Visit }) {
       <PressScale onPress={open} accessibilityLabel={`${live ? 'Current visit' : 'Next visit'}: ${visit.serviceName}, ${flatLabel(visit.flat)}, ${timeWindow(visit.startsAt, visit.endsAt)}`} accessibilityHint="Opens the visit">
         <View className="h-36">
           <BrandImage name={servicePhoto(visit.serviceName)} className="h-full w-full" />
-          <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(8,28,25,0.72)']} style={{ position: 'absolute', inset: 0 }} />
+          <LinearGradient colors={gradients.scrim} style={{ position: 'absolute', inset: 0 }} />
           <View className="absolute left-4 right-4 top-4 flex-row items-center justify-between">
             <View className="flex-row items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5">
               {live ? <PulseDot size={7} /> : <Clock3 size={14} color={c.tealDeep} strokeWidth={2.25} />}
-              <Text className="font-semibold text-[13px] text-teal-deep">{live ? 'In progress' : 'Next visit'}</Text>
+              <Text className="font-semibold text-label text-teal-deep">{live ? 'In progress' : 'Next visit'}</Text>
             </View>
           </View>
           <View className="absolute bottom-3 left-4 right-4 flex-row items-end justify-between">
-            <View className="flex-row items-center gap-3">
+            <View className="min-w-0 flex-1 flex-row items-center gap-3">
               <ServiceIcon serviceName={visit.serviceName} />
-              <Text className="font-heading text-[22px] text-white">{visit.serviceName}</Text>
+              <Text numberOfLines={1} className="min-w-0 flex-1 font-heading text-stat text-white">{visit.serviceName}</Text>
             </View>
           </View>
         </View>
@@ -128,7 +130,7 @@ export function TimelineRow({ visit, last, highlight }: { visit: Visit; last: bo
     <View className="flex-row gap-3">
       {large ? null : (
         <View className="w-[68px] items-end pt-4">
-          <Text className={`font-semibold text-[15px] ${done ? 'text-ink-secondary' : 'text-charcoal'}`}>{time(visit.startsAt) ?? '—'}</Text>
+          <Text className={`font-semibold text-body-sm ${done ? 'text-ink-secondary' : 'text-charcoal'}`}>{time(visit.startsAt) ?? '—'}</Text>
         </View>
       )}
       <View className="items-center">
@@ -155,5 +157,30 @@ export function TimelineRow({ visit, last, highlight }: { visit: Visit; last: bo
         </View>
       </PressScale>
     </View>
+  );
+}
+
+/**
+ * Loading, error and not-found states for the visit action screens (complete,
+ * resident not available, correction) while the visit is looked up. Render it
+ * when the query has no data yet.
+ */
+export function VisitLookupState({ query }: { query: UseQueryResult<VisitDetail> }) {
+  const notFound = query.error instanceof ApiError && query.error.status === 404;
+  return (
+    <Screen edges={['bottom', 'left', 'right']}>
+      {query.isPending ? (
+        <LoadingList rows={3} />
+      ) : notFound || !query.error ? (
+        <EmptyState
+          image="ill-empty-visits"
+          title="Visit not found"
+          body="It may have been moved to another worker. Go back to Today and pull down to refresh."
+          action={<Button title="Back to today" variant="secondary" icon={Sun} onPress={() => router.dismissTo('/(app)/(tabs)')} />}
+        />
+      ) : (
+        <ErrorState error={query.error} onRetry={() => void query.refetch()} />
+      )}
+    </Screen>
   );
 }

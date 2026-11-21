@@ -7,7 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { monthLabel, rupees } from '../../lib/format';
 import { haptic } from '../../lib/haptics';
 import { qk, usePayslips } from '../../lib/queries';
-import { BrandImage, Divider, EmptyState, ErrorState, LoadingList, Muted, Pill, PressScale, Screen, Stagger, Text, c, shadow, type Tone } from '../../ui';
+import { BrandImage, Divider, EmptyState, ErrorState, LoadingList, Muted, Pill, PressScale, Screen, Stagger, Text, c, shadow, useLargeText, type Tone } from '../../ui';
 
 const PAID: Record<Payslip['paymentStatus'], { label: string; tone: Tone }> = {
   PAID: { label: 'Paid', tone: 'success' },
@@ -21,6 +21,7 @@ export default function Payslips() {
   const qc = useQueryClient();
   const q = usePayslips();
   const [open, setOpen] = useState<string | null>(null);
+  const large = useLargeText();
   const items = [...(q.data ?? [])].sort((a, b) => b.month.localeCompare(a.month));
 
   return (
@@ -37,7 +38,7 @@ export default function Payslips() {
                 <BrandImage name="ill-payslip" variant="illustration" className="h-28 w-28" iconSize={30} />
               </View>
               <Text className="font-medium text-white/85">{monthLabel(items[0]!.month)}</Text>
-              <Text className="font-display text-[34px] leading-[42px] text-white">{rupees(items[0]!.netPaise)}</Text>
+              <Text className="font-display text-metric text-white">{rupees(items[0]!.netPaise)}</Text>
               <Text className="text-white/85">Net pay</Text>
               <View className="mt-3 self-start">
                 <Pill label={PAID[items[0]!.paymentStatus].label} tone={PAID[items[0]!.paymentStatus].tone} />
@@ -62,9 +63,10 @@ export default function Payslips() {
                     <View className="min-h-[72px] flex-row items-center gap-3 p-4">
                       <View className="flex-1 gap-1">
                         <Text className="font-semibold">{monthLabel(p.month)}</Text>
+                        {large ? <Text className="font-heading text-xl text-charcoal">{rupees(p.netPaise)}</Text> : null}
                         <Pill label={s.label} tone={s.tone} />
                       </View>
-                      <Text className="font-heading text-xl text-charcoal">{rupees(p.netPaise)}</Text>
+                      {large ? null : <Text className="font-heading text-xl text-charcoal">{rupees(p.netPaise)}</Text>}
                       {isOpen ? <ChevronUp size={22} color={c.textSecondary} /> : <ChevronDown size={22} color={c.textSecondary} />}
                     </View>
                   </PressScale>
@@ -96,8 +98,8 @@ export default function Payslips() {
 
 function Line({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
-    <View className="flex-row items-center justify-between">
-      <Text className={strong ? 'font-semibold' : 'text-ink-secondary'}>{label}</Text>
+    <View className="flex-row flex-wrap items-center justify-between gap-x-3">
+      <Text className={`shrink ${strong ? 'font-semibold' : 'text-ink-secondary'}`}>{label}</Text>
       <Text className={strong ? 'font-heading text-lg text-charcoal' : 'font-semibold'} style={{ fontVariant: ['tabular-nums'] }}>
         {value}
       </Text>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CheckCircle2, Play } from 'lucide-react-native';
@@ -8,7 +8,7 @@ import { trainingPhoto } from '../../assets/images';
 import { errorMessage } from '../../lib/api';
 import { haptic } from '../../lib/haptics';
 import { qk, useCompleteTraining, useMe } from '../../lib/queries';
-import { BrandImage, Button, EmptyState, ErrorState, LoadingList, Muted, PressScale, ProgressRing, Screen, Stagger, Text, c, shadow } from '../../ui';
+import { BrandImage, Button, EmptyState, ErrorState, LoadingList, Muted, PressScale, ProgressRing, Screen, Stagger, Text, c, gradients, notify, shadow, useLargeText } from '../../ui';
 
 /**
  * EMP-04 training: open the video link, then confirm it was watched. The
@@ -19,6 +19,7 @@ export default function Training() {
   const me = useMe();
   const complete = useCompleteTraining();
   const [opened, setOpened] = useState<string[]>([]);
+  const large = useLargeText();
 
   if (!me.data) {
     return <Screen edges={['bottom', 'left', 'right']}>{me.error ? <ErrorState error={me.error} onRetry={() => void me.refetch()} /> : <LoadingList rows={3} />}</Screen>;
@@ -31,7 +32,7 @@ export default function Training() {
       await WebBrowser.openBrowserAsync(url, { toolbarColor: c.tealDeep, controlsColor: c.white, enableBarCollapsing: true });
       setOpened((o) => (o.includes(itemId) ? o : [...o, itemId]));
     } catch {
-      Alert.alert('Could not open the video', 'Check your internet connection and try again.');
+      notify('Could not open the video', 'Check your internet connection and try again.');
     }
   };
   const markDone = (itemId: string) =>
@@ -39,7 +40,7 @@ export default function Training() {
       onSuccess: () => haptic.success(),
       onError: (e) => {
         haptic.error();
-        Alert.alert('Could not save', errorMessage(e));
+        notify('Could not save', errorMessage(e));
       },
     });
 
@@ -65,7 +66,7 @@ export default function Training() {
                 <PressScale onPress={() => void watch(t.itemId, t.url)} accessibilityLabel={`Play ${t.title}`} accessibilityHint="Opens the video">
                   <View className="h-40">
                     <BrandImage name={trainingPhoto(i)} className="h-full w-full" />
-                    <LinearGradient colors={['rgba(0,0,0,0.05)', 'rgba(8,28,25,0.55)']} style={{ position: 'absolute', inset: 0 }} />
+                    <LinearGradient colors={gradients.scrimSoft} style={{ position: 'absolute', inset: 0 }} />
                     <View className="absolute inset-0 items-center justify-center">
                       <View className="h-16 w-16 items-center justify-center rounded-full bg-white/95" style={shadow.float}>
                         <Play size={28} color={c.tealDeep} fill={c.tealDeep} />
@@ -74,7 +75,7 @@ export default function Training() {
                     {isDone ? (
                       <View className="absolute left-3 top-3 flex-row items-center gap-1.5 rounded-full bg-white px-3 py-1.5">
                         <CheckCircle2 size={16} color={c.greenAction} />
-                        <Text className="font-semibold text-[13px] text-success-text">Watched</Text>
+                        <Text className="font-semibold text-label text-success-text">Watched</Text>
                       </View>
                     ) : null}
                   </View>
@@ -84,8 +85,8 @@ export default function Training() {
                   {isDone ? (
                     <Muted className="text-sm">Completed on {new Date(t.completedAt!).toLocaleDateString('en-IN', { day: 'numeric', month: 'long' })}</Muted>
                   ) : (
-                    <View className="flex-row gap-3">
-                      <Button title="Watch" variant="secondary" size="md" icon={Play} onPress={() => void watch(t.itemId, t.url)} className="flex-1" />
+                    <View className={large ? 'gap-3' : 'flex-row gap-3'}>
+                      <Button title="Watch" variant="secondary" size="md" icon={Play} onPress={() => void watch(t.itemId, t.url)} className={large ? undefined : 'flex-1'} />
                       <Button
                         title="I have watched it"
                         size="md"
@@ -93,7 +94,7 @@ export default function Training() {
                         variant={opened.includes(t.itemId) ? 'primary' : 'secondary'}
                         busy={complete.isPending && complete.variables === t.itemId}
                         onPress={() => markDone(t.itemId)}
-                        className="flex-[1.4]"
+                        className={large ? undefined : 'flex-[1.4]'}
                       />
                     </View>
                   )}

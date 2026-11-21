@@ -1,14 +1,14 @@
 import { View } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BadgeCheck, Building2, CalendarDays, CheckCheck, ClipboardList, Clock3, FilePenLine, Hourglass, Repeat, ScanLine, ShieldAlert, TimerReset, UserX } from 'lucide-react-native';
+import { BadgeCheck, Building2, CalendarDays, CheckCheck, ChevronRight, ClipboardList, Clock3, FilePenLine, Hourglass, Repeat, ScanLine, ShieldAlert, Sun, TimerReset, UserX } from 'lucide-react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { servicePhoto } from '../../../../assets/images';
 import { ApiError } from '../../../../lib/api';
 import { Tasks, isLive, isOpen } from '../../../../components/visit';
 import { flatLabel, isoDay, longDay, relativeDay, time, timeWindow } from '../../../../lib/format';
 import { qk, useVisit, visitStatus } from '../../../../lib/queries';
-import { BrandImage, Card, EmptyState, ErrorState, FloatingAction, ListRow, LoadingList, Muted, Pill, Screen, ServiceIcon, Stagger, Text, c } from '../../../../ui';
+import { BrandImage, Button, Card, EmptyState, ErrorState, FloatingAction, ListRow, LoadingList, Muted, Pill, Screen, ServiceIcon, Stagger, Text, c, gradients } from '../../../../ui';
 
 const SOURCE: Record<string, { title: string; detail: string }> = {
   STANDING: { title: 'Regular visit', detail: 'Part of your regular schedule' },
@@ -50,7 +50,12 @@ export default function VisitDetail() {
         {q.error && !(q.error instanceof ApiError && q.error.status === 404) ? (
           <ErrorState error={q.error} onRetry={() => void q.refetch()} />
         ) : (
-          <EmptyState image="ill-empty-visits" title="Visit not found" body="It may have been moved to another worker. Pull down on Schedule to refresh." />
+          <EmptyState
+            image="ill-empty-visits"
+            title="Visit not found"
+            body="It may have been moved to another worker. Pull down on Schedule to refresh."
+            action={<Button title="Back to today" variant="secondary" icon={Sun} onPress={() => router.dismissTo('/(app)/(tabs)')} />}
+          />
         )}
       </Screen>
     );
@@ -74,12 +79,12 @@ export default function VisitDetail() {
           <Stagger index={0}>
             <View className="h-44 overflow-hidden rounded-2xl">
               <BrandImage name={servicePhoto(v.serviceName)} className="h-full w-full" iconSize={56} />
-              <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(8,28,25,0.7)']} style={{ position: 'absolute', inset: 0 }} />
+              <LinearGradient colors={gradients.scrim} style={{ position: 'absolute', inset: 0 }} />
               <View className="absolute bottom-4 left-4 right-4 flex-row items-center gap-3">
                 <ServiceIcon serviceName={v.serviceName} size="lg" />
                 <View className="flex-1">
                   <Text className="font-heading text-2xl text-white">{v.serviceName}</Text>
-                  {v.source === 'OVERTIME' || v.isAddon ? <Text className="text-[15px] text-white/90">{v.isAddon ? 'Add-on service' : 'Extra work'}</Text> : null}
+                  {v.source === 'OVERTIME' || v.isAddon ? <Text className="text-body-sm text-white/90">{v.isAddon ? 'Add-on service' : 'Extra work'}</Text> : null}
                 </View>
               </View>
             </View>
@@ -90,7 +95,7 @@ export default function VisitDetail() {
           <Stagger index={1}>
             <View className="gap-2">
               <Pill label={s.label} tone={s.tone} />
-              <Text accessibilityRole="header" className="font-display text-[30px] leading-[38px] text-charcoal">
+              <Text accessibilityRole="header" className="font-display text-title text-charcoal">
                 {flatLabel(v.flat)}
               </Text>
               <View className="flex-row items-center gap-1.5">
@@ -185,7 +190,7 @@ export default function VisitDetail() {
           {isOpen(v) && !today ? (
             <View className="flex-row items-center gap-3 rounded-lg bg-info-surface p-4">
               <TimerReset size={20} color={c.infoText} />
-              <Text className="flex-1 text-[15px] text-info-text">You can check in on the day of the visit, with the resident’s code.</Text>
+              <Text className="flex-1 text-body-sm text-info-text">You can check in on the day of the visit, with the resident’s code.</Text>
             </View>
           ) : null}
 
@@ -199,6 +204,7 @@ export default function VisitDetail() {
                     detail="Record this after waiting at the door"
                     tint={c.warningText}
                     tileClass="bg-warning-surface"
+                    trailing={<ChevronRight size={20} color={c.textSecondary} />}
                     onPress={() => router.push({ pathname: '/visit/[id]/absent', params: { id: v.occurrenceId } })}
                   />
                 ) : null}
@@ -207,6 +213,7 @@ export default function VisitDetail() {
                     icon={FilePenLine}
                     title="Request a correction"
                     detail="If your attendance or completion is wrong"
+                    trailing={<ChevronRight size={20} color={c.textSecondary} />}
                     onPress={() => router.push({ pathname: '/visit/[id]/correction', params: { id: v.occurrenceId } })}
                   />
                 ) : null}

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 import { Redirect, router } from 'expo-router';
-import { Check, KeyRound, ShieldCheck } from 'lucide-react-native';
+import { Check, KeyRound, LogOut, ShieldCheck } from 'lucide-react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '../lib/api';
 import { passwordProblem, useAuth } from '../lib/auth';
@@ -61,7 +61,7 @@ export default function ChangePassword() {
       footer={
         <>
           <Button title="Save new password" icon={ShieldCheck} busy={busy} onPress={() => void submit()} />
-          <Button title="Sign out" variant="ghost" onPress={() => void supabase.auth.signOut().then(() => router.replace('/welcome'))} />
+          <Button title="Sign out" variant="ghost" icon={LogOut} onPress={() => void supabase.auth.signOut().then(() => router.replace('/welcome'))} />
         </>
       }
     >
