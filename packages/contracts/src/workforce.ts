@@ -197,8 +197,19 @@ export const employeeMeSchema = z.object({
   verifications: z.array(z.object({ name: z.string(), status: z.string().nullable() })),
   availability: z.array(z.object({ daysOfWeek: z.number().int(), startTime: z.string(), endTime: z.string() })),
   training: z.array(z.object({ itemId: uuidSchema, title: z.string(), url: z.string(), completedAt: z.string().nullable() })),
+  homeClusterName: z.string(),
+  joinedOn: z.string().nullable(),
 });
 export type EmployeeMe = z.infer<typeof employeeMeSchema>;
+
+/** A task the resident's plan covers, as agreed in the booking's terms snapshot. */
+export const visitTaskSchema = z.object({
+  name: z.string(),
+  /** PER_VISIT, DAILY, WEEKLY or MONTHLY. */
+  frequency: z.string(),
+  timesPerPeriod: z.number().int(),
+});
+export type VisitTask = z.infer<typeof visitTaskSchema>;
 
 export const employeeScheduleItemSchema = z.object({
   occurrenceId: uuidSchema,
@@ -209,5 +220,20 @@ export const employeeScheduleItemSchema = z.object({
   flat: z.object({ flatNumber: z.string(), towerName: z.string(), communityName: z.string() }),
   status: z.string(),
   source: z.string(),
+  durationMinutes: z.number().int().nullable(),
+  isAddon: z.boolean(),
+  /** Empty when the plan lists no tasks for this service. */
+  tasks: z.array(visitTaskSchema),
 });
 export type EmployeeScheduleItem = z.infer<typeof employeeScheduleItemSchema>;
+
+/** GET /v1/employee/visits/:id — one of the worker's own visits with its attendance state. */
+export const employeeVisitDetailSchema = employeeScheduleItemSchema.extend({
+  checkIn: z
+    .object({ at: z.string(), method: z.enum(['OTP', 'QR']), result: z.enum(['VERIFIED', 'REJECTED']), flags: z.array(z.string()) })
+    .nullable(),
+  completedAt: z.string().nullable(),
+  noShow: z.enum(['RESIDENT_ABSENT', 'WORKER_ABSENT']).nullable(),
+  correction: z.object({ status: z.enum(['PENDING', 'APPROVED', 'REJECTED']), requestedChange: z.enum(['MARK_ATTENDED', 'MARK_COMPLETED']), reviewNote: z.string().nullable() }).nullable(),
+});
+export type EmployeeVisitDetail = z.infer<typeof employeeVisitDetailSchema>;

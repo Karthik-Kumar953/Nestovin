@@ -13,7 +13,9 @@
     "test:integration": "vitest run --project integration",
     "db:setup-local": "tsx --env-file-if-exists=.env scripts/setup-local-db-roles.ts",
     "bootstrap:super-admin": "tsx --env-file-if-exists=.env scripts/bootstrap-super-admin.ts",
-    "db:migrate": "tsx --env-file-if-exists=.env scripts/db-migrate.ts"
+    "db:migrate": "tsx --env-file-if-exists=.env scripts/db-migrate.ts",
+    "seed:dev-demo": "tsx --env-file-if-exists=.env scripts/seed-dev-demo.ts",
+    "seed:e2e-admin": "tsx --env-file-if-exists=.env scripts/seed-e2e-admin.ts"
   },
   "dependencies": {
     "@nestovin/contracts": "workspace:*",

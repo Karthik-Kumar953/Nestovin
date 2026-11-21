@@ -1,4 +1,4 @@
-import type { EmployeeMe, EmployeeScheduleItem, LeaveRequest } from '@nestovin/contracts';
+import type { EmployeeMe, EmployeeScheduleItem, EmployeeVisitDetail, LeaveRequest, VisitTask } from '@nestovin/contracts';
 import type { AppDeps } from '../../http/context';
 import type { Handler } from '../../http/middleware';
 import type { Database, DbClaims, Tx } from '../../db/database';
@@ -80,6 +80,7 @@ export class EmployeeService {
   async me(actor: EmployeeActor): Promise<EmployeeMe> {
     return this.tx(actor, async (trx) => {
       const e = await trx.selectFrom('app.employees').selectAll().where('id', '=', actor.id).executeTakeFirstOrThrow();
+      const cluster = await trx.selectFrom('app.clusters').select('name').where('id', '=', e.home_cluster_id).executeTakeFirst();
       const services = await trx
         .selectFrom('app.employee_qualifications as q')
         .innerJoin('app.services as s', 's.id', 'q.service_id')
@@ -112,6 +113,8 @@ export class EmployeeService {
         verifications: checks.map((c) => ({ name: c.name, status: c.status ?? null })),
         availability: availability.map((a) => ({ daysOfWeek: a.days_of_week, startTime: a.start_time.slice(0, 5), endTime: a.end_time.slice(0, 5) })),
         training: training.map((t) => ({ itemId: t.id, title: t.title, url: t.url, completedAt: t.completed_at ? new Date(t.completed_at).toISOString() : null })),
+        homeClusterName: cluster?.name ?? '',
+        joinedOn: e.joined_on ?? null,
       };
     });
   }
@@ -124,21 +127,110 @@ export class EmployeeService {
 
   async schedule(actor: EmployeeActor, from: string, to: string): Promise<EmployeeScheduleItem[]> {
     return this.tx(actor, async (trx) => {
-      const rows = await trx
-        .selectFrom('app.occurrence_assignments as a')
-        .innerJoin('app.service_occurrences as o', 'o.id', 'a.occurrence_id')
-        .innerJoin('app.services as s', 's.id', 'o.service_id')
-        .innerJoin('app.flats as f', 'f.id', 'o.flat_id')
-        .innerJoin('app.towers as t', 't.id', 'f.tower_id')
-        .innerJoin('app.communities as c', 'c.id', 'o.community_id')
-        .select(['o.id', 'o.scheduled_date', 'o.starts_at', 'o.ends_at', 'o.status', 'a.source', 's.name as service_name', 'f.flat_number', 't.name as tower_name', 'c.name as community_name'])
-        .where('a.employee_id', '=', actor.id)
-        .where('a.status', '=', 'ACTIVE')
+      const rows = await this.assignedVisits(trx, actor)
         .where('o.scheduled_date', '>=', from)
         .where('o.scheduled_date', '<=', to)
+        .orderBy('o.scheduled_date')
         .orderBy('o.starts_at')
         .execute();
-      return rows.map((r) => ({
+      return this.withTasks(rows);
+    });
+  }
+
+  /** One of the worker's own visits with its attendance state; 404 for anyone else's. */
+  async visit(actor: EmployeeActor, occurrenceId: string): Promise<EmployeeVisitDetail> {
+    return this.tx(actor, async (trx) => {
+      const row = await this.assignedVisits(trx, actor).where('o.id', '=', occurrenceId).executeTakeFirst();
+      if (!row) throw notFound('Visit');
+      const [item] = await this.withTasks([row]);
+      const checkIn = await trx
+        .selectFrom('app.attendance_events')
+        .select(['server_time', 'method', 'result', 'flags'])
+        .where('occurrence_id', '=', occurrenceId)
+        .where('employee_id', '=', actor.id)
+        .orderBy('server_time', 'desc')
+        .executeTakeFirst();
+      const done = await trx.selectFrom('app.service_completions').select('completed_at').where('occurrence_id', '=', occurrenceId).executeTakeFirst();
+      const noShow = await trx.selectFrom('app.no_show_records').select('kind').where('occurrence_id', '=', occurrenceId).orderBy('created_at', 'desc').executeTakeFirst();
+      const correction = await trx
+        .selectFrom('app.attendance_corrections')
+        .select(['status', 'requested_change', 'review_note'])
+        .where('occurrence_id', '=', occurrenceId)
+        .where('employee_id', '=', actor.id)
+        .orderBy('created_at', 'desc')
+        .executeTakeFirst();
+      return {
+        ...item!,
+        checkIn: checkIn ? { at: new Date(checkIn.server_time).toISOString(), method: checkIn.method, result: checkIn.result, flags: checkIn.flags } : null,
+        completedAt: done ? new Date(done.completed_at).toISOString() : null,
+        noShow: noShow?.kind ?? null,
+        correction: correction ? { status: correction.status, requestedChange: correction.requested_change, reviewNote: correction.review_note } : null,
+      };
+    });
+  }
+
+  /** Active assignments of this worker (RLS also limits rows to their own). */
+  private assignedVisits(trx: Tx, actor: EmployeeActor) {
+    return trx
+      .selectFrom('app.occurrence_assignments as a')
+      .innerJoin('app.service_occurrences as o', 'o.id', 'a.occurrence_id')
+      .innerJoin('app.services as s', 's.id', 'o.service_id')
+      .innerJoin('app.flats as f', 'f.id', 'o.flat_id')
+      .innerJoin('app.towers as t', 't.id', 'f.tower_id')
+      .innerJoin('app.communities as c', 'c.id', 'o.community_id')
+      .select(['o.id', 'o.scheduled_date', 'o.starts_at', 'o.ends_at', 'o.status', 'o.service_id', 'o.subscription_component_id', 'a.source', 's.name as service_name', 'f.flat_number', 't.name as tower_name', 'c.name as community_name'])
+      .where('a.employee_id', '=', actor.id)
+      .where('a.status', '=', 'ACTIVE');
+  }
+
+  /**
+   * Adds the tasks the resident's plan covers, taken from the booking's terms
+   * snapshot (what was agreed at purchase, not the current catalogue). The
+   * component ids come from the worker's own RLS-scoped rows, so the system
+   * read below only ever resolves visits the worker is assigned to.
+   */
+  private async withTasks(
+    rows: {
+      id: string;
+      scheduled_date: string;
+      starts_at: Date | string | null;
+      ends_at: Date | string | null;
+      status: string;
+      subscription_component_id: string;
+      source: string;
+      service_name: string;
+      flat_number: string;
+      tower_name: string;
+      community_name: string;
+    }[],
+  ): Promise<EmployeeScheduleItem[]> {
+    const componentIds = [...new Set(rows.map((r) => r.subscription_component_id))];
+    type SnapComponent = { serviceId: string; isAddon?: boolean; tasks?: VisitTask[] };
+    const byComponent = new Map<string, { isAddon: boolean; durationMinutes: number | null; tasks: VisitTask[] }>();
+    if (componentIds.length) {
+      const comps = await withTx(this.db, SYSTEM_CLAIMS, (trx) =>
+        trx
+          .selectFrom('app.subscription_components as sc')
+          .innerJoin('app.subscriptions as sub', 'sub.id', 'sc.subscription_id')
+          .innerJoin('app.bookings as b', 'b.id', 'sub.booking_id')
+          .innerJoin('app.booking_terms_snapshots as snap', 'snap.id', 'b.terms_snapshot_id')
+          .select(['sc.id', 'sc.service_id', 'sc.is_addon', 'sc.duration_minutes', 'snap.plan_snapshot'])
+          .where('sc.id', 'in', componentIds)
+          .execute(),
+      );
+      for (const c of comps) {
+        const snapComps = (c.plan_snapshot as { components?: SnapComponent[] } | null)?.components ?? [];
+        const match = snapComps.find((x) => x.serviceId === c.service_id && Boolean(x.isAddon) === c.is_addon);
+        byComponent.set(c.id, {
+          isAddon: c.is_addon,
+          durationMinutes: c.duration_minutes,
+          tasks: (match?.tasks ?? []).map((t) => ({ name: t.name, frequency: t.frequency, timesPerPeriod: t.timesPerPeriod })),
+        });
+      }
+    }
+    return rows.map((r) => {
+      const comp = byComponent.get(r.subscription_component_id);
+      return {
         occurrenceId: r.id,
         scheduledDate: r.scheduled_date,
         startsAt: r.starts_at ? new Date(r.starts_at).toISOString() : null,
@@ -147,7 +239,10 @@ export class EmployeeService {
         flat: { flatNumber: r.flat_number, towerName: r.tower_name, communityName: r.community_name },
         status: r.status,
         source: r.source,
-      }));
+        durationMinutes: comp?.durationMinutes ?? null,
+        isAddon: comp?.isAddon ?? false,
+        tasks: comp?.tasks ?? [],
+      };
     });
   }
 

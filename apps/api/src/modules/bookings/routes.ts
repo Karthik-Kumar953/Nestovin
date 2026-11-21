@@ -57,6 +57,9 @@ export function residentBookingRoutes(deps: AppDeps, payments: PaymentService): 
   r.get('/bookings', async (req, res) => {
     res.json({ items: await svc.bookings(residentOf(req)) });
   });
+  r.get('/bookings/:id', async (req, res) => {
+    res.json(await svc.booking(residentOf(req), id(req.params.id)));
+  });
   r.post('/bookings', limit, validateBody(createBookingSchema), async (req, res) => {
     res.status(201).json(await svc.createBooking(residentOf(req), req.requestId, req.body, idemKey(req)));
   });
