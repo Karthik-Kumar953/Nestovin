@@ -10,6 +10,17 @@ Expo SDK 58, React Native 0.88, TypeScript and Expo Router (`src/app`). Styling 
 2. Start the API (`corepack pnpm dev:api`). Add your LAN address to `CORS_ORIGINS` only if you use the web preview.
 3. `cd apps/resident && npx expo start`. Scan the QR code with a **development build** (see below) or Expo Go.
 
+## On your iPhone with Expo Go
+
+1. Check Expo Go: the app's settings must list **SDK 58** (this app uses Expo SDK 58). If it shows an older SDK, update Expo Go from the App Store.
+2. Phone and computer on the same Wi-Fi. Start the API from the main checkout: `corepack pnpm dev:api`. The first time, allow Node.js on **Private networks** in the Windows firewall prompt.
+3. `corepack pnpm --filter @nestovin/resident phone` (or `node scripts/phone.cjs` here). It finds this computer's Wi-Fi address, points the app at `http://<that address>:4000` and starts Metro on port 8081 for Expo Go. Your `.env` is not changed.
+4. Scan the QR code with the iPhone Camera app; it opens in Expo Go.
+
+If the phone cannot connect, pass the address yourself (`--host 192.168.x.x`) or use `--tunnel` (needs `npx expo login`; the API must still be reachable from the phone).
+
+In Expo Go, push notifications and Razorpay payments are off by design (they need a development build); everything else works.
+
 ## Design review without the API (demo mode, dev only)
 
 ```
