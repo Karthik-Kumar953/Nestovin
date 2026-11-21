@@ -105,7 +105,8 @@ function OfferCard({ offer, meId, justAccepted, onAnswered }: { offer: OvertimeO
     ]);
 
   return (
-    <Animated.View layout={LinearTransition.duration(260).reduceMotion(ReduceMotion.System)} className="overflow-hidden rounded-2xl border border-line/70 bg-surface" style={canAnswer ? shadow.float : shadow.card}>
+    <Animated.View layout={LinearTransition.duration(260).reduceMotion(ReduceMotion.System)} style={[{ borderRadius: 28, borderCurve: 'continuous', backgroundColor: c.surface }, canAnswer ? shadow.float : shadow.card]}>
+      <View className="overflow-hidden rounded-2xl border border-line/70 bg-surface">
       <View className="gap-3 p-5">
         <View className="flex-row items-center justify-between">
           <Pill label={view.label} tone={view.tone} icon={view.tone === 'teal' ? Hourglass : view.tone === 'success' ? CheckCircle2 : undefined} />
@@ -126,11 +127,16 @@ function OfferCard({ offer, meId, justAccepted, onAnswered }: { offer: OvertimeO
         {offer.note ? <Muted>“{offer.note}”</Muted> : null}
         {!canAnswer ? <Muted className="text-sm">{view.detail}</Muted> : null}
         {justAccepted && mine === 'ACCEPTED' ? (
-          <Animated.View entering={FadeIn.duration(200).reduceMotion(ReduceMotion.System)} className="flex-row items-center gap-3 rounded-lg bg-mint p-3.5" accessibilityLiveRegion="polite">
-            <Animated.View entering={ZoomIn.springify().damping(12).reduceMotion(ReduceMotion.System)} className="h-9 w-9 items-center justify-center rounded-full bg-teal-action">
-              <Check size={20} color={c.white} strokeWidth={3} />
-            </Animated.View>
-            <Text className="flex-1 text-[15px] text-teal-deep">Thanks. We told Operations you can do it. You will get an update when it is confirmed.</Text>
+          <Animated.View entering={FadeIn.duration(200).reduceMotion(ReduceMotion.System)} accessibilityLiveRegion="polite">
+            <View className="flex-row items-center gap-3 rounded-lg bg-mint p-3.5">
+              <Animated.View
+                entering={ZoomIn.springify().damping(12).reduceMotion(ReduceMotion.System)}
+                style={{ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: c.tealAction }}
+              >
+                <Check size={20} color={c.white} strokeWidth={3} />
+              </Animated.View>
+              <Text className="flex-1 text-[15px] text-teal-deep">Thanks. We told Operations you can do it. You will get an update when it is confirmed.</Text>
+            </View>
           </Animated.View>
         ) : null}
       </View>
@@ -140,6 +146,7 @@ function OfferCard({ offer, meId, justAccepted, onAnswered }: { offer: OvertimeO
           <Button title="Accept" icon={Check} busy={respond.isPending && respond.variables?.response === 'ACCEPTED'} disabled={respond.isPending} onPress={() => answer('ACCEPTED')} className="flex-1" />
         </View>
       ) : null}
+      </View>
     </Animated.View>
   );
 }

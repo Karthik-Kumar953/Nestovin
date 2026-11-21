@@ -1,4 +1,4 @@
-import { forwardRef, useState, type ReactNode } from 'react';
+import { useState, type ReactNode, type Ref } from 'react';
 import { ActivityIndicator, Platform, Pressable, Text as RNText, TextInput, View, type TextInputInstance, type TextInputProps, type TextProps, type ViewProps } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import type { LucideIcon } from 'lucide-react-native';
@@ -88,7 +88,8 @@ export function PressScale({
   const scale = useSharedValue(1);
   const a = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return (
-    <Animated.View style={[a, style]} className={containerClassName}>
+    <View className={containerClassName} style={style}>
+      <Animated.View style={a}>
       <Pressable
         onPress={onPress}
         disabled={disabled}
@@ -103,7 +104,8 @@ export function PressScale({
       >
         {children}
       </Pressable>
-    </Animated.View>
+      </Animated.View>
+    </View>
   );
 }
 
@@ -226,10 +228,17 @@ export function Chip({ label, selected, onPress, icon: Icon, role = 'checkbox' }
 
 // ---------------------------------------------------------------- inputs
 
-export const Field = forwardRef<TextInputInstance, TextInputProps & { label: string; error?: string | undefined; hint?: string; optional?: boolean }>(function Field(
-  { label, error, hint, optional, secureTextEntry, multiline, ...input },
+/** React 19: `ref` is a plain prop (no forwardRef). */
+export function Field({
   ref,
-) {
+  label,
+  error,
+  hint,
+  optional,
+  secureTextEntry,
+  multiline,
+  ...input
+}: TextInputProps & { ref?: Ref<TextInputInstance>; label: string; error?: string | undefined; hint?: string; optional?: boolean }) {
   const [focused, setFocused] = useState(false);
   const [reveal, setReveal] = useState(false);
   const isSecret = !!secureTextEntry;
@@ -283,7 +292,7 @@ export const Field = forwardRef<TextInputInstance, TextInputProps & { label: str
       ) : null}
     </View>
   );
-});
+}
 
 /** Row with a leading icon tile, used in lists and settings. */
 export function ListRow({

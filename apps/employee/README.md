@@ -33,7 +33,7 @@ npx eas-cli@latest build --profile development --platform android
 - **Apply** (public, EMP-01) and its confirmation. Submitting never creates a login.
 - **Sign in** (Employee ID + password) and **set your own password** (first login, ADR-012).
 - **Today**: greeting, day stats, the next visit as the hero (flat, time window, service photo, one action: Check in or Complete), extra-work banner, the day's timeline, quick links. Workers who are not READY see their readiness, checks and training progress instead.
-- **Visit**: details, status, check-in evidence, and the actions allowed now.
+- **Visit** (`GET /v1/employee/visits/:id`): time window and duration, what the plan covers (tasks from the booking terms snapshot), the check-in, completion, no-show and correction record, and only the actions allowed now.
 - **Check in** (EMP-06, ADR-014): the resident's 6-digit code or their QR (expo-camera), one location reading with its accuracy, then a clear result: verified, flagged for review (outside the community radius or low accuracy, never blocked), or rejected with the reason. Retries of the same attempt reuse its `clientEventId`.
 - **Complete visit** with an optional note (EMP-07); **Resident not available** after the waiting time; **Request a correction** (ADM-12A).
 - **Schedule**: week strip, the day's visits, your working hours.
@@ -41,8 +41,8 @@ npx eas-cli@latest build --profile development --platform android
 - **Leave** (EMP-09): list, request with a date-range calendar, cancel while pending.
 - **Training** (EMP-04): open the video link, then mark it watched.
 - **Payslips**: approved months with payable days, earnings, deductions, net and paid status.
-- **Updates** (EMP-10): inbox with deep links; push taps open the same screen.
-- **Me**: Employee ID, phone, services, checks, working hours, links, sign out.
+- **Updates** (EMP-10): virtualised inbox (FlashList) with deep links; push taps open the same screen.
+- **Me**: Employee ID, phone, home cluster, joining date, services, checks, working hours, links, sign out.
 
 ## Images
 Images are referenced by their `docs/Design/Image_Shot_List.md` names through `src/assets/images.ts`. After the owner adds files to `docs/Design/images/`, run:
@@ -50,6 +50,9 @@ Images are referenced by their `docs/Design/Image_Shot_List.md` names through `s
 node scripts/sync-images.cjs
 ```
 It copies them into `assets/images/` and regenerates `src/assets/images.generated.ts`. A missing image shows a designed fallback (brand gradient, rings and icon).
+
+## Styling rules (ADR-018)
+NativeWind only styles core components. `Animated.*`, `GlassView`, expo-image and `LinearGradient` take `style` (token values), never `className`: wrap a plain `View` for layout classes. Primitives drop their default classes when a screen overrides them (`textClass` in `src/ui/primitives.tsx`).
 
 ## Shared UI
 `src/ui/` holds local copies of the building blocks (buttons, fields, cards, pills, motion, glass action). When `packages/ui-native` lands, swap the imports; names match on purpose.

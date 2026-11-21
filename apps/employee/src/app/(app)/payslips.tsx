@@ -69,7 +69,8 @@ export default function Payslips() {
                     </View>
                   </PressScale>
                   {isOpen ? (
-                    <Animated.View entering={FadeIn.duration(200).reduceMotion(ReduceMotion.System)} className="gap-2.5 border-t border-line/60 bg-mint-soft p-4">
+                    <Animated.View entering={FadeIn.duration(200).reduceMotion(ReduceMotion.System)}>
+                      <View className="gap-2.5 border-t border-line/60 bg-mint-soft p-4">
                       <Line label="Payable days" value={`${p.payableDays} of ${p.daysInMonth}`} />
                       <Line label="Earnings" value={rupees(p.earningsPaise)} />
                       <Line label="Deductions" value={p.deductionsPaise ? `− ${rupees(p.deductionsPaise)}` : rupees(0)} />
@@ -77,6 +78,7 @@ export default function Payslips() {
                       <Line label="Net pay" value={rupees(p.netPaise)} strong />
                       <Line label="Paid so far" value={rupees(p.paidPaise)} />
                       {p.paidPaise < p.netPaise && p.paymentStatus !== 'NOT_PAYABLE' ? <Line label="Still to be paid" value={rupees(p.netPaise - p.paidPaise)} /> : null}
+                      </View>
                     </Animated.View>
                   ) : null}
                 </View>

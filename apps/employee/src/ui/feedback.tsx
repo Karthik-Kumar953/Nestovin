@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from 'react';
 import { View } from 'react-native';
-import Animated, { FadeIn, FadeOut, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut, ReduceMotion, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import type { LucideIcon } from 'lucide-react-native';
 import { AlertTriangle, CheckCircle2, Info, WifiOff, XCircle } from 'lucide-react-native';
 import type { ImageName } from '../assets/images';
@@ -43,9 +43,11 @@ export function OfflineBanner({ message = 'You are offline. Showing what was las
   const online = useOnline();
   if (online) return null;
   return (
-    <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(140)} accessibilityLiveRegion="polite" className="flex-row items-center gap-2.5 rounded-lg bg-charcoal px-4 py-3">
-      <WifiOff size={18} color={c.white} />
-      <Text className="flex-1 text-[15px] text-white">{message}</Text>
+    <Animated.View entering={FadeIn.duration(200).reduceMotion(ReduceMotion.System)} exiting={FadeOut.duration(140).reduceMotion(ReduceMotion.System)} accessibilityLiveRegion="polite">
+      <View className="flex-row items-center gap-2.5 rounded-lg bg-charcoal px-4 py-3">
+        <WifiOff size={18} color={c.white} />
+        <Text className="flex-1 text-[15px] text-white">{message}</Text>
+      </View>
     </Animated.View>
   );
 }
@@ -83,7 +85,12 @@ export function Skeleton({ className }: { className?: string }) {
     if (!reduce) o.value = withRepeat(withTiming(1, { duration: 750 }), -1, true);
   }, [o, reduce]);
   const style = useAnimatedStyle(() => ({ opacity: o.value }));
-  return <Animated.View accessible={false} style={style} className={`rounded-lg bg-mint-strong/70 ${className ?? ''}`} />;
+  // Size and shape come from className on a plain View; only opacity animates.
+  return (
+    <View accessible={false} className={`overflow-hidden rounded-lg ${className ?? ''}`}>
+      <Animated.View style={[{ flex: 1, backgroundColor: c.mintStrong }, style]} />
+    </View>
+  );
 }
 
 export function LoadingList({ rows = 3 }: { rows?: number }) {

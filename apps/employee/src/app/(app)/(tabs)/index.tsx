@@ -161,7 +161,7 @@ export default function Today() {
           <Heading>Quick links</Heading>
           <View className="flex-row flex-wrap gap-3">
             {SHORTCUTS.map((s, i) => (
-              <Stagger key={s.href} index={i + 3} className="w-[47.5%]">
+              <Stagger key={s.href} index={i + 3} style={{ width: '47.5%' }}>
                 <PressScale onPress={() => router.push(s.href)} accessibilityLabel={s.label}>
                   <View className="min-h-[84px] justify-between gap-3 rounded-xl border border-line/70 bg-surface p-4" style={shadow.card}>
                     <View className="h-10 w-10 items-center justify-center rounded-md bg-mint">

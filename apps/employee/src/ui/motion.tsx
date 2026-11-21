@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { AccessibilityInfo, Platform, Pressable, Text, View } from 'react-native';
+import { AccessibilityInfo, Platform, Pressable, Text, View, type ViewStyle } from 'react-native';
 import Animated, {
   Easing,
   FadeIn,
@@ -27,10 +27,10 @@ import { c, motion } from './theme';
  */
 
 /** List stagger: 45 ms per item, capped so long lists do not feel slow. */
-export function Stagger({ index, children, className }: { index: number; children: ReactNode; className?: string }) {
+export function Stagger({ index, children, style }: { index: number; children: ReactNode; style?: ViewStyle }) {
   return (
     <Animated.View
-      className={className}
+      style={style}
       entering={FadeInDown.delay(Math.min(index, 8) * motion.stagger)
         .duration(motion.slow)
         .easing(Easing.out(Easing.cubic))
@@ -41,9 +41,9 @@ export function Stagger({ index, children, className }: { index: number; childre
   );
 }
 
-export function FadeInView({ children, delay = 0, className }: { children: ReactNode; delay?: number; className?: string }) {
+export function FadeInView({ children, delay = 0, style }: { children: ReactNode; delay?: number; style?: ViewStyle }) {
   return (
-    <Animated.View className={className} entering={FadeIn.delay(delay).duration(motion.base).reduceMotion(ReduceMotion.System)}>
+    <Animated.View style={style} entering={FadeIn.delay(delay).duration(motion.base).reduceMotion(ReduceMotion.System)}>
       {children}
     </Animated.View>
   );
