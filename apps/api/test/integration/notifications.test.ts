@@ -88,4 +88,22 @@ describe.skipIf(!available)('notifications', { timeout: 90_000 }, () => {
     const { rows } = await admin.query(`select status from app.notification_outbox where dedupe_key = $1`, [`test.email:${B}`]);
     expect(rows[0].status).toBe('SKIPPED');
   });
+
+  it('two workers running at once never deliver the same row twice (review H-5)', async () => {
+    const tag = `claim-${randomUUID().slice(0, 8)}`;
+    for (let i = 0; i < 10; i++) {
+      await admin.query(
+        `insert into app.notification_outbox (event_type, dedupe_key, channel, recipient, payload) values ('enquiry.received', $1, 'EMAIL', $2, '{}')`,
+        [`${tag}-${i}`, `${tag}-${i}@example.test`],
+      );
+    }
+    const sentTo: string[] = [];
+    const counting: EmailSender = { async send(to) { await new Promise((r) => setTimeout(r, 20)); sentTo.push(to); } };
+    const w1 = new NotificationService(db, null, counting);
+    const w2 = new NotificationService(db, null, counting);
+    await Promise.all([w1.processOutbox(200), w2.processOutbox(200)]);
+    const mine = sentTo.filter((t) => t.startsWith(tag));
+    expect(mine).toHaveLength(10);
+    expect(new Set(mine).size).toBe(10);
+  });
 });
