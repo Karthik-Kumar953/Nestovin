@@ -15,7 +15,7 @@
  *   corepack pnpm --filter @nestovin/api seed:dev-demo
  */
 import { randomUUID } from 'node:crypto';
-import { writeFileSync } from 'node:fs';
+import { existsSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import pg from 'pg';
 import { z } from 'zod';
@@ -64,7 +64,7 @@ try {
   const rid = `seed-${randomUUID()}`;
 
   // ---- places
-  let community = (await q(`select id, cluster_id from app.communities where code = $1`, [COMMUNITY_CODE])).rows[0] as { id: string; cluster_id: string } | undefined;
+  let community = (await q(`select c.id, m.cluster_id from app.communities c left join app.cluster_community_memberships m on m.community_id = c.id and m.effective_to is null where c.code = $1`, [COMMUNITY_CODE])).rows[0] as { id: string; cluster_id: string } | undefined;
   let clusterId: string;
   if (!community) {
     const city = (await q(`select id from app.cities where name = 'Bengaluru'`)).rows[0]?.id ?? (await loc.createCity(root, rid, { name: 'Bengaluru', state: 'Karnataka' })).id;
@@ -106,6 +106,9 @@ try {
     tempPassword = login.temporaryPassword;
     worker = { id: d.id, employee_code: d.employeeCode };
     console.warn(`✓ Created worker ${d.employeeCode} with login enabled`);
+  } else if (!existsSync(resolve(import.meta.dirname, '../.dev-testworker.txt'))) {
+    tempPassword = (await hr.enableLogin(root, rid, worker.id)).temporaryPassword;
+    console.warn(`✓ Issued a new temporary password for ${worker.employee_code}`);
   }
 
   // ---- households with subscriptions + standing assignment (only if the worker has no visits today)
@@ -125,13 +128,28 @@ try {
       ownPhone = undefined;
     }
     for (const h of households) {
-      const residentId = randomUUID();
-      const phone = ownPhone ?? `+9199000${Math.floor(10000 + Math.random() * 89999)}`;
-      if (ownPhone) console.warn(`✓ ${h.name} signs in with DEMO_RESIDENT_PHONE`);
-      ownPhone = undefined;
-      await q(`insert into auth.users (id, phone, aud, role) values ($1, $2, 'authenticated', 'authenticated')`, [residentId, phone.slice(1)]);
-      await q(`insert into app.resident_profiles (id, phone, full_name) values ($1, $2, $3)`, [residentId, phone, h.name]);
-      const m = (await q(`insert into app.residence_memberships (resident_id, flat_id, kind, occupancy, status) values ($1, $2, 'PRIMARY', 'OWNER', 'VERIFIED') returning id, cluster_id`, [residentId, h.flat.id])).rows[0];
+      // An interrupted earlier run may have left this household without its booking: reuse it.
+      const left = (
+        await q(
+          `select m.id, m.cluster_id, m.resident_id from app.residence_memberships m join app.resident_profiles p on p.id = m.resident_id
+            where m.flat_id = $1 and m.status = 'VERIFIED' and p.full_name = $2`,
+          [h.flat.id, h.name],
+        )
+      ).rows[0] as { id: string; cluster_id: string; resident_id: string } | undefined;
+      const residentId = left?.resident_id ?? randomUUID();
+      let m: { id: string; cluster_id: string };
+      if (left) {
+        m = left;
+        if (ownPhone) console.warn(`• ${h.name} already exists; its phone is unchanged`);
+        ownPhone = undefined;
+      } else {
+        const phone = ownPhone ?? `+9199000${Math.floor(10000 + Math.random() * 89999)}`;
+        if (ownPhone) console.warn(`✓ ${h.name} signs in with DEMO_RESIDENT_PHONE`);
+        ownPhone = undefined;
+        await q(`insert into auth.users (id, phone, aud, role) values ($1, $2, 'authenticated', 'authenticated')`, [residentId, phone.slice(1)]);
+        await q(`insert into app.resident_profiles (id, phone, full_name) values ($1, $2, $3)`, [residentId, phone, h.name]);
+        m = (await q(`insert into app.residence_memberships (resident_id, flat_id, kind, occupancy, status) values ($1, $2, 'PRIMARY', 'OWNER', 'VERIFIED') returning id, cluster_id`, [residentId, h.flat.id])).rows[0];
+      }
       const snapshot = {
         planName: 'Demo plan',
         selectionLabel: h.service === 'COOK' ? 'Cook' : 'Maid',
@@ -140,8 +158,8 @@ try {
       const snap = (
         await q(
           `insert into app.booking_terms_snapshots (resident_id, flat_id, community_id, cluster_id, catalogue_version_id, plan_id, residence_category_id, plan_snapshot, total_paise, initial_due_paise, remaining_due_paise, validity_days)
-           values ($1, $2, $3, $4, $5, $6, $7, $8, 0, 0, 0, 30) returning id`,
-          [residentId, h.flat.id, community.id, m.cluster_id, ver, plan, cat, JSON.stringify(snapshot)],
+           values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9, 0, 30) returning id`,
+          [residentId, h.flat.id, community.id, m.cluster_id, ver, plan, cat, JSON.stringify(snapshot), h.service === 'COOK' ? 600_000 : 450_000],
         )
       ).rows[0].id;
       const b = (await q(`insert into app.bookings (mode, resident_id, membership_id, flat_id, community_id, cluster_id, terms_snapshot_id, slot_id, start_date, status) values ('CONTINUOUS', $1, $2, $3, $4, $5, $6, $7, $8, 'CONFIRMED') returning id`, [residentId, m.id, h.flat.id, community.id, m.cluster_id, snap, slot, today])).rows[0].id;
