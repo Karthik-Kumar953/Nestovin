@@ -37,6 +37,9 @@ const claimsOf = (o: Owner): DbClaims => ({ userId: o.id, actorKind: o.kind, isS
 const MAX_ATTEMPTS = 6;
 
 /** RES-13 / EMP-10 inbox and device tokens, plus the delivery worker. */
+/** The outbox columns the delivery worker needs. */
+type OutboxRow = { id: string; event_type: string; channel: 'EMAIL' | 'SMS' | 'PUSH'; recipient: string; payload: unknown; attempts: number };
+
 export class NotificationService {
   constructor(
     private readonly db: Database,
@@ -103,16 +106,22 @@ export class NotificationService {
    * Failures retry with backoff and stop after 6 attempts (DEAD).
    */
   async processOutbox(limit = 50): Promise<{ sent: number; skipped: number; failed: number }> {
-    const due = await withTx(this.db, SYSTEM_CLAIMS, (trx) =>
-      trx
-        .selectFrom('app.notification_outbox')
-        .selectAll()
-        .where('status', '=', 'PENDING')
-        .where('next_attempt_at', '<=', new Date())
-        .orderBy('next_attempt_at')
-        .limit(limit)
-        .execute(),
-    );
+    // Claim due rows atomically (review H-5): concurrent workers skip rows another worker holds, and a
+    // claim expires after 5 minutes so a crashed worker's rows are retried.
+    const due = await withTx(this.db, SYSTEM_CLAIMS, async (trx) => {
+      const { rows } = await sql<OutboxRow>`
+        update app.notification_outbox o
+           set locked_until = now() + interval '5 minutes'
+         where o.id in (
+           select id from app.notification_outbox
+            where status = 'PENDING' and next_attempt_at <= now()
+              and (locked_until is null or locked_until < now())
+            order by next_attempt_at
+            limit ${limit}
+            for update skip locked)
+        returning o.id, o.event_type, o.channel, o.recipient, o.payload, o.attempts`.execute(trx);
+      return rows;
+    });
     let sent = 0;
     let skipped = 0;
     let failed = 0;
@@ -122,7 +131,7 @@ export class NotificationService {
         await withTx(this.db, SYSTEM_CLAIMS, (trx) =>
           trx
             .updateTable('app.notification_outbox')
-            .set({ status: outcome.status, sent_at: outcome.status === 'SENT' ? sql`now()` : null, last_error: outcome.note ?? null, attempts: sql`attempts + 1` })
+            .set({ status: outcome.status, sent_at: outcome.status === 'SENT' ? sql`now()` : null, last_error: outcome.note ?? null, attempts: sql`attempts + 1`, locked_until: null })
             .where('id', '=', row.id)
             .execute(),
         );
@@ -141,6 +150,7 @@ export class NotificationService {
               status: attempts >= MAX_ATTEMPTS ? 'DEAD' : 'PENDING',
               next_attempt_at: new Date(Date.now() + backoffMin * 60_000),
               last_error: String((err as Error).message).slice(0, 500),
+              locked_until: null,
             })
             .where('id', '=', row.id)
             .execute(),

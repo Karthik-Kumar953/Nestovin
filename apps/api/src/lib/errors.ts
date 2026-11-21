@@ -11,6 +11,7 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   RATE_LIMITED: 429,
   BUSINESS_RULE_VIOLATION: 422,
   INTERNAL: 500,
+  UNAVAILABLE: 503,
 };
 
 /** An error that is safe to show to the client. Anything else becomes a generic 500. */
@@ -55,6 +56,10 @@ export function fromPgError(err: unknown, uniqueMessages: Record<string, FieldEr
       return businessRule(pg.message?.startsWith('Cannot') ? pg.message : 'The change breaks a data rule');
     case '42501':
       return forbidden();
+    case '55P03': // lock_not_available (lock_timeout)
+    case '57014': // query_canceled (statement_timeout)
+    case '25P03': // idle_in_transaction_session_timeout
+      return new AppError('UNAVAILABLE', 'The service is busy right now. Please try again in a moment.');
     default:
       return undefined;
   }

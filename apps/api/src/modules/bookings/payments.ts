@@ -11,6 +11,7 @@ import type { Logger } from '../../lib/logger';
 import { auditSystem } from '../audit/audit';
 import { addDays } from './pricing';
 import { notify } from '../notifications/service';
+import { businessToday } from '../../lib/dates';
 
 export const SYSTEM_CLAIMS: DbClaims = { userId: null, actorKind: 'system', isSuperAdmin: false, clusterIds: 'all' };
 
@@ -587,7 +588,7 @@ export class PaymentService {
         await auditSystem(trx, 'system', null, { action: 'demand_request.expired', targetType: 'demand_request', targetId: r.id, reason: 'Balance deadline passed' });
       }
       // Subscriptions end after their period; their standing workers are released.
-      const today = now.toISOString().slice(0, 10);
+      const today = businessToday(now);
       const ended = await trx
         .updateTable('app.subscriptions')
         .set({ status: 'ENDED' })

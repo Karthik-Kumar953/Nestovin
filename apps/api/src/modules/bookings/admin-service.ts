@@ -25,6 +25,7 @@ import { auditAdmin } from '../audit/audit';
 import { visibleCommunity } from '../locations/scope';
 import { slotUsage } from './payments';
 import { bookingViews } from './views';
+import { businessToday } from '../../lib/dates';
 
 const iso = (d: Date | string | null) => (d === null ? null : new Date(d).toISOString());
 
@@ -692,7 +693,7 @@ export class BookingAdminService {
       const b = await trx.selectFrom('app.bookings').select(['id', 'status', 'resident_id']).where('id', '=', bookingId).executeTakeFirst();
       if (!b) throw notFound('Booking');
       if (b.status !== 'PENDING_PAYMENT') throw businessRule('Only a booking waiting for payment needs a reminder');
-      const day = new Date().toISOString().slice(0, 10);
+      const day = businessToday();
       const r = await trx
         .insertInto('app.notification_outbox')
         .values({ event_type: 'payment.reminder', dedupe_key: `payment_reminder:${bookingId}:${day}`, channel: 'PUSH', recipient: b.resident_id, payload: JSON.stringify({ bookingId }) })

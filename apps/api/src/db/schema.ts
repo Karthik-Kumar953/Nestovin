@@ -202,6 +202,7 @@ export interface NotificationOutboxTable {
   last_error: string | null;
   created_at: Generated<Date>;
   sent_at: Timestamp | null;
+  locked_until: Timestamp | null;
 }
 
 // ------------------------------------------------------------- Phase 2

@@ -51,14 +51,28 @@ export interface DbClaims {
   clusterIds: 'all' | readonly string[];
 }
 
+/**
+ * Per-transaction time limits (review M-15). Role-level defaults only reach new server connections,
+ * and the transaction pooler reuses old ones, so the limits are set here, transaction-locally, on
+ * every transaction. Background jobs (system claims) get more room than requests.
+ */
+const LIMITS = {
+  request: { statement: '15s', lock: '5s', idle: '30s' },
+  job: { statement: '120s', lock: '10s', idle: '60s' },
+} as const;
+
 export async function applyClaims(trx: Tx, claims: DbClaims): Promise<void> {
   const clusters = claims.clusterIds === 'all' ? '*' : claims.clusterIds.join(',');
+  const l = claims.actorKind === 'system' ? LIMITS.job : LIMITS.request;
   await sql`
     select
       set_config('app.user_id', ${claims.userId ?? ''}, true),
       set_config('app.actor_kind', ${claims.actorKind}, true),
       set_config('app.is_super_admin', ${String(claims.isSuperAdmin)}, true),
-      set_config('app.cluster_ids', ${clusters}, true)
+      set_config('app.cluster_ids', ${clusters}, true),
+      set_config('statement_timeout', ${l.statement}, true),
+      set_config('lock_timeout', ${l.lock}, true),
+      set_config('idle_in_transaction_session_timeout', ${l.idle}, true)
   `.execute(trx);
 }
 
