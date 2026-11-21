@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import { router } from 'expo-router';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { api } from './api';
@@ -22,7 +23,9 @@ Notifications.setNotificationHandler({
  */
 export async function registerForPush(): Promise<'registered' | 'denied' | 'unavailable'> {
   try {
-    if (!Device.isDevice) return 'unavailable';
+    // Expo Go has no Firebase/APNs set up for Nestovin, so its token could never receive our pushes.
+    if (!Device.isDevice || Constants.executionEnvironment === ExecutionEnvironment.StoreClient)
+      return 'unavailable';
     if (Platform.OS === 'android') {
       // Android 13+: the channel must exist before asking, or no prompt appears.
       await Notifications.setNotificationChannelAsync('default', {
