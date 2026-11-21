@@ -22,6 +22,7 @@ import {
 import type { AppDeps } from '../../http/context';
 import { adminOf, residentOf } from '../../http/context';
 import { authorize, parseParam, parseQuery, rateLimit, validateBody } from '../../http/middleware';
+import { idempotent } from '../../http/idempotency';
 import { forbidden } from '../../lib/errors';
 import { BookingAdminService } from './admin-service';
 import type { PaymentService } from './payments';
@@ -38,6 +39,8 @@ export function residentBookingRoutes(deps: AppDeps, payments: PaymentService): 
   const r = Router();
   const svc = new ResidentBookingService(deps.db, payments);
   const limit = rateLimit(deps, { name: 'checkout', limit: 30, windowSeconds: 3600, keyFn: (req) => req.resident?.id ?? null });
+  // Money and booking POSTs must carry an Idempotency-Key (ADR-004, review H-4); verify is idempotent by payment id.
+  const once = idempotent(deps, { required: true });
 
   r.get('/booking-options', async (req, res) => {
     res.json(await svc.options(residentOf(req)));
@@ -45,13 +48,13 @@ export function residentBookingRoutes(deps: AppDeps, payments: PaymentService): 
   r.get('/demand-requests', async (req, res) => {
     res.json({ items: await svc.demandRequests(residentOf(req)) });
   });
-  r.post('/demand-requests', limit, validateBody(createDemandRequestSchema), async (req, res) => {
+  r.post('/demand-requests', limit, validateBody(createDemandRequestSchema), once, async (req, res) => {
     res.status(201).json(await svc.createDemandRequest(residentOf(req), req.requestId, req.body, idemKey(req)));
   });
   r.post('/demand-requests/:id/cancel', async (req, res) => {
     res.json({ items: await svc.cancelDemandRequest(residentOf(req), req.requestId, id(req.params.id)) });
   });
-  r.post('/demand-requests/:id/pay', limit, async (req, res) => {
+  r.post('/demand-requests/:id/pay', limit, once, async (req, res) => {
     res.json(await svc.payAgain(residentOf(req), { type: 'DEMAND_REQUEST', id: id(req.params.id) }, idemKey(req)));
   });
   r.get('/bookings', async (req, res) => {
@@ -60,16 +63,16 @@ export function residentBookingRoutes(deps: AppDeps, payments: PaymentService): 
   r.get('/bookings/:id', async (req, res) => {
     res.json(await svc.booking(residentOf(req), id(req.params.id)));
   });
-  r.post('/bookings', limit, validateBody(createBookingSchema), async (req, res) => {
+  r.post('/bookings', limit, validateBody(createBookingSchema), once, async (req, res) => {
     res.status(201).json(await svc.createBooking(residentOf(req), req.requestId, req.body, idemKey(req)));
   });
-  r.post('/bookings/:id/pay', limit, async (req, res) => {
+  r.post('/bookings/:id/pay', limit, once, async (req, res) => {
     res.json(await svc.payAgain(residentOf(req), { type: 'BOOKING', id: id(req.params.id) }, idemKey(req)));
   });
-  r.post('/subscriptions/:id/renew', limit, async (req, res) => {
+  r.post('/subscriptions/:id/renew', limit, once, async (req, res) => {
     res.status(201).json(await svc.renew(residentOf(req), req.requestId, id(req.params.id), idemKey(req)));
   });
-  r.post('/payments/verify', limit, validateBody(verifyPaymentSchema), async (req, res) => {
+  r.post('/payments/verify', limit, validateBody(verifyPaymentSchema), idempotent(deps, { required: false }), async (req, res) => {
     res.json(await svc.verifyPayment(residentOf(req), req.body));
   });
   return r;
@@ -185,7 +188,7 @@ export function bookingAdminRoutes(deps: AppDeps): Router {
   r.post('/payment-exceptions/:id/resolve', authorize('demand_payments', 'edit'), validateBody(resolveExceptionSchema), async (req, res) => {
     res.json(await svc.resolveException(adminOf(req), req.requestId, id(req.params.id), req.body.note));
   });
-  r.post('/payment-transactions/:id/refunds', authorize('demand_payments', 'approve'), validateBody(approveRefundSchema), async (req, res) => {
+  r.post('/payment-transactions/:id/refunds', authorize('demand_payments', 'approve'), validateBody(approveRefundSchema), idempotent(deps, { required: false }), async (req, res) => {
     res.status(201).json(await svc.approveRefund(adminOf(req), req.requestId, id(req.params.id), req.body));
   });
 
@@ -198,8 +201,9 @@ export function razorpayWebhookRoutes(payments: PaymentService): Router {
   r.post('/razorpay', express.raw({ type: 'application/json', limit: '256kb' }), async (req, res) => {
     const raw = Buffer.isBuffer(req.body) ? req.body : Buffer.from('');
     const outcome = await payments.handleWebhook(raw, req.header('x-razorpay-signature'), req.header('x-razorpay-event-id'));
-    // Duplicates and valid events answer 200 so Razorpay stops retrying.
-    res.status(outcome === 'rejected' ? 400 : 200).json({ status: outcome });
+    // Processed and duplicate events answer 200 so Razorpay stops retrying; a processing failure answers 500
+    // so Razorpay retries (review H-3), and the reprocess job also picks it up.
+    res.status(outcome === 'rejected' ? 400 : outcome === 'failed' ? 500 : 200).json({ status: outcome });
   });
   return r;
 }

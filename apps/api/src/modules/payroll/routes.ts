@@ -11,6 +11,7 @@ import {
 import type { AppDeps } from '../../http/context';
 import { adminOf } from '../../http/context';
 import { authorize, parseParam, validateBody } from '../../http/middleware';
+import { idempotent } from '../../http/idempotency';
 import { employeeOf } from '../workforce/employee-service';
 import { PayrollService } from './service';
 
@@ -62,7 +63,7 @@ export function payrollAdminRoutes(deps: AppDeps): Router {
   r.delete('/payroll-items/:id', authorize('finance_payroll', 'edit'), async (req, res) => {
     res.json(await svc.removeItem(adminOf(req), req.requestId, id(req.params.id)));
   });
-  r.post('/payroll-lines/:id/payments', authorize('finance_payroll', 'record_payment'), validateBody(recordSalaryPaymentSchema), async (req, res) => {
+  r.post('/payroll-lines/:id/payments', authorize('finance_payroll', 'record_payment'), validateBody(recordSalaryPaymentSchema), idempotent(deps, { required: false }), async (req, res) => {
     res.status(201).json(await svc.recordPayment(adminOf(req), req.requestId, id(req.params.id), req.body));
   });
   r.post('/salary-payments/:id/reverse', authorize('finance_payroll', 'record_payment'), validateBody(reverseSalaryPaymentSchema), async (req, res) => {

@@ -178,7 +178,18 @@ export class PaymentService {
         return review('AMOUNT_MISMATCH', `Expected ${order.amount_paise} paise, received ${payment.amountPaise}`);
       }
 
-      const outcome = await this.applyPurpose(trx, order.purpose, order.ref_type, order.ref_id, payment.amountPaise);
+      // Evidence first, effect second (ADR-006, review H-2): the transaction row above must survive even if
+      // the business effect throws, so the effect runs inside a savepoint and a failure becomes a review.
+      let outcome: { reason: PaymentExceptionReason; detail: string } | null;
+      await sql`savepoint apply_purpose`.execute(trx);
+      try {
+        outcome = await this.applyPurpose(trx, order.purpose, order.ref_type, order.ref_id, payment.amountPaise);
+        await sql`release savepoint apply_purpose`.execute(trx);
+      } catch (err) {
+        await sql`rollback to savepoint apply_purpose`.execute(trx);
+        this.logger.error({ err, orderId: order.id }, 'payment effect failed; sent to review');
+        outcome = { reason: 'RECORD_NOT_PAYABLE', detail: `Could not apply payment ${payment.id}: ${String((err as Error).message).slice(0, 200)}` };
+      }
       if (outcome) return review(outcome.reason, outcome.detail);
 
       await trx.updateTable('app.payment_orders').set({ status: 'PAID', paid_at: sql`now()` }).where('id', '=', order.id).execute();
@@ -301,7 +312,7 @@ export class PaymentService {
   // ------------------------------------------------------------------ webhooks
 
   /** Razorpay webhook: verify signature, store raw event once, process idempotently. */
-  async handleWebhook(rawBody: Buffer, signature: string | undefined, eventIdHeader: string | undefined): Promise<'ok' | 'duplicate' | 'rejected'> {
+  async handleWebhook(rawBody: Buffer, signature: string | undefined, eventIdHeader: string | undefined): Promise<'ok' | 'duplicate' | 'rejected' | 'failed'> {
     if (!this.provider) return 'rejected';
     const valid = Boolean(signature) && this.provider.verifyWebhookSignature(rawBody, signature!);
     let body: { event?: string; payload?: Record<string, { entity?: Record<string, unknown> }> };
@@ -313,32 +324,86 @@ export class PaymentService {
     const eventType = String(body.event ?? 'unknown');
     const eventId = eventIdHeader ?? `${eventType}:${String(body.payload?.payment?.entity?.id ?? body.payload?.refund?.entity?.id ?? randomUUID())}`;
 
-    const inserted = await withTx(this.db, SYSTEM_CLAIMS, (trx) =>
-      trx
-        .insertInto('app.provider_events')
-        .values({ event_id: eventId, event_type: eventType, payload: JSON.stringify(body), signature_valid: valid })
-        .onConflict((oc) => oc.column('event_id').doNothing())
-        .returning('id')
-        .executeTakeFirst(),
-    );
     if (!valid) {
+      // Keep the forged/unsigned attempt for forensics, but under its own id: it must never occupy the
+      // genuine event's id, or the real (signed) delivery would later be dropped as a duplicate.
+      await withTx(this.db, SYSTEM_CLAIMS, (trx) =>
+        trx
+          .insertInto('app.provider_events')
+          .values({ event_id: `unverified:${randomUUID()}`, event_type: eventType, payload: JSON.stringify({ claimedEventId: eventId, body }), signature_valid: false })
+          .execute(),
+      );
       this.logger.warn({ eventType }, 'razorpay webhook with invalid signature rejected');
       return 'rejected';
     }
-    if (!inserted) return 'duplicate';
+    // A retry of an event that was never processed re-claims it instead of being treated as a duplicate (review H-3).
+    const claimed = await withTx(this.db, SYSTEM_CLAIMS, (trx) =>
+      trx
+        .insertInto('app.provider_events')
+        .values({ event_id: eventId, event_type: eventType, payload: JSON.stringify(body), signature_valid: true, attempts: 1 })
+        .onConflict((oc) =>
+          oc
+            .column('event_id')
+            .doUpdateSet({ attempts: sql`app.provider_events.attempts + 1` })
+            .where('app.provider_events.processed_at', 'is', null)
+            .where('app.provider_events.signature_valid', '=', true),
+        )
+        .returning('id')
+        .executeTakeFirst(),
+    );
+    if (!claimed) return 'duplicate';
+    return (await this.processStored(claimed.id, eventType, body.payload ?? {})) ? 'ok' : 'failed';
+  }
 
+  /** Runs one stored event; records success or the error. Returns false when processing threw. */
+  private async processStored(rowId: string, eventType: string, payload: Record<string, { entity?: Record<string, unknown> }>): Promise<boolean> {
     try {
-      await this.processEvent(eventType, body.payload ?? {});
+      await this.processEvent(eventType, payload);
       await withTx(this.db, SYSTEM_CLAIMS, (trx) =>
-        trx.updateTable('app.provider_events').set({ processed_at: sql`now()` }).where('id', '=', inserted.id).execute(),
+        trx.updateTable('app.provider_events').set({ processed_at: sql`now()`, processing_error: null }).where('id', '=', rowId).execute(),
       );
+      return true;
     } catch (err) {
       this.logger.error({ err, eventType }, 'razorpay webhook processing failed');
       await withTx(this.db, SYSTEM_CLAIMS, (trx) =>
-        trx.updateTable('app.provider_events').set({ processing_error: String((err as Error).message).slice(0, 500) }).where('id', '=', inserted.id).execute(),
+        trx.updateTable('app.provider_events').set({ processing_error: String((err as Error).message).slice(0, 500) }).where('id', '=', rowId).execute(),
       );
+      return false;
     }
-    return 'ok';
+  }
+
+  /**
+   * Job step (review H-3): retries valid webhook events that were stored but never processed,
+   * for example after a crash between storing and processing. After MAX attempts the event is
+   * surfaced once in the ADM-08 exceptions queue instead of failing silently.
+   */
+  async reprocessEvents(now = new Date(), max = 8): Promise<number> {
+    const stuck = await withTx(this.db, SYSTEM_CLAIMS, (trx) =>
+      trx
+        .selectFrom('app.provider_events')
+        .select(['id', 'event_id', 'event_type', 'payload', 'attempts'])
+        .where('processed_at', 'is', null)
+        .where('signature_valid', '=', true)
+        .where('received_at', '<', new Date(now.getTime() - 2 * 60_000))
+        .where('received_at', '>', new Date(now.getTime() - 7 * 24 * 3600_000))
+        .where('attempts', '<=', max)
+        .orderBy('received_at')
+        .limit(50)
+        .execute(),
+    );
+    let done = 0;
+    for (const e of stuck) {
+      const attempts = e.attempts + 1;
+      await withTx(this.db, SYSTEM_CLAIMS, (trx) => trx.updateTable('app.provider_events').set({ attempts }).where('id', '=', e.id).execute());
+      const body = (typeof e.payload === 'string' ? JSON.parse(e.payload) : e.payload) as { payload?: Record<string, { entity?: Record<string, unknown> }> };
+      if (await this.processStored(e.id, e.event_type, body.payload ?? {})) done++;
+      else if (attempts > max) {
+        await withTx(this.db, SYSTEM_CLAIMS, (trx) =>
+          trx.insertInto('app.payment_exceptions').values({ reason_code: 'WEBHOOK_FAILED', detail: `Webhook ${e.event_type} (${e.event_id}) failed ${attempts} times` }).execute(),
+        );
+      }
+    }
+    return done;
   }
 
   private async processEvent(eventType: string, payload: Record<string, { entity?: Record<string, unknown> }>) {
@@ -428,8 +493,16 @@ export class PaymentService {
    * never called back"), expire stale orders, close finished cycles and expire
    * unpaid demand-led balances (ADR-013: initial amount retained).
    */
-  async maintenance(now = new Date()): Promise<{ reconciled: number; expiredOrders: number; closedCycles: number; expiredBalances: number; endedSubscriptions: number; lapsedBookings: number }> {
+  async maintenance(now = new Date()): Promise<{ reconciled: number; reprocessedEvents: number; expiredOrders: number; closedCycles: number; expiredBalances: number; endedSubscriptions: number; lapsedBookings: number }> {
     let reconciled = 0;
+    let reprocessedEvents = 0;
+    if (this.provider) {
+      try {
+        reprocessedEvents = await this.reprocessEvents(now);
+      } catch (err) {
+        this.logger.error({ err }, 'webhook reprocessing failed');
+      }
+    }
     if (this.provider) {
       const open = await withTx(this.db, SYSTEM_CLAIMS, (trx) =>
         trx
@@ -439,10 +512,22 @@ export class PaymentService {
           .where('provider_order_id', 'is not', null)
           .where('created_at', '<', new Date(now.getTime() - 2 * 60_000))
           .where('created_at', '>', new Date(now.getTime() - 3 * 24 * 3600_000))
+          // Review H-7: least-recently-checked first, with exponential backoff (2 min × 2^n, capped at 2^8),
+          // so every open order is checked in turn instead of the same 50 every minute.
+          .where(sql<boolean>`last_checked_at is null or last_checked_at < ${now}::timestamptz - (interval '2 minutes' * power(2, least(check_count, 8)))`)
+          .orderBy(sql`last_checked_at nulls first`)
+          .orderBy('created_at', 'desc')
           .limit(50)
           .execute(),
       );
       for (const o of open) {
+        await withTx(this.db, SYSTEM_CLAIMS, (trx) =>
+          trx
+            .updateTable('app.payment_orders')
+            .set({ last_checked_at: now, check_count: sql`check_count + 1` })
+            .where('id', '=', o.id)
+            .execute(),
+        );
         try {
           const payments = await this.provider.fetchOrderPayments(o.provider_order_id!);
           for (const p of payments.filter((x) => x.status === 'captured')) {
@@ -528,6 +613,7 @@ export class PaymentService {
         .executeTakeFirst();
       return {
         reconciled,
+        reprocessedEvents,
         expiredOrders: Number(expiredOrders.numUpdatedRows),
         closedCycles: closing.length,
         expiredBalances: overdue.length,

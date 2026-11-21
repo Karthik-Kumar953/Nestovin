@@ -476,7 +476,11 @@ export class ResidentBookingService {
         if (!same) throw businessRule('Renewal for this time is not open yet. We will notify you when it is.');
         slotId = same.id;
       }
-      const bookingId = await this.insertBooking(trx, actor, m, priced, { slotId, startDate: addDays(s.period_end, 1), renews: s.id });
+      // bookings_one_live_renewal (unique, partial) closes the double-tap race the check above can't (review H-2).
+      const bookingId = await this.insertBooking(trx, actor, m, priced, { slotId, startDate: addDays(s.period_end, 1), renews: s.id }).catch((err: unknown) => {
+        if ((err as { code?: string; constraint?: string }).constraint === 'bookings_one_live_renewal') throw conflict('A renewal for this subscription already exists');
+        throw err;
+      });
       await auditResident(trx, actor.id, requestId, { action: 'subscription.renewal_started', targetType: 'subscription', targetId: s.id, after: { bookingId, totalPaise: priced.totalPaise } });
       const checkout = await this.payments.orderFor(trx, {
         purpose: 'FULL', refType: 'BOOKING', refId: bookingId, residentId: actor.id, flatId: m.flat_id, communityId: m.community_id,
