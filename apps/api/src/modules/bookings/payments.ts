@@ -512,10 +512,22 @@ export class PaymentService {
           .where('provider_order_id', 'is not', null)
           .where('created_at', '<', new Date(now.getTime() - 2 * 60_000))
           .where('created_at', '>', new Date(now.getTime() - 3 * 24 * 3600_000))
+          // Review H-7: least-recently-checked first, with exponential backoff (2 min × 2^n, capped at 2^8),
+          // so every open order is checked in turn instead of the same 50 every minute.
+          .where(sql<boolean>`last_checked_at is null or last_checked_at < ${now}::timestamptz - (interval '2 minutes' * power(2, least(check_count, 8)))`)
+          .orderBy(sql`last_checked_at nulls first`)
+          .orderBy('created_at', 'desc')
           .limit(50)
           .execute(),
       );
       for (const o of open) {
+        await withTx(this.db, SYSTEM_CLAIMS, (trx) =>
+          trx
+            .updateTable('app.payment_orders')
+            .set({ last_checked_at: now, check_count: sql`check_count + 1` })
+            .where('id', '=', o.id)
+            .execute(),
+        );
         try {
           const payments = await this.provider.fetchOrderPayments(o.provider_order_id!);
           for (const p of payments.filter((x) => x.status === 'captured')) {

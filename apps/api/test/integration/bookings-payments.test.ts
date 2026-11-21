@@ -399,4 +399,25 @@ describe.skipIf(!available)('demand cycles, bookings and payments (Phase 4)', { 
     expect((await ops.getCycle(root, c2cycle.id)).status).toBe('CLOSED');
     expect((await residents.demandRequests(D)).find((r) => r.id === request.id)!.status).toBe('CANCELLED');
   });
+
+  it('reconciliation checks every open order in turn, never the same one twice in a row (review H-7)', async () => {
+    const seed = await admin.query(`select id from app.payment_orders where provider_order_id is not null order by created_at desc limit 1`);
+    await admin.query(
+      `insert into app.payment_orders (purpose, ref_type, ref_id, resident_id, flat_id, community_id, cluster_id, amount_paise, currency, provider_order_id, idempotency_key, status, expires_at, created_at)
+       select purpose, ref_type, ref_id, resident_id, flat_id, community_id, cluster_id, amount_paise, currency,
+              'order_rc_' || g || '_' || md5(random()::text), 'rc-' || g || '-' || gen_random_uuid(), 'EXPIRED', now() - interval '5 minutes', now() - interval '10 minutes'
+       from app.payment_orders, generate_series(1, 60) g where id = $1`,
+      [seed.rows[0].id],
+    );
+    const asked: string[] = [];
+    const spy = vi.spyOn(fake, 'fetchOrderPayments').mockImplementation(async (orderId: string) => {
+      asked.push(orderId);
+      return [];
+    });
+    await payments.maintenance();
+    await payments.maintenance();
+    spy.mockRestore();
+    expect(asked.length).toBeGreaterThanOrEqual(60);
+    expect(new Set(asked).size).toBe(asked.length); // backoff: nothing re-polled on the next tick
+  });
 });

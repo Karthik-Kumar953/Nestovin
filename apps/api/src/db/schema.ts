@@ -664,6 +664,8 @@ export interface PaymentOrdersTable extends Stamped {
   status: Generated<PaymentOrderStatus>;
   expires_at: Timestamp;
   paid_at: Timestamp | null;
+  last_checked_at: Timestamp | null;
+  check_count: Generated<number>;
 }
 
 export interface ProviderEventsTable {
