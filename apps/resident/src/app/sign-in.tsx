@@ -55,9 +55,10 @@ export default function SignIn() {
         haptics.error();
         const wait = rateLimit(error);
         if (wait) {
+          // A code was sent recently: move to (or stay on) the code step and show the message there.
           setWait(wait);
-          if (!sentTo) setSentTo(e164);
-          return showError(`Too many attempts. Please wait ${wait} seconds, then send a new code.`);
+          setSentTo(e164);
+          return setCodeError(`Too many attempts. Please wait ${wait} seconds, then send a new code.`);
         }
         return showError('We could not send the code. Check the number and try again.');
       }
