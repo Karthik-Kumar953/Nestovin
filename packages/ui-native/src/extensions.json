@@ -1,0 +1,21 @@
+{
+  "$comment": "Mobile-only additions on top of @nestovin/design-tokens/tokens.json (the single source for DESIGN.md values). Tints are lighter steps of brand teal for selected and mint surfaces; fonts are the per-weight family names registered by @expo-google-fonts.",
+  "tints": {
+    "teal50": "#F0F8F6",
+    "teal100": "#E6F4F1",
+    "teal200": "#CCE9E4",
+    "teal300": "#99D3C9"
+  },
+  "highlight": "#8B5CF6",
+  "radius2xl": 28,
+  "gutter": 20,
+  "fontFamilies": {
+    "display": "Manrope_700Bold",
+    "displaySemi": "Manrope_600SemiBold",
+    "displayX": "Manrope_800ExtraBold",
+    "body": "Inter_400Regular",
+    "medium": "Inter_500Medium",
+    "semibold": "Inter_600SemiBold",
+    "bold": "Inter_700Bold"
+  }
+}

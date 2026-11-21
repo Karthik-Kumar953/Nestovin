@@ -1,6 +1,32 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "strict": true
-  }
+    "strict": true,
+    "paths": {
+      "react": ["./node_modules/@types/react"],
+      "react/*": ["./node_modules/@types/react/*"],
+      "react-native": ["./node_modules/react-native/types_generated/index.d.ts"],
+      "react-native-reanimated": ["./node_modules/react-native-reanimated"],
+      "react-native-reanimated/*": ["./node_modules/react-native-reanimated/*"],
+      "react-native-worklets": ["./node_modules/react-native-worklets"],
+      "react-native-worklets/*": ["./node_modules/react-native-worklets/*"],
+      "react-native-safe-area-context": ["./node_modules/react-native-safe-area-context"],
+      "react-native-safe-area-context/*": ["./node_modules/react-native-safe-area-context/*"],
+      "react-native-svg": ["./node_modules/react-native-svg"],
+      "react-native-svg/*": ["./node_modules/react-native-svg/*"],
+      "expo-glass-effect": ["./node_modules/expo-glass-effect"],
+      "expo-glass-effect/*": ["./node_modules/expo-glass-effect/*"],
+      "expo-haptics": ["./node_modules/expo-haptics"],
+      "expo-haptics/*": ["./node_modules/expo-haptics/*"],
+      "expo-image": ["./node_modules/expo-image"],
+      "expo-image/*": ["./node_modules/expo-image/*"],
+      "expo-linear-gradient": ["./node_modules/expo-linear-gradient"],
+      "expo-linear-gradient/*": ["./node_modules/expo-linear-gradient/*"],
+      "@expo/vector-icons": ["./node_modules/@expo/vector-icons"],
+      "@expo/vector-icons/*": ["./node_modules/@expo/vector-icons/*"],
+      "nativewind": ["./node_modules/nativewind"],
+      "nativewind/*": ["./node_modules/nativewind/*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts", "nativewind-env.d.ts"]
 }

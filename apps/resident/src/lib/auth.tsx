@@ -1,7 +1,9 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, use, useEffect, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
+import { demoMode } from './env';
+import { demoSession } from './demo';
 
 interface AuthState {
   session: Session | null;
@@ -9,7 +11,11 @@ interface AuthState {
   signOut: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthState>({ session: null, ready: false, signOut: async () => undefined });
+const AuthContext = createContext<AuthState>({
+  session: null,
+  ready: false,
+  signOut: async () => undefined,
+});
 
 /** Phone-OTP session (RES-01). Token refresh runs only while the app is in the foreground. */
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -17,6 +23,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    if (demoMode) {
+      setSession(demoSession);
+      setReady(true);
+      return;
+    }
     void supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setReady(true);
@@ -33,13 +44,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ session, ready, signOut: async () => void (await supabase.auth.signOut()) }}>
+    <AuthContext.Provider
+      value={{ session, ready, signOut: async () => void (await supabase.auth.signOut()) }}
+    >
       {children}
     </AuthContext.Provider>
   );
 }
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => use(AuthContext);
 
 /** Indian mobile numbers: accept 10 digits, +91…, or 91… and return E.164. */
 export function toE164(input: string): string | null {

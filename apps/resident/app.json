@@ -33,10 +33,15 @@
         {
           "color": "#00796B"
         }
-      ]
+      ],
+      "expo-image",
+      "@react-native-community/datetimepicker",
+      "expo-font",
+      "expo-splash-screen"
     ],
     "experiments": {
-      "typedRoutes": true
+      "typedRoutes": true,
+      "tsconfigPaths": false
     }
   }
 }
