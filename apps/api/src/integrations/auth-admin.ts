@@ -21,6 +21,12 @@ export interface AuthAdminAdapter {
   deleteUser(userId: string): Promise<void>;
   /** Blocks (or unblocks) token refresh for the user. Access is also denied per request via profile status. */
   setBanned(userId: string, banned: boolean): Promise<void>;
+  /**
+   * DEV-ONLY demo login (DEMO_LOGIN_ENABLED, never in production): makes sure the auth
+   * user has this confirmed internal email alias, then issues a magic-link token and
+   * returns only its hash (never the action link). 'NO_USER' when the auth user is missing.
+   */
+  demoSignInTokenHash?(userId: string, aliasEmail: string): Promise<{ tokenHash: string } | 'NO_USER'>;
 }
 
 export function createSupabaseAuthAdmin(opts: { supabaseUrl: string; serviceRoleKey: string }): AuthAdminAdapter {
@@ -58,6 +64,19 @@ export function createSupabaseAuthAdmin(opts: { supabaseUrl: string; serviceRole
         ban_duration: banned ? '876000h' : 'none',
       });
       if (error) throw new Error(`Could not update account lock: ${error.message}`);
+    },
+    async demoSignInTokenHash(userId, aliasEmail) {
+      const found = await client.auth.admin.getUserById(userId);
+      if (found.error || !found.data.user) return 'NO_USER';
+      const user = found.data.user;
+      if (user.email?.toLowerCase() !== aliasEmail.toLowerCase() || !user.email_confirmed_at) {
+        const { error } = await client.auth.admin.updateUserById(userId, { email: aliasEmail, email_confirm: true });
+        if (error) throw new Error(`Could not prepare the demo account: ${error.message}`);
+      }
+      const { data, error } = await client.auth.admin.generateLink({ type: 'magiclink', email: aliasEmail });
+      const tokenHash = data?.properties?.hashed_token;
+      if (error || !tokenHash) throw new Error(`Could not issue the demo sign-in: ${error?.message ?? 'no token returned'}`);
+      return { tokenHash };
     },
   };
 }

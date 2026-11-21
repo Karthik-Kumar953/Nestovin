@@ -348,6 +348,18 @@ export const paymentResultSchema = z.object({
 });
 export type PaymentResult = z.infer<typeof paymentResultSchema>;
 
+/**
+ * Dev-only demo payments (TEST_PAYMENTS_ENABLED, never in production): completes the
+ * caller's own open payment order with a fabricated captured test payment, then runs
+ * the same server-side verification as /payments/verify. Answers with a PaymentResult.
+ */
+export const testCompletePaymentSchema = z.object({ paymentOrderId: uuidSchema });
+export type TestCompletePaymentInput = z.infer<typeof testCompletePaymentSchema>;
+
+/** GET /v1/resident/test-mode: whether the app may show a "Test booking" button. */
+export const testModeSchema = z.object({ testPayments: z.boolean() });
+export type TestMode = z.infer<typeof testModeSchema>;
+
 // ---------------------------------------------------------------- admin payments
 
 export const adminPaymentSchema = z.object({

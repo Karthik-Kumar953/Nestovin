@@ -11,7 +11,7 @@ import { locationRoutes } from './modules/locations/routes';
 import { publicEnquiryRoutes } from './modules/enquiries/routes';
 import { catalogueRoutes } from './modules/catalogue/routes';
 import { migrationRoutes } from './modules/migration/routes';
-import { residentAdminRoutes, residentRoutes } from './modules/residents/routes';
+import { publicDemoLoginRoutes, residentAdminRoutes, residentRoutes } from './modules/residents/routes';
 import { supportAdminRoutes } from './modules/support/routes';
 import { bookingAdminRoutes, razorpayWebhookRoutes, residentBookingRoutes } from './modules/bookings/routes';
 import { PaymentService } from './modules/bookings/payments';
@@ -85,6 +85,8 @@ export function createApp(deps: AppDeps, payments = new PaymentService(deps.db, 
   // Public (unauthenticated) endpoints
   app.use('/v1/public', publicEnquiryRoutes(deps));
   app.use('/v1/public', publicApplicantRoutes(deps));
+  // Dev-only Resident demo login (DEMO_LOGIN_ENABLED; 404 otherwise, never in production).
+  app.use('/v1/public', publicDemoLoginRoutes(deps));
 
   // Worker app: Employee ID session required (requireEmployee inside the router).
   app.use('/v1/employee', employeeRoutes(deps, employeeVisitRoutes(deps), employeePayslipRoutes(deps), inboxRoutes(deps, 'employee')));

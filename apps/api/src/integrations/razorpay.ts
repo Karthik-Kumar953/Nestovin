@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 
 /**
  * Razorpay adapter (ADR-006). Razorpay processes and reports; Nestovin decides
@@ -83,6 +83,60 @@ export function createRazorpay(opts: { keyId: string; keySecret: string; webhook
     verifyWebhookSignature(rawBody, signature) {
       if (!opts.webhookSecret) return false;
       return safeEqualHex(hmacHex(opts.webhookSecret, rawBody), signature);
+    },
+  };
+}
+
+/**
+ * Dev-only stand-in for Razorpay (TEST_PAYMENTS_ENABLED, never in production; see
+ * config/env.ts). Orders are `test_order_<random>`; captured payments are
+ * fabricated only by `capture` (POST /v1/resident/payments/test-complete) as
+ * `test_pay_<random>`, kept in memory, and signed with a random secret generated at
+ * boot, so nothing outside this process can produce a valid signature. Business
+ * state still changes only through PaymentService's normal verification.
+ */
+export interface TestPaymentProvider extends PaymentProvider {
+  readonly isTestProvider: true;
+  /** Records a captured payment for exactly this order/amount and returns what Checkout would hand the app. */
+  capture(input: { orderId: string; amountPaise: number; currency: string }): { providerPaymentId: string; signature: string };
+}
+
+export const TEST_ORDER_PREFIX = 'test_order_';
+export const TEST_PAYMENT_PREFIX = 'test_pay_';
+
+export function isTestPaymentProvider(p: PaymentProvider | null | undefined): p is TestPaymentProvider {
+  return Boolean(p && (p as Partial<TestPaymentProvider>).isTestProvider === true);
+}
+
+export function createTestPaymentProvider(): TestPaymentProvider {
+  const secret = randomBytes(32).toString('hex');
+  const payments = new Map<string, ProviderPayment>();
+  const rid = () => randomBytes(9).toString('hex');
+  return {
+    isTestProvider: true,
+    keyId: 'rzp_test_nestovin_demo',
+    async createOrder() {
+      return { id: `${TEST_ORDER_PREFIX}${rid()}` };
+    },
+    async fetchPayment(paymentId) {
+      const p = payments.get(paymentId);
+      if (!p) throw new Error(`Test payment ${paymentId} not found`);
+      return p;
+    },
+    async fetchOrderPayments(orderId) {
+      return [...payments.values()].filter((p) => p.orderId === orderId);
+    },
+    verifyCheckoutSignature(orderId, paymentId, signature) {
+      return safeEqualHex(hmacHex(secret, `${orderId}|${paymentId}`), signature);
+    },
+    verifyWebhookSignature() {
+      return false; // no webhooks in test mode
+    },
+    capture({ orderId, amountPaise, currency }) {
+      if (!orderId.startsWith(TEST_ORDER_PREFIX)) throw new Error('Only test orders can be captured by the test provider');
+      const id = `${TEST_PAYMENT_PREFIX}${rid()}`;
+      payments.set(id, { id, orderId, amountPaise, currency, status: 'captured', method: 'test' });
+      return { providerPaymentId: id, signature: hmacHex(secret, `${orderId}|${id}`) };
     },
   };
 }

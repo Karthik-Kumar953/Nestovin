@@ -18,7 +18,8 @@ import {
 } from '@nestovin/contracts';
 import type { AppDeps } from '../../http/context';
 import { adminOf, residentOf } from '../../http/context';
-import { authorize, parseParam, parseQuery, rateLimit, validateBody } from '../../http/middleware';
+import { authorize, hashIp, parseParam, parseQuery, rateLimit, validateBody, type Handler } from '../../http/middleware';
+import { demoLogin, demoLoginEnabled } from './demo-login';
 import { SupportService } from '../support/service';
 import { requireResident } from './auth';
 import { ResidentService } from './resident-service';
@@ -204,5 +205,26 @@ export function residentAdminRoutes(deps: AppDeps): Router {
     res.json(await svc.rejectFamily(adminOf(req), req.requestId, id(req.params.id), req.body.reason));
   });
 
+  return r;
+}
+
+/**
+ * DEV-ONLY Resident app demo login, mounted at /v1/public (DEMO_LOGIN_ENABLED; never in
+ * production). Returns only a magic-link token hash for the seeded demo resident; the app
+ * exchanges it with supabase.auth.verifyOtp({ token_hash, type: 'magiclink' }). See demo-login.ts.
+ */
+export function publicDemoLoginRoutes(deps: AppDeps): Router {
+  const r = Router();
+  const enabled = demoLoginEnabled(deps);
+  // When off, next('router') falls through to the global 404 ("Route not found").
+  const demoOnly: Handler = (_req, _res, next) => (enabled ? next() : next('router'));
+  r.post(
+    '/demo-login',
+    demoOnly,
+    rateLimit(deps, { name: 'demo-login', limit: 20, windowSeconds: 3600, keyFn: (req) => hashIp(req.ip, deps.env.IP_HASH_SALT) }),
+    async (req, res) => {
+      res.json(await demoLogin(deps, req));
+    },
+  );
   return r;
 }

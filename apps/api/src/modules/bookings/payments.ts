@@ -4,7 +4,7 @@ import type { Checkout, PaymentResult } from '@nestovin/contracts';
 import type { Database, DbClaims, Tx } from '../../db/database';
 import { withTx } from '../../db/database';
 import type { PaymentExceptionReason, PaymentPurpose } from '../../db/schema';
-import { toProviderPayment, type PaymentProvider, type ProviderPayment } from '../../integrations/razorpay';
+import { isTestPaymentProvider, TEST_ORDER_PREFIX, toProviderPayment, type PaymentProvider, type ProviderPayment } from '../../integrations/razorpay';
 import type { AppError} from '../../lib/errors';
 import { businessRule, notFound } from '../../lib/errors';
 import type { Logger } from '../../lib/logger';
@@ -128,6 +128,36 @@ export class PaymentService {
       throw businessRule('We could not verify this payment. If money was deducted, it will be reconciled automatically.');
     }
     return this.settle(order.id, { payment, via: 'CHECKOUT' });
+  }
+
+  /** True when the dev-only test provider is in use (TEST_PAYMENTS_ENABLED and no Razorpay keys). */
+  get testPaymentsActive(): boolean {
+    return isTestPaymentProvider(this.provider);
+  }
+
+  /**
+   * Dev-only demo payment. Loads the caller's own open order (same RLS read as
+   * verifyCheckout), has the test provider fabricate a captured `test_pay_` payment
+   * for exactly the order's amount and currency, then runs the unchanged
+   * verifyCheckout -> settle path, so every business effect, notification and audit
+   * row is the same as for a real payment.
+   */
+  async testComplete(residentClaims: DbClaims, input: { paymentOrderId: string }): Promise<PaymentResult> {
+    const provider = this.provider;
+    if (!isTestPaymentProvider(provider)) throw notFound('Route');
+    const order = await withTx(this.db, residentClaims, (trx) =>
+      trx
+        .selectFrom('app.payment_orders')
+        .select(['id', 'provider_order_id', 'status', 'amount_paise', 'currency'])
+        .where('id', '=', input.paymentOrderId)
+        .executeTakeFirst(),
+    );
+    if (!order || !order.provider_order_id) throw notFound('Payment');
+    if (order.status === 'PAID') return result('PAID');
+    if (order.status !== 'CREATED') throw businessRule('This payment request is no longer open. Start the payment again.');
+    if (!order.provider_order_id.startsWith(TEST_ORDER_PREFIX)) throw businessRule('This payment was not started in test mode. Start the payment again.');
+    const paid = provider.capture({ orderId: order.provider_order_id, amountPaise: Number(order.amount_paise), currency: order.currency });
+    return this.verifyCheckout(residentClaims, { paymentOrderId: order.id, ...paid });
   }
 
   /**

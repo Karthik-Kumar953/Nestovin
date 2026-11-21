@@ -273,3 +273,10 @@ export type ApproveFamilyInput = z.infer<typeof approveFamilySchema>;
 
 export const documentUrlSchema = z.object({ url: z.string(), expiresInSeconds: z.number().int() });
 export type DocumentUrl = z.infer<typeof documentUrlSchema>;
+
+/**
+ * Dev-only demo login (POST /v1/public/demo-login, DEMO_LOGIN_ENABLED; never in production).
+ * The app exchanges the hash with supabase.auth.verifyOtp({ token_hash, type: 'magiclink' }).
+ */
+export const demoLoginResponseSchema = z.object({ tokenHash: z.string().min(1), type: z.literal('magiclink') });
+export type DemoLoginResponse = z.infer<typeof demoLoginResponseSchema>;

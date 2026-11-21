@@ -7,7 +7,7 @@ import { createAdminActorLoader } from './auth/admin-actor-loader';
 import { createSupabaseAuthAdmin } from './integrations/auth-admin';
 import { createSupabaseStorage } from './integrations/storage';
 import { createApp } from './app';
-import { createRazorpay } from './integrations/razorpay';
+import { createRazorpay, createTestPaymentProvider } from './integrations/razorpay';
 import { PaymentService } from './modules/bookings/payments';
 import { startJobs } from './jobs/runner';
 import { AllocationService } from './modules/workforce/allocation';
@@ -30,12 +30,17 @@ try {
 const paymentsProvider =
   env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET
     ? createRazorpay({ keyId: env.RAZORPAY_KEY_ID, keySecret: env.RAZORPAY_KEY_SECRET, webhookSecret: env.RAZORPAY_WEBHOOK_SECRET })
-    : null;
+    : env.TEST_PAYMENTS_ENABLED && env.NODE_ENV !== 'production'
+      ? createTestPaymentProvider()
+      : null;
 if (!paymentsProvider) logger.warn('Razorpay keys are not set: online payments are disabled');
+else if (!env.RAZORPAY_KEY_ID) logger.warn('TEST PAYMENTS ENABLED: Razorpay is replaced by the dev-only test provider (never use in production)');
+else if (env.TEST_PAYMENTS_ENABLED) logger.warn('TEST_PAYMENTS_ENABLED is ignored because Razorpay keys are set');
 // One line per integration so it is obvious what is live after adding keys.
 logger.info(
   {
-    razorpay: Boolean(paymentsProvider),
+    razorpay: Boolean(paymentsProvider) && Boolean(env.RAZORPAY_KEY_ID),
+    testPayments: Boolean(paymentsProvider) && !env.RAZORPAY_KEY_ID,
     razorpayWebhooks: Boolean(env.RAZORPAY_WEBHOOK_SECRET),
     smsOtp: Boolean(env.MSG91_AUTH_KEY && env.MSG91_OTP_TEMPLATE_ID && env.SUPABASE_SMS_HOOK_SECRET),
     push: Boolean(env.FCM_PROJECT_ID && env.FCM_CLIENT_EMAIL && env.FCM_PRIVATE_KEY),

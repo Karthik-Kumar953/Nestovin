@@ -13,11 +13,13 @@ import {
   resolveExceptionSchema,
   settingsSchema,
   slotInputSchema,
+  testCompletePaymentSchema,
   updateDemandCycleSchema,
   updateSlotSchema,
   uuidSchema,
   verifyPaymentSchema,
   versionOnlySchema,
+  type TestMode,
 } from '@nestovin/contracts';
 import type { AppDeps } from '../../http/context';
 import { adminOf, residentOf } from '../../http/context';
@@ -74,6 +76,16 @@ export function residentBookingRoutes(deps: AppDeps, payments: PaymentService): 
   });
   r.post('/payments/verify', limit, validateBody(verifyPaymentSchema), idempotent(deps, { required: false }), async (req, res) => {
     res.json(await svc.verifyPayment(residentOf(req), req.body));
+  });
+  // Dev-only demo payments: the app shows "Test booking" only when this says so.
+  const testPayments = deps.env.TEST_PAYMENTS_ENABLED && deps.env.NODE_ENV !== 'production' && payments.testPaymentsActive;
+  r.get('/test-mode', (_req, res) => {
+    res.json({ testPayments } satisfies TestMode);
+  });
+  // When test payments are off, next('router') falls through to the global 404 ("Route not found").
+  const testOnly: express.RequestHandler = (_req, _res, next) => (testPayments ? next() : next('router'));
+  r.post('/payments/test-complete', testOnly, limit, validateBody(testCompletePaymentSchema), idempotent(deps, { required: false }), async (req, res) => {
+    res.json(await svc.testCompletePayment(residentOf(req), req.requestId, req.body));
   });
   return r;
 }

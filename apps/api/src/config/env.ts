@@ -79,6 +79,26 @@ const envSchema = z
       .default('true')
       .transform((v) => v === 'true'),
 
+    /**
+     * Dev-only demo payments: with no Razorpay keys, a built-in test provider is used and the
+     * resident app may complete a payment as a test (POST /v1/resident/payments/test-complete).
+     * The API refuses to start with this on in production.
+     */
+    TEST_PAYMENTS_ENABLED: z
+      .enum(['true', 'false'])
+      .default('false')
+      .transform((v) => v === 'true'),
+
+    /**
+     * Dev-only Resident app demo login (POST /v1/public/demo-login): signs in as the seeded demo
+     * resident with DEMO_RESIDENT_PHONE, without SMS. The API refuses to start with this on in production.
+     */
+    DEMO_LOGIN_ENABLED: z
+      .enum(['true', 'false'])
+      .default('false')
+      .transform((v) => v === 'true'),
+    DEMO_RESIDENT_PHONE: optional(z.string().regex(/^\+[1-9]\d{7,14}$/, 'Use E.164, e.g. +919999900001')),
+
     /** Admin portal base URL (the /admin mount of the web app), used in invite emails. */
     ADMIN_PORTAL_URL: z.url().default('http://localhost:3000/admin'),
   })
@@ -86,6 +106,15 @@ const envSchema = z
     const strict = env.NODE_ENV === 'production' || env.NODE_ENV === 'staging';
     if (strict && !env.ADMIN_REQUIRE_MFA) {
       ctx.addIssue({ code: 'custom', path: ['ADMIN_REQUIRE_MFA'], message: 'MFA cannot be disabled outside development/test' });
+    }
+    if (env.NODE_ENV === 'production' && env.TEST_PAYMENTS_ENABLED) {
+      ctx.addIssue({ code: 'custom', path: ['TEST_PAYMENTS_ENABLED'], message: 'Test payments can never be enabled in production' });
+    }
+    if (env.NODE_ENV === 'production' && env.DEMO_LOGIN_ENABLED) {
+      ctx.addIssue({ code: 'custom', path: ['DEMO_LOGIN_ENABLED'], message: 'Demo login can never be enabled in production' });
+    }
+    if (env.DEMO_LOGIN_ENABLED && !env.DEMO_RESIDENT_PHONE) {
+      ctx.addIssue({ code: 'custom', path: ['DEMO_RESIDENT_PHONE'], message: 'Set DEMO_RESIDENT_PHONE when DEMO_LOGIN_ENABLED is true' });
     }
     if (strict && !env.DATABASE_SSL_CA_PATH) {
       ctx.addIssue({ code: 'custom', path: ['DATABASE_SSL_CA_PATH'], message: 'A database CA certificate is required outside development/test' });

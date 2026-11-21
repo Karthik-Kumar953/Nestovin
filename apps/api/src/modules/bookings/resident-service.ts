@@ -7,6 +7,8 @@ import {
   type CreateBookingInput,
   type CreateDemandRequestInput,
   type ResidentDemandRequest,
+  type PaymentResult,
+  type TestCompletePaymentInput,
   type VerifyPaymentInput,
 } from '@nestovin/contracts';
 import { sql } from 'kysely';
@@ -553,5 +555,20 @@ export class ResidentBookingService {
 
   async verifyPayment(actor: ResidentActor, input: VerifyPaymentInput) {
     return this.payments.verifyCheckout(residentClaims(actor), input);
+  }
+
+  /** Dev-only demo payment (TEST_PAYMENTS_ENABLED): same verification path as verifyPayment, plus a resident audit row. */
+  async testCompletePayment(actor: ResidentActor, requestId: string, input: TestCompletePaymentInput): Promise<PaymentResult> {
+    const out = await this.payments.testComplete(residentClaims(actor), input);
+    await this.tx(actor, (trx) =>
+      auditResident(trx, actor.id, requestId, {
+        action: 'payment.test_completed',
+        targetType: 'payment_order',
+        targetId: input.paymentOrderId,
+        reason: 'Dev-only test payment (TEST_PAYMENTS_ENABLED)',
+        after: { orderStatus: out.orderStatus },
+      }),
+    );
+    return out;
   }
 }

@@ -71,7 +71,7 @@ const ADMIN_FNS = new Set([
 ]);
 const RESIDENT_FNS = new Set(['residentRoutes', 'residentBookingRoutes', 'residentVisitRoutes']);
 const EMPLOYEE_FNS = new Set(['employeeRoutes', 'employeeVisitRoutes', 'employeePayslipRoutes']);
-const UNAUTHENTICATED_FNS = new Set(['publicEnquiryRoutes', 'publicApplicantRoutes', 'razorpayWebhookRoutes', 'supabaseHookRoutes']);
+const UNAUTHENTICATED_FNS = new Set(['publicEnquiryRoutes', 'publicApplicantRoutes', 'publicDemoLoginRoutes', 'razorpayWebhookRoutes', 'supabaseHookRoutes']);
 
 /**
  * Admin routes deliberately not guarded by a single authorize(module, action).
