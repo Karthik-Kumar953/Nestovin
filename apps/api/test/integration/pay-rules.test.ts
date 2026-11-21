@@ -281,6 +281,29 @@ describe.skipIf(!available)('PAY rules (integration)', { timeout: 120_000 }, () 
     await expectCode(ops.approveRefund(root, 'qa', tx.id, { amountPaise: Number(tx.amount_paise), reason: 'Too much' }), 'BUSINESS_RULE_VIOLATION');
   });
 
+  it('FLOW-07: no demand commitment when the cycle is not open (draft, not yet open, or closed)', async () => {
+    const draft = await ops.createCycle(root, 'qa', f.communityId, {
+      name: `QA draft ${fx.s}`,
+      opensAt: new Date(Date.now() - 60_000).toISOString(),
+      closesAt: new Date(Date.now() + 86_400_000).toISOString(),
+      initialPct: 30,
+      planIds: [f.planId],
+    });
+    await expect(residents.createDemandRequest(R[0]!, 'qa', demandInput(draft.id))).rejects.toBeInstanceOf(AppError);
+    const future = await ops.createCycle(root, 'qa', f.communityId, {
+      name: `QA future ${fx.s}`,
+      opensAt: new Date(Date.now() + 86_400_000).toISOString(),
+      closesAt: new Date(Date.now() + 2 * 86_400_000).toISOString(),
+      initialPct: 30,
+      planIds: [f.planId],
+    });
+    await ops.publishCycle(root, 'qa', future.id, future.version);
+    await expect(residents.createDemandRequest(R[0]!, 'qa', demandInput(future.id))).rejects.toBeInstanceOf(AppError);
+    // cycle30 has its slots published (PAY-14): no new commitments.
+    await expect(residents.createDemandRequest(R[0]!, 'qa', demandInput(cycle30))).rejects.toBeInstanceOf(AppError);
+    expect((await admin.query(`select count(*)::int n from app.demand_requests where cycle_id = any($1)`, [[draft.id, future.id]])).rows[0].n).toBe(0);
+  });
+
   it('jobs: payment maintenance can be rerun safely (no double effects)', async () => {
     const snapshot = async () =>
       (
