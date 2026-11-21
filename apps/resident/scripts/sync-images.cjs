@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- CommonJS config read by Node/Metro */
 /**
  * Copies the owner's generated images (docs/Design/images/) that appear in the shot list into
  * apps/resident/assets/images/ and rewrites src/assets/images.generated.ts with static requires.

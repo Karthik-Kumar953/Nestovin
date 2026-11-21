@@ -1,6 +1,6 @@
 # Nestovin Resident app
 
-Expo SDK 58, React Native, TypeScript and Expo Router (`src/app`). It talks only to the Nestovin API, plus Supabase for phone sign-in and the signed document upload.
+Expo SDK 58, React Native 0.88, TypeScript and Expo Router (`src/app`). Styling is NativeWind 4 with the Nestovin tokens; shared building blocks live in `packages/ui-native`. It talks only to the Nestovin API, plus Supabase for phone sign-in and the signed document upload.
 
 ## Run it
 1. `apps/resident/.env` holds the public values (copy `.env.example` if it is missing):
@@ -9,12 +9,20 @@ Expo SDK 58, React Native, TypeScript and Expo Router (`src/app`). It talks only
 2. Start the API (`corepack pnpm dev:api`). Add your LAN address to `CORS_ORIGINS` only if you use the web preview.
 3. `cd apps/resident && npx expo start`. Scan the QR code with a **development build** (see below) or Expo Go.
 
+## Images
+Photos and illustrations come from `docs/Design/Image_Shot_List.md`. When the owner adds files to `docs/Design/images/`, run:
+```
+corepack pnpm --filter @nestovin/resident images
+```
+This copies the shot-list files into `assets/images/` and rewrites `src/assets/images.generated.ts`. Every image is looked up by its shot-list name through `src/assets/images.ts`. A missing file shows a designed fallback (brand gradient, rings and an icon), never a broken image.
+
 ## Sign-in during development
 Phone OTP comes from Supabase Auth through the MSG91 hook (see `docs/integrations.md`). Until MSG91 and DLT are live, add **test phone numbers** in Supabase → Authentication → Phone → Test OTPs and sign in with those.
 
 ## What needs a development build (not Expo Go)
-- **Payments:** `react-native-razorpay` is a native module. In Expo Go the app saves the booking and shows "Payments need the Nestovin app build".
+- **Payments:** `react-native-razorpay` is a native module. In Expo Go the booking is still created, and the result screen says "Pay in the Nestovin app build". The resident can pay later from the booking.
 - **Push notifications:** these use the native FCM/APNs token. The in-app *Updates* inbox works everywhere.
+- **Liquid Glass:** iOS 26 only; other devices get the solid fallback.
 
 Build once and reinstall only when native modules change:
 ```
@@ -29,20 +37,37 @@ npx eas-cli@latest build --profile development --platform android
 4. Put the Firebase service-account keys in `apps/api/.env` (`FCM_*`) so the API can send.
 
 ## Screens
-- **Sign in:** phone, then OTP.
-- **Home:** residence status, next visits, updates.
-- **Register:** city → community → tower → flat, owner or tenant, one proof document (PDF, JPEG or PNG under 5 MB) sent straight to private storage.
-- **Book:** plans for your flat's category.
-  - Demand-led: join an open cycle with preferred times; accept the non-refundable terms; pay the initial % now.
-  - Continuous: pick a slot and a start date (tomorrow up to 14 days ahead); pay in full.
-- **Bookings:** status, balance due and deadline, pay again, renew.
-- **Visits:** upcoming and recent visits; a check-in code (6 digits plus QR, 10 minutes, single use) to show the worker; ratings.
-- **Support:** tickets shared with the household, replies.
-- **Profile:** name and email; household, family requests (Primary only), occupancy change or move-out requests; notification inbox; sign out.
+- **Sign in:** phone, then a 6-digit code with SMS autofill and a resend timer.
+- **Home:** three states.
+  - Not registered: what Nestovin is and the three steps. A rejection goes straight back to the proof step.
+  - Under review: status timeline. A failed upload offers "Upload document again".
+  - Active: Today card (visit, assigned worker, check-in action), payments due, coming up, services, community.
+- **Register:** flat (city → community → tower → flat, searchable sheets) → owner or tenant → one proof document (PDF, JPEG or PNG under 5 MB, sent straight to private storage). `/register?step=proof` reopens the proof step.
+- **Book:** membership-style plan cards for your flat's category. Not-open states: not registered, under review, community not live, no pricing category, no open round, offline.
+  - Plan detail: package or one service, what is included, add-ons, payment conditions.
+  - Booking round: up to three preferred times in order, the non-refundable terms accepted, pay the configured initial %.
+  - Continuous: pick a slot and a start date (tomorrow up to 14 days ahead), pay in full.
+  - Payment result: animated outcome for paid, joined, processing, review, failed, cancelled, and the Expo Go case.
+- **Bookings:** current and past, booking-round requests kept separate. **Booking detail** shows a timeline, amounts, agreed terms, and pay, renew, cancel or help.
+- **Visits:** upcoming by day; history by month with "Load earlier" (12 months).
+  - Visit detail: what happened, plus rating.
+  - Check-in code: 6 digits plus QR, revealed with motion, countdown, new code.
+- **Support:** open and closed requests; new request (can be prefilled from a booking or visit); thread with replies.
+- **Updates:** grouped inbox. Every update opens its screen, and so does tapping a push notification.
+- **Profile:** details (edit sheet), household, residence changes, bookings, updates, support, sign out.
+  - Household: members, family requests (Primary only), residence changes.
+  - Change residence: owner or tenant, or move-out with the native date picker.
+
+## API changes waiting on the lead
+Coded against typed stubs in `src/lib/api-stubs.ts` (marked `TODO(api)`):
+1. `booking-options.reasonCode`, to show "community not live" reliably. Today it is mapped from the reason text.
+2. `POST /v1/resident/residence/document`, to re-upload for a PENDING membership whose upload failed. Until it exists, the app offers a prefilled support request.
+3. `me.verification.flat`, to prefill the proof step after a rejection on any device. Today the flat is remembered on the device that submitted it.
 
 ## Checks
 ```
 npx tsc --noEmit
+npx eslint .                          # from the repo root: npx eslint apps/resident packages/ui-native
 npx expo-doctor
-npx expo export --platform android   # full Metro bundle
+npx expo export --platform android    # full Metro bundle
 ```
