@@ -21,7 +21,8 @@
     "dev:web": "pnpm --filter @nestovin/web dev",
     "e2e": "playwright test",
     "e2e:admin": "playwright test --project=admin",
-    "e2e:resident-web": "playwright test --project=resident-web --workers=1"
+    "e2e:resident-web": "playwright test --project=resident-web --workers=1",
+    "e2e:resident-demo": "playwright test --project=resident-demo"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

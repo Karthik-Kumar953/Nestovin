@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { defineConfig, devices } from '@playwright/test';
 
@@ -27,6 +27,18 @@ const ADMIN_STORAGE_STATE = 'e2e/.auth/admin.json';
 // The Resident Expo web build is opt-in: it needs react-native-web in apps/resident and its own dev server.
 const RESIDENT_WEB = process.env.E2E_RESIDENT_WEB === '1' || process.argv.some((a) => a.includes('resident-web'));
 const RESIDENT_WEB_URL = process.env.E2E_RESIDENT_WEB_URL ?? 'http://localhost:8081';
+
+// Resident app in its DEV-ONLY demo mode (EXPO_PUBLIC_DEMO=1): fixtures, no API, no sign-in.
+// E2E_RESIDENT_APP_DIR points at the Resident app to serve (e.g. another worktree's apps/resident
+// until its branch is merged); port 8091 so it never collides with a developer's :8081.
+const RESIDENT_DEMO = process.env.E2E_RESIDENT_DEMO === '1' || process.argv.some((a) => a.includes('resident-demo'));
+const RESIDENT_DEMO_PORT = process.env.E2E_RESIDENT_DEMO_PORT ?? '8091';
+const RESIDENT_DEMO_URL = `http://localhost:${RESIDENT_DEMO_PORT}`;
+const RESIDENT_APP_DIR = resolve(process.env.E2E_RESIDENT_APP_DIR ?? join(import.meta.dirname, 'apps', 'resident'));
+
+// Only start the API and the admin web app when an admin project can run.
+const ONLY_RESIDENT =
+  process.argv.some((a) => /resident-(web|demo)/.test(a)) && !process.argv.some((a) => /project[= ]?(admin|setup)\b/.test(a));
 
 export default defineConfig({
   testDir: 'apps/web/e2e',
@@ -66,34 +78,39 @@ export default defineConfig({
             name: 'resident-web',
             testDir: 'apps/resident/e2e',
             testMatch: /.*\.spec\.ts$/,
+            testIgnore: /[\\/]demo[\\/]/,
             fullyParallel: false, // signed-in specs share one Supabase test phone (60 s OTP resend limit)
             use: { ...devices['Pixel 7'], baseURL: RESIDENT_WEB_URL },
           },
         ]
       : []),
+    ...(RESIDENT_DEMO
+      ? [
+          {
+            name: 'resident-demo',
+            testDir: 'apps/resident/e2e/demo',
+            testMatch: /.*\.spec\.ts$/,
+            use: { ...devices['Pixel 7'], baseURL: RESIDENT_DEMO_URL },
+          },
+        ]
+      : []),
   ],
   webServer: [
-    {
-      // No watch mode: a tsx-watch restart mid-run logged every spec out ("Cannot reach the server").
-      command: 'corepack pnpm --filter @nestovin/api exec tsx --env-file-if-exists=.env src/server.ts',
-      url: `${API_URL}/health`,
-      reuseExistingServer: true,
-      timeout: 180_000,
-      // Process env wins over apps/api/.env (--env-file-if-exists never overrides).
-      env: { PORT: API_PORT, CORS_ORIGINS: WEB_URL },
-      stdout: 'ignore',
-      stderr: 'pipe',
-    },
-    {
-      command: `corepack pnpm --filter @nestovin/web exec next dev --port ${WEB_PORT}`,
-      url: `${WEB_URL}/admin/login`,
-      reuseExistingServer: true,
-      // The admin calls the API directly (no dev rewrite to :4000).
-      env: { NEXT_PUBLIC_API_URL: API_URL },
-      timeout: 240_000,
-      stdout: 'ignore',
-      stderr: 'pipe',
-    },
+    ...(ONLY_RESIDENT ? [] : adminServers()),
+    ...(RESIDENT_DEMO
+      ? [
+          {
+            command: `npx expo start --web --port ${RESIDENT_DEMO_PORT}`,
+            cwd: RESIDENT_APP_DIR,
+            url: RESIDENT_DEMO_URL,
+            reuseExistingServer: true,
+            timeout: 240_000, // first Metro web bundle is slow
+            env: { EXPO_PUBLIC_DEMO: '1', CI: '1', BROWSER: 'none' },
+            stdout: 'ignore' as const,
+            stderr: 'pipe' as const,
+          },
+        ]
+      : []),
     ...(RESIDENT_WEB
       ? [
           {
@@ -109,3 +126,29 @@ export default defineConfig({
       : []),
   ],
 });
+
+function adminServers() {
+  return [
+    {
+      // No watch mode: a tsx-watch restart mid-run logged every spec out ("Cannot reach the server").
+      command: 'corepack pnpm --filter @nestovin/api exec tsx --env-file-if-exists=.env src/server.ts',
+      url: `${API_URL}/health`,
+      reuseExistingServer: true,
+      timeout: 180_000,
+      // Process env wins over apps/api/.env (--env-file-if-exists never overrides).
+      env: { PORT: API_PORT, CORS_ORIGINS: WEB_URL },
+      stdout: 'ignore' as const,
+      stderr: 'pipe' as const,
+    },
+    {
+      command: `corepack pnpm --filter @nestovin/web exec next dev --port ${WEB_PORT}`,
+      url: `${WEB_URL}/admin/login`,
+      reuseExistingServer: true,
+      // The admin calls the API directly (no dev rewrite to :4000).
+      env: { NEXT_PUBLIC_API_URL: API_URL },
+      timeout: 240_000,
+      stdout: 'ignore' as const,
+      stderr: 'pipe' as const,
+    },
+  ];
+}
