@@ -48,10 +48,11 @@ test.describe('Visits, updates and profile', () => {
     await expect(page.getByRole('button', { name: 'Notifications' })).toBeVisible();
   });
 
-  test('sign out returns to the sign-in screen', async ({ page }) => {
+  // Sign out confirms with Alert.alert, which does nothing on web: native only (Maestro).
+  test.fixme('sign out returns to the sign-in screen', async ({ page }) => {
     await openTab(page, 'Profile');
     await page.getByRole('button', { name: 'Sign out' }).click();
-    await expect(page.getByRole('heading', { name: 'Welcome to Nestovin' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Sign in or create an account' })).toBeVisible();
     await page.goto('/');
     await expect(page).toHaveURL(/\/sign-in$/);
   });

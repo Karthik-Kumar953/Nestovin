@@ -45,11 +45,11 @@ export function requireResidentCreds() {
 export async function signIn(page: Page) {
   test.setTimeout(Math.max(test.info().timeout, 150_000));
   await page.goto('/');
-  if (await page.getByRole('heading', { name: /^Hello/ }).isVisible({ timeout: 5_000 }).catch(() => false)) return; // session restored
+  if (await page.getByRole('tab', { name: /Profile/ }).isVisible({ timeout: 5_000 }).catch(() => false)) return; // session restored
   await page.goto('/sign-in');
-  await expect(page.getByRole('heading', { name: 'Welcome to Nestovin' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Sign in or create an account' })).toBeVisible();
   await page.getByLabel('Mobile number').fill(resident.phone);
-  const sent = page.getByText(/We sent a 6-digit code to/);
+  const sent = page.getByRole('heading', { name: 'Enter the code' });
   for (let attempt = 0; attempt < 2; attempt++) {
     await page.getByRole('button', { name: 'Send code' }).click();
     const outcome = await Promise.race([
@@ -60,10 +60,9 @@ export async function signIn(page: Page) {
     if (attempt === 0) await page.waitForTimeout(61_000);
   }
   await expect(sent).toBeVisible();
-  await page.getByLabel('Code').fill(resident.otp);
-  await page.getByRole('button', { name: 'Verify and continue' }).click();
-  // Home greets the resident ("Hello" or "Hello, <first name>").
-  await expect(page.getByRole('heading', { name: /^Hello/ }), 'Home did not open after OTP verification. On web, check that the session can be persisted (expo-secure-store has no web implementation).').toBeVisible({ timeout: 30_000 });
+  // One visually hidden input; it verifies on the 6th digit.
+  await page.getByLabel(/^Verification code, 6 digits$/).fill(resident.otp, { force: true });
+  await expect(page.getByRole('tab', { name: /Profile/ }), 'Home did not open after OTP verification.').toBeVisible({ timeout: 30_000 });
 }
 
 /**

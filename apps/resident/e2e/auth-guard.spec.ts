@@ -11,7 +11,7 @@ for (const path of protectedRoutes) {
   test(`redirects ${path} to /sign-in when signed out`, async ({ page }) => {
     await page.goto(path);
     await expect(page).toHaveURL(/\/sign-in$/);
-    await expect(page.getByRole('heading', { name: 'Welcome to Nestovin' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Sign in or create an account' })).toBeVisible();
   });
 }
 

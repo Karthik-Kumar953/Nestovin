@@ -29,6 +29,12 @@ Owner: the lead fixes `apps/api`. Web and mobile bugs go through the lead to the
 | BUG-QA-016 | Medium | DB grants | Review M-2: payment amounts, provider evidence and approved payroll lines are writable/deletable by the API role | Open |
 | BUG-QA-017 | Medium | API payroll | Review M-2 race: a payroll entry can be added to a run being submitted (run row not locked) | Open |
 | BUG-QA-018 | Low | Worker app | A push tap can re-open the same screen after a token refresh | Open (code read) |
+| BUG-QA-019 | Medium | Resident app | A rate-limited first "Send code" shows no message at all | Open (resident branch) |
+| BUG-QA-020 | Medium | Resident app (web) | The tab bar floats over the top of tab screens, so header buttons can't be tapped | Open (resident branch) |
+| BUG-QA-021 | Medium | Resident app | Home service cards don't filter the catalogue | Open (resident branch) |
+| BUG-QA-022 | Low | Resident app (a11y) | Header actions are announced three times | Open (resident branch) |
+| BUG-QA-023 | Low | Resident app (a11y, web) | Selected and checked state is not exposed on chips, tiles and radios | Open (resident branch) |
+| BUG-QA-024 | Low | Resident app (a11y) | Updates are read out with a double full stop | Open (resident branch) |
 
 ---
 
@@ -128,6 +134,36 @@ Full evidence and fixes are in the review: `docs/reviews/2026-11-system-review.m
 - **Actual:** Extra work opens again. The tap handler effect re-runs whenever the session object changes, and `src/lib/auth.tsx:31` creates a new session object on every auth event.
 - **Suspected:** `apps/employee/src/app/_layout.tsx:32-39` on `claude/worker-app-f91ce1`. The Resident app remembers which notifications it has already handled; the Worker app should do the same.
 - **Test:** `apps/employee/.maestro/push_notification_tap.yaml` (tagged `known-gap`, `needs-trigger`).
+
+## Resident app findings from the web E2E (BUG-QA-019…024)
+Found against `claude/resident-app-0932e5` at e539651, either in demo mode (`corepack pnpm e2e:resident-demo`) or with mocked auth (`corepack pnpm e2e:resident-web`). Each is kept as an expected failure (`test.fail()`).
+- **BUG-QA-019 (Medium): a rate-limited first send shows no message.**
+  - Test: `apps/resident/e2e/sign-in.spec.ts`, the two "rate-limit message" tests.
+  - Steps: enter a number, tap Send code, Supabase answers 429.
+  - Expected: "Too many attempts. Please wait N seconds, then send a new code." on the step the resident sees.
+  - Actual: the app moves to the code step (`setSentTo`), but `showError` was built with the old `sentTo` (null), so the message goes to the now-hidden phone step and nothing is shown.
+  - Suspected: `src/app/sign-in.tsx:43` (`showError` closure) and `:58-60`. Fix: compute the target step after `setSentTo`, or always use `setCodeError` in that branch.
+- **BUG-QA-020 (Medium, web): the tab bar covers the top of tab screens.**
+  - Test: `apps/resident/e2e/demo/*` (3 tests).
+  - Steps: tap the Updates bell (Home), "My bookings" (Book) or the "New request" icon (Support).
+  - Expected: the screen opens.
+  - Actual: the tap lands on the tab bar, which floats over the screen's top. The Profile label is also clipped ("Pro") at Pixel 7 width. Keyboard activation still works.
+  - Suspected: `src/app/(app)/(tabs)/_layout.tsx:11` (`NativeTabs` on web).
+- **BUG-QA-021 (Medium): Home service cards don't filter the catalogue.**
+  - Steps: Home, then "Cook … See plans".
+  - Expected: only Cook plans. Actual: all plans.
+  - Cause: the filter is read only when the Book tab first mounts. Web mounts every tab up front; on native it breaks after the first visit to Book.
+  - Suspected: `src/app/(app)/(tabs)/book.tsx:34`.
+- **BUG-QA-022 (Low, a11y): header actions are announced three times.** They render twice in the header and again in the compact bar, which is invisible but still read out.
+  - Suspected: `packages/ui-native/src/Screen.tsx:69`, `:82` and `:121`.
+- **BUG-QA-023 (Low, a11y, web): selected and checked state is not exposed.** There is no `aria-selected` / `aria-checked` on filter chips, segmented controls, choice tiles or start-date radios. react-native-web 0.21 does not map `accessibilityState`. Fix: add `aria-*` props on web.
+  - Suspected: `packages/ui-native/src/ChoiceTile.tsx:44`, `SegmentedControl.tsx:50`, `src/app/(app)/(tabs)/book.tsx:92`, `src/app/(app)/booking/slot.tsx:96`.
+- **BUG-QA-024 (Low, a11y): double full stop in the Updates accessibility label** ("…a new reply.. 2 hours ago").
+  - Suspected: `src/app/(app)/notifications.tsx:68`.
+- **Not bugs, demo-mode limits:**
+  - Demo visit ids change on every fetch, so a refetching visit screen shows "no longer available".
+  - Family request, cancel and remove return "Not available in demo mode".
+  - `?demo=` is dropped on in-app navigation.
 
 ## Suspected admin web issues (found by reading code; confirm when E2E credentials exist)
 - **BUG-QA-007:** `apps/web/src/admin/pages/workforce/EmployeesPage.tsx:194`. `{e.readinessGaps.length && …}` renders "0".

@@ -37,6 +37,10 @@ const RESIDENT_DEMO_PORT = process.env.E2E_RESIDENT_DEMO_PORT ?? '8091';
 const RESIDENT_DEMO_URL = `http://localhost:${RESIDENT_DEMO_PORT}`;
 const RESIDENT_APP_DIR = resolve(process.env.E2E_RESIDENT_APP_DIR ?? join(import.meta.dirname, 'apps', 'resident'));
 
+// Worker processes do not get the CLI arguments: pass the opt-ins on through the environment.
+if (RESIDENT_WEB) process.env.E2E_RESIDENT_WEB = '1';
+if (RESIDENT_DEMO) process.env.E2E_RESIDENT_DEMO = '1';
+
 // Only start the API and the admin web app when an admin project can run.
 const ONLY_RESIDENT =
   process.argv.some((a) => /resident-(web|demo)/.test(a)) && !process.argv.some((a) => /project[= ]?(admin|setup)\b/.test(a));
