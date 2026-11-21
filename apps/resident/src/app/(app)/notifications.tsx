@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button, EmptyState, Entrance, Icon, PressScale, Screen, SkeletonList, Text, colors, type IconName } from '@nestovin/ui-native';
 import { api } from '../../lib/api';
 import { hrefForEvent } from '../../lib/deeplinks';
-import { relative, today } from '../../lib/format';
+import { relative, sentences, today } from '../../lib/format';
 import { keys, useInbox, type Inbox, type InboxItem } from '../../lib/queries';
 import { img } from '../../assets/images';
 import { ErrorState } from '../../components/common';
@@ -65,7 +65,7 @@ export default function Notifications() {
             <Text variant="overline" tone="muted" accessibilityRole="header">{label as string}</Text>
             {(list as InboxItem[]).map((n, i) => (
               <Entrance key={n.id} index={i}>
-                <PressScale onPress={() => open(n)} haptic="tap" scaleTo={0.985} accessibilityRole="button" accessibilityLabel={`${n.readAt ? '' : 'Unread. '}${n.title}. ${n.body}. ${relative(n.createdAt)}`} className={`flex-row gap-3 rounded-xl p-4 border ${n.readAt ? 'bg-white border-line/70' : 'bg-teal-50 border-teal-200'}`}>
+                <PressScale onPress={() => open(n)} haptic="tap" scaleTo={0.985} accessibilityRole="button" accessibilityLabel={sentences(n.readAt ? null : 'Unread', n.title, n.body, relative(n.createdAt))} className={`flex-row gap-3 rounded-xl p-4 border ${n.readAt ? 'bg-white border-line/70' : 'bg-teal-50 border-teal-200'}`}>
                   <View className={`h-10 w-10 rounded-full items-center justify-center ${n.readAt ? 'bg-surface-subtle' : 'bg-teal'}`}>
                     <Icon name={iconFor(n.eventType)} size={20} color={n.readAt ? colors.textSecondary : colors.white} />
                   </View>

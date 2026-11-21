@@ -69,7 +69,10 @@ export function Banner({
   );
   if (!onPress) return content;
   return (
-    <PressScale onPress={onPress} haptic="tap" scaleTo={0.985} accessibilityRole="button" accessibilityLabel={[title, typeof children === 'string' ? children : ''].filter(Boolean).join('. ')}>
+    <PressScale onPress={onPress} haptic="tap" scaleTo={0.985} accessibilityRole="button" accessibilityLabel={[title, typeof children === 'string' ? children : '']
+        .filter(Boolean)
+        .map((p) => p!.trim().replace(/[.!?]+$/, ''))
+        .join('. ')}>
       {content}
     </PressScale>
   );

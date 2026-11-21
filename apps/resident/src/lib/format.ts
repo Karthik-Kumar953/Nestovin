@@ -84,3 +84,10 @@ export const taskFrequency = (f: string, times: number) => {
 
 /** "+919876543210" → "+91 98765 43210"; other numbers are returned unchanged. */
 export const phone = (e164: string) => (/^\+91\d{10}$/.test(e164) ? `+91 ${e164.slice(3, 8)} ${e164.slice(8)}` : e164);
+
+/** Joins parts into sentences for screen readers without doubling punctuation ("a reply." + "2 hours ago" → "a reply. 2 hours ago"). */
+export const sentences = (...parts: (string | null | undefined | false)[]) =>
+  parts
+    .filter((p): p is string => typeof p === 'string' && p.trim().length > 0)
+    .map((p) => p.trim().replace(/[.!?]+$/, ''))
+    .join('. ');
