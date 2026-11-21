@@ -170,7 +170,9 @@ describe.skipIf(!available)('demand cycles, bookings and payments (Phase 4)', { 
     const opts = await residents.options(B);
     expect(opts.eligible).toBe(false);
     expect(opts.reason).toMatch(/verification/);
-    expect((await residents.options(A)).eligible).toBe(true);
+    expect(opts.reasonCode).toBe('NOT_VERIFIED');
+    const okA = await residents.options(A);
+    expect(okA).toMatchObject({ eligible: true, reasonCode: null, communityName: expect.any(String) });
   });
 
   it('a cycle cannot be published without a percentage, and locks it once published', async () => {
@@ -231,6 +233,15 @@ describe.skipIf(!available)('demand cycles, bookings and payments (Phase 4)', { 
     expect(await payments.handleWebhook(wh.raw, wh.signature, id)).toBe('duplicate');
   });
 
+  it('webhooks: an unsigned event cannot pre-empt the genuine one with the same id (BUG-QA-003)', async () => {
+    const wh = webhook({ event: 'payment.failed', payload: {} });
+    const id = `evt_${randomUUID()}`;
+    expect(await payments.handleWebhook(wh.raw, 'forged', id)).toBe('rejected');
+    expect(await payments.handleWebhook(wh.raw, wh.signature, id)).toBe('ok');
+    const { rows } = await admin.query(`select signature_valid from app.provider_events where event_id = $1`, [id]);
+    expect(rows).toEqual([{ signature_valid: true }]);
+  });
+
   it('slot set: allocation respects capacity; publishing creates bookings awaiting the balance', async () => {
     const set = await ops.createSlotSet(root, 't', cycleId, {
       commencementDate: addDays(new Date().toISOString().slice(0, 10), 10),
@@ -265,6 +276,13 @@ describe.skipIf(!available)('demand cycles, bookings and payments (Phase 4)', { 
     expect(after).toMatchObject({ status: 'CONFIRMED', outstandingPaise: 0 });
     expect(after!.subscription).toMatchObject({ status: 'PENDING_ACTIVATION', periodStart: after!.startDate });
     expect((await residents.demandRequests(A))[0]!.status).toBe('CONVERTED');
+
+    // Booking detail: agreed terms plus every payment attempt, oldest first; other households get 404.
+    const detail = await residents.booking(A, after!.id);
+    expect(detail).toMatchObject({ id: after!.id, status: 'CONFIRMED', terms: { validityDays: expect.any(Number) } });
+    expect(detail.payments.map((p) => p.status)).toEqual(expect.arrayContaining(['REVIEW_REQUIRED', 'PAID']));
+    expect(detail.payments.some((p) => p.purpose === 'INITIAL' && p.status === 'PAID')).toBe(true);
+    await expectCode(residents.booking(B, after!.id), 'NOT_FOUND');
   });
 
   it('continuous: capacity is re-checked when the payment arrives; the late payer goes to review and can be refunded', async () => {

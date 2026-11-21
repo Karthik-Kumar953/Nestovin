@@ -115,8 +115,19 @@ describe.skipIf(!available)('residents, household and support (Phase 3)', { time
     expect(res.upload.path).toMatch(new RegExp(`^residence/${res.membershipId}/`));
     const me = await residents.me(A);
     expect(me.membership).toMatchObject({ status: 'PENDING', kind: 'PRIMARY', flatId: flat1 });
-    expect(me.verification).toMatchObject({ decision: 'PENDING', documentUploaded: false });
+    expect(me.verification).toMatchObject({ decision: 'PENDING', documentUploaded: false, flat: { flatId: flat1, occupancy: 'OWNER' } });
     await expectCode(residents.registerResidence(A, 't', { flatId: flat2, occupancy: 'OWNER', document: doc }), 'BUSINESS_RULE_VIOLATION');
+  });
+
+  it('a failed upload can be retried with a fresh upload target for the same document', async () => {
+    const before = await admin.query(`select storage_key from app.documents where id = $1`, [documentA]);
+    const retry = await residents.replaceResidenceDocument(A, 't', { document: { ...doc, docType: 'OWNERSHIP_PROOF', fileName: 'deed.pdf' } });
+    expect(retry.upload.documentId).toBe(documentA);
+    const after = await admin.query(`select storage_key, doc_type, file_name from app.documents where id = $1`, [documentA]);
+    expect(after.rows[0]).toMatchObject({ doc_type: 'OWNERSHIP_PROOF', file_name: 'deed.pdf' });
+    expect(after.rows[0].storage_key).not.toBe(before.rows[0].storage_key);
+    expect(retry.upload.path).toBe(after.rows[0].storage_key);
+    await expectCode(residents.replaceResidenceDocument(B, 't', { document: doc }), 'CONFLICT'); // nothing pending
   });
 
   it('a resident cannot confirm someone else’s document', async () => {

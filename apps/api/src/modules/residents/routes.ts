@@ -7,6 +7,7 @@ import {
   familyRequestSchema,
   paginationQuerySchema,
   registerResidenceSchema,
+  replaceResidenceDocumentSchema,
   rejectSchema,
   residentReplySchema,
   setResidentStatusSchema,
@@ -63,6 +64,14 @@ export function residentRoutes(deps: AppDeps, ...extra: Router[]): Router {
     validateBody(registerResidenceSchema),
     async (req, res) => {
       res.status(201).json(await svc.registerResidence(residentOf(req), req.requestId, req.body));
+    },
+  );
+  r.post(
+    '/residence/document',
+    rateLimit(deps, { name: 'residence-document', limit: 10, windowSeconds: 3600, keyFn: (req) => req.resident?.id ?? null }),
+    validateBody(replaceResidenceDocumentSchema),
+    async (req, res) => {
+      res.json(await svc.replaceResidenceDocument(residentOf(req), req.requestId, req.body));
     },
   );
   r.post('/documents/:id/complete', async (req, res) => {

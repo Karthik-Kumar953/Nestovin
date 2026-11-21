@@ -81,6 +81,18 @@ export function authorize(module: ModuleKey, action: Action): Handler {
   };
 }
 
+/**
+ * Super-Admin-only guard. Mount it before validateBody so callers without the
+ * right get 403, never a validation error that reveals the request schema.
+ */
+export function superAdminOnly(message = 'Only the Super Admin can do this'): Handler {
+  return (req, _res, next) => {
+    if (!req.admin) throw unauthenticated();
+    if (!req.admin.isSuperAdmin) throw forbidden(message);
+    next();
+  };
+}
+
 function toFieldErrors(error: z.ZodError) {
   return error.issues.map((i) => ({ path: i.path.join('.') || '(root)', message: i.message }));
 }

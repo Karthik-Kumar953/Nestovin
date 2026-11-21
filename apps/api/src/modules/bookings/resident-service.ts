@@ -1,5 +1,6 @@
 import {
   NON_REFUNDABLE_DISCLOSURE,
+  type BookingDetail,
   type BookingOptions,
   type BookingView,
   type Checkout,
@@ -37,7 +38,8 @@ export class ResidentBookingService {
     const m = await trx
       .selectFrom('app.residence_memberships as m')
       .innerJoin('app.flats as f', 'f.id', 'm.flat_id')
-      .select(['m.id', 'm.status', 'm.flat_id', 'm.community_id', 'm.cluster_id', 'f.residence_category_id'])
+      .innerJoin('app.communities as c', 'c.id', 'm.community_id')
+      .select(['m.id', 'm.status', 'm.flat_id', 'm.community_id', 'm.cluster_id', 'f.residence_category_id', 'c.name as community_name', 'c.status as community_status'])
       .where('m.resident_id', '=', actor.id)
       .where('m.status', 'in', ['PENDING', 'VERIFIED'])
       .executeTakeFirst();
@@ -55,11 +57,13 @@ export class ResidentBookingService {
     return this.tx(actor, async (trx) => {
       const windowDays = await setting(trx, 'booking_window_days', 14);
       const range = { from: addDays(today(), 1), to: addDays(today(), windowDays) };
-      const base: BookingOptions = { eligible: false, reason: null, openCycles: [], continuousSlots: [], startDateRange: range, disclosure: { ...NON_REFUNDABLE_DISCLOSURE } };
+      const base: BookingOptions = { eligible: false, reason: null, reasonCode: null, communityName: null, openCycles: [], continuousSlots: [], startDateRange: range, disclosure: { ...NON_REFUNDABLE_DISCLOSURE } };
       const m = await this.household(trx, actor);
-      if (!m) return { ...base, reason: 'Register your flat to book a service.' };
-      if (m.status !== 'VERIFIED') return { ...base, reason: 'Your residence is waiting for verification.' };
-      if (!m.residence_category_id) return { ...base, reason: 'Your flat does not have a pricing category yet. Contact Nestovin support.' };
+      if (!m) return { ...base, reasonCode: 'NOT_REGISTERED', reason: 'Register your flat to book a service.' };
+      const at = { ...base, communityName: m.community_name };
+      if (m.status !== 'VERIFIED') return { ...at, reasonCode: 'NOT_VERIFIED', reason: 'Your residence is waiting for verification.' };
+      if (m.community_status !== 'ACTIVE') return { ...at, reasonCode: 'COMMUNITY_NOT_LIVE', reason: `Booking is not open in ${m.community_name} yet.` };
+      if (!m.residence_category_id) return { ...at, reasonCode: 'NO_CATEGORY', reason: 'Your flat does not have a pricing category yet. Contact Nestovin support.' };
 
       const now = new Date();
       const cycles = await trx
@@ -102,7 +106,7 @@ export class ResidentBookingService {
         });
       }
       return {
-        ...base,
+        ...at,
         eligible: true,
         openCycles: cycles.map((c) => ({
           id: c.id,
@@ -486,6 +490,60 @@ export class ResidentBookingService {
 
   async bookings(actor: ResidentActor): Promise<BookingView[]> {
     return this.tx(actor, (trx) => bookingViews(trx, {}));
+  }
+
+  /** One of the household's bookings with the agreed terms and every payment attempt (RLS scopes rows). */
+  async booking(actor: ResidentActor, bookingId: string): Promise<BookingDetail> {
+    return this.tx(actor, async (trx) => {
+      const [view] = await bookingViews(trx, { id: bookingId, limit: 1 });
+      if (!view) throw notFound('Booking');
+      const b = await trx
+        .selectFrom('app.bookings as b')
+        .innerJoin('app.booking_terms_snapshots as t', 't.id', 'b.terms_snapshot_id')
+        .select(['b.demand_request_id', 't.plan_snapshot', 't.initial_pct', 't.tax_paise', 't.validity_days', 't.disclosure_version', 't.disclosure_accepted_at'])
+        .where('b.id', '=', bookingId)
+        .executeTakeFirstOrThrow();
+      type SnapComponent = { serviceName?: string; isAddon?: boolean; visitsPerDay?: number; daysOfWeek?: number; durationMinutes?: number; addonHours?: number | null; tasks?: { name: string; frequency: string; timesPerPeriod: number }[] };
+      const comps = ((b.plan_snapshot as { components?: SnapComponent[] } | null)?.components ?? []).map((c) => ({
+        serviceName: c.serviceName ?? 'Service',
+        isAddon: Boolean(c.isAddon),
+        visitsPerDay: c.visitsPerDay ?? 1,
+        daysOfWeek: c.daysOfWeek ?? 127,
+        durationMinutes: c.durationMinutes ?? 0,
+        addonHours: c.addonHours ?? null,
+        tasks: (c.tasks ?? []).map((t) => ({ name: t.name, frequency: t.frequency, timesPerPeriod: t.timesPerPeriod })),
+      }));
+      const orders = await trx
+        .selectFrom('app.payment_orders')
+        .select(['id', 'purpose', 'amount_paise', 'status', 'created_at', 'paid_at'])
+        .where((eb) =>
+          eb.or([
+            eb.and([eb('ref_type', '=', 'BOOKING'), eb('ref_id', '=', bookingId)]),
+            ...(b.demand_request_id ? [eb.and([eb('ref_type', '=', 'DEMAND_REQUEST'), eb('ref_id', '=', b.demand_request_id)])] : []),
+          ]),
+        )
+        .orderBy('created_at')
+        .execute();
+      return {
+        ...view,
+        terms: {
+          components: comps,
+          initialPct: b.initial_pct,
+          taxPaise: b.tax_paise === null ? null : Number(b.tax_paise),
+          validityDays: b.validity_days,
+          disclosureVersion: b.disclosure_version,
+          disclosureAcceptedAt: b.disclosure_accepted_at ? new Date(b.disclosure_accepted_at).toISOString() : null,
+        },
+        payments: orders.map((o) => ({
+          id: o.id,
+          purpose: o.purpose,
+          amountPaise: Number(o.amount_paise),
+          status: o.status,
+          createdAt: new Date(o.created_at).toISOString(),
+          paidAt: o.paid_at ? new Date(o.paid_at).toISOString() : null,
+        })),
+      };
+    });
   }
 
   async verifyPayment(actor: ResidentActor, input: VerifyPaymentInput) {

@@ -313,18 +313,26 @@ export class PaymentService {
     const eventType = String(body.event ?? 'unknown');
     const eventId = eventIdHeader ?? `${eventType}:${String(body.payload?.payment?.entity?.id ?? body.payload?.refund?.entity?.id ?? randomUUID())}`;
 
+    if (!valid) {
+      // Keep the forged/unsigned attempt for forensics, but under its own id: it must never occupy the
+      // genuine event's id, or the real (signed) delivery would later be dropped as a duplicate.
+      await withTx(this.db, SYSTEM_CLAIMS, (trx) =>
+        trx
+          .insertInto('app.provider_events')
+          .values({ event_id: `unverified:${randomUUID()}`, event_type: eventType, payload: JSON.stringify({ claimedEventId: eventId, body }), signature_valid: false })
+          .execute(),
+      );
+      this.logger.warn({ eventType }, 'razorpay webhook with invalid signature rejected');
+      return 'rejected';
+    }
     const inserted = await withTx(this.db, SYSTEM_CLAIMS, (trx) =>
       trx
         .insertInto('app.provider_events')
-        .values({ event_id: eventId, event_type: eventType, payload: JSON.stringify(body), signature_valid: valid })
+        .values({ event_id: eventId, event_type: eventType, payload: JSON.stringify(body), signature_valid: true })
         .onConflict((oc) => oc.column('event_id').doNothing())
         .returning('id')
         .executeTakeFirst(),
     );
-    if (!valid) {
-      this.logger.warn({ eventType }, 'razorpay webhook with invalid signature rejected');
-      return 'rejected';
-    }
     if (!inserted) return 'duplicate';
 
     try {
