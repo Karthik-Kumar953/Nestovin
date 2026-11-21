@@ -1,57 +1,17 @@
 /*
  * Public website styles: Tailwind CSS v4 on the Nestovin design tokens.
- * Imported only by the (public) layout, so Tailwind's reset never reaches /admin.
- * Theme values come from @nestovin/design-tokens (docs/Design/DESIGN.md):
- * change a colour there, not here.
+ * Imported only by the (public) layout; the admin portal has its own Tailwind entry.
+ * The theme (src/styles/theme.css) is shared with the admin portal and maps
+ * @nestovin/design-tokens (docs/Design/DESIGN.md): change a colour there, not here.
  */
 @import 'tailwindcss';
 @import '@nestovin/design-tokens/tokens.css';
+@import '../../styles/theme.css';
 
 @source '../../**/*.{ts,tsx}';
-
-@theme inline {
-  /* Brand */
-  --color-brand: var(--nv-primary);
-  --color-brand-green: var(--nv-secondary);
-  --color-charcoal: var(--nv-charcoal);
-  --color-teal: var(--nv-teal-action);
-  --color-teal-deep: var(--nv-teal-deep);
-  --color-green-action: var(--nv-green-action);
-  --color-shell: #0b3b36;
-
-  /* Surfaces and text */
-  --color-canvas: var(--nv-background);
-  --color-surface: var(--nv-surface);
-  --color-subtle: var(--nv-surface-subtle);
-  --color-ink: var(--nv-text-primary);
-  --color-ink-2: var(--nv-text-secondary);
-  --color-muted: var(--nv-text-muted);
-  --color-line: var(--nv-border);
-
-  /* States */
-  --color-success: var(--nv-success-text);
-  --color-success-bg: var(--nv-success-surface);
-  --color-warning: var(--nv-warning-text);
-  --color-warning-bg: var(--nv-warning-surface);
-  --color-error: var(--nv-error-text);
-  --color-error-bg: var(--nv-error-surface);
-  --color-info: var(--nv-info-text);
-  --color-info-bg: var(--nv-info-surface);
-
-  /* Type */
-  --font-display: var(--font-manrope), system-ui, sans-serif;
-  --font-sans: var(--font-inter), system-ui, sans-serif;
-
-  /* Radius */
-  --radius-sm: var(--nv-radius-sm);
-  --radius-md: var(--nv-radius-md);
-  --radius-lg: var(--nv-radius-lg);
-  --radius-xl: var(--nv-radius-xl);
-
-  /* Breakpoints from DESIGN.md */
-  --breakpoint-md: 768px;
-  --breakpoint-lg: 1024px;
-}
+/* The admin portal has its own Tailwind entry (src/admin/admin.tailwind.css). */
+@source not '../../admin';
+@source not '../admin';
 
 @layer base {
   html {
@@ -71,10 +31,7 @@
   ::selection {
     background: color-mix(in srgb, var(--nv-primary) 22%, white);
   }
-  :focus-visible {
-    outline: 2px solid var(--nv-focus-ring);
-    outline-offset: 2px;
-  }
+  /* Focus ring: app/globals.css (3px, --nv-focus-ring). */
   @media (prefers-reduced-motion: reduce) {
     html {
       scroll-behavior: auto;

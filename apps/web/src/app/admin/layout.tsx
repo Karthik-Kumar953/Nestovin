@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { AdminRoot } from '@/admin/AdminRoot';
-import '@/admin/admin.css';
+import '@/admin/admin.tailwind.css';
 
 export const metadata: Metadata = {
   title: { absolute: 'Nestovin Admin', template: '%s · Nestovin Admin' },

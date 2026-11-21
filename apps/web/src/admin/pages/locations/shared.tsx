@@ -6,7 +6,6 @@ import { qs } from '../../lib/api';
 import { useDebounced, usePagedList } from '../../lib/hooks';
 import { Field, SearchBox } from '../../components/ui';
 import { Check, ChevronsUpDown } from '../../components/icons';
-import './locations.css';
 
 /* ---------- Search picker (dropdowns that must reach past the first 100 rows) ---------- */
 

@@ -385,6 +385,14 @@ function RunSheet({
   );
 }
 
+/** Icon tile tones for the alerts list. */
+const ALERT_TONE: Record<string, string> = {
+  amber: 'bg-warning-bg text-warning',
+  red: 'bg-error-bg text-error',
+  teal: 'bg-teal-tint text-teal',
+  blue: 'bg-info-bg text-info',
+};
+
 function Alerts({ rows }: { rows: { v: Visit; s: VisitState }[] }) {
   const items = rows
     .filter((r) => r.s === 'late' || r.s === 'noshow' || r.s === 'unassigned' || r.s === 'exception')
@@ -403,19 +411,19 @@ function Alerts({ rows }: { rows: { v: Visit; s: VisitState }[] }) {
           Every visit today is on track.
         </p>
       ) : (
-        <ul className="alerts">
+        <ul className="m-0 list-none p-0">
           {items.map(({ v, s }) => {
             const { I, c } = icon[s] ?? { I: CircleAlert, c: 'blue' };
             return (
-              <li key={v.id} className="alert-item">
-                <span className={`alert-icon ${c}`} aria-hidden>
+              <li key={v.id} className="flex gap-3 border-b border-rule px-[18px] py-3.5 last:border-b-0">
+                <span className={`grid size-[30px] flex-none place-items-center rounded-control ${ALERT_TONE[c]}`} aria-hidden>
                   <I size={16} />
                 </span>
                 <div style={{ minWidth: 0, flex: 1 }}>
-                  <p className="alert-title">
+                  <p className="m-0 font-sans text-[13.5px] leading-[18px] font-semibold">
                     {STATE_LABEL[s]} · {v.serviceName}
                   </p>
-                  <p className="alert-meta">
+                  <p className="mx-0 mt-0.5 mb-2 text-[12.5px] text-ink-quiet">
                     {v.flat.communityName} · {v.flat.towerName} {v.flat.flatNumber} · {istTime(v.startsAt)}
                     {v.assignment ? ` · ${v.assignment.employeeName}` : ''}
                   </p>

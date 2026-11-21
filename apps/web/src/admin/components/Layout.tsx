@@ -187,6 +187,9 @@ function initials(name: string) {
 
 const OPEN_KEY = 'nv.admin.nav.open';
 
+/** Current page name in the topbar breadcrumb. */
+const CRUMB = 'truncate font-semibold text-charcoal';
+
 export function Layout({ children }: { children: ReactNode }) {
   const me = useMe();
   const { signOut } = useAuth();
@@ -250,16 +253,16 @@ export function Layout({ children }: { children: ReactNode }) {
 
   return (
     <div className="app" data-nav-open={navOpen}>
-      <a href="#main" className="skip-link">
+      <a href="#main" className="absolute top-2 -left-[9999px] z-100 rounded-control bg-surface px-3 py-2 shadow-pop focus:left-2">
         Skip to content
       </a>
       <aside className="sidebar" aria-label="Main navigation">
-        <div className="sidebar-head">
-          <Link to="/" className="sidebar-brand">
+        <div className="flex flex-col gap-3 px-3.5 pt-4 pb-2.5">
+          <Link to="/" className="flex items-center gap-2.5 px-1.5 py-0.5 text-white no-underline">
             <Image src="/nestovin-logo.png" alt="" className="sidebar-logo" width={30} height={30} />
             <span>
               <span className="sidebar-brand-name">Nestovin</span>
-              <span className="sidebar-brand-sub">Admin portal</span>
+              <span className="block font-sans text-[11.5px] leading-[14px] font-medium tracking-normal text-shell-muted">Admin portal</span>
             </span>
           </Link>
           <button type="button" className="sidebar-search" onClick={() => setPaletteOpen(true)}>
@@ -313,15 +316,15 @@ export function Layout({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
-        <div className="sidebar-user">
+        <div className="flex items-center gap-2.5 border-t border-shell-rule px-3.5 py-3">
           <span className="avatar" aria-hidden>
             {initials(me.fullName)}
           </span>
-          <div className="sidebar-user-text">
-            <p className="sidebar-user-name">{me.fullName}</p>
-            <p className="sidebar-user-meta">{me.isSuperAdmin ? 'Super Admin' : scopeLabel}</p>
+          <div className="min-w-0 flex-1">
+            <p className="m-0 truncate font-sans text-[13px] leading-[17px] font-semibold text-white">{me.fullName}</p>
+            <p className="m-0 text-[12px] leading-4 text-shell-muted">{me.isSuperAdmin ? 'Super Admin' : scopeLabel}</p>
           </div>
-          <button type="button" className="icon-btn" onClick={() => void signOut()} aria-label="Sign out" title="Sign out">
+          <button type="button" className="icon-btn text-shell-muted hover:bg-white/8 hover:text-white" onClick={() => void signOut()} aria-label="Sign out" title="Sign out">
             <LogOut size={17} />
           </button>
         </div>
@@ -332,20 +335,23 @@ export function Layout({ children }: { children: ReactNode }) {
           <button type="button" className="icon-btn topbar-menu" onClick={() => setNavOpen(true)} aria-label="Open navigation">
             <Menu size={20} />
           </button>
-          <div className="topbar-crumbs">
+          <div className="flex min-w-0 items-center gap-1.5 text-[13px] text-ink-quiet">
             {current ? (
               <>
                 <span className="nowrap">{current.group}</span>
-                <ChevronRight size={14} />
-                <strong>{current.label}</strong>
+                <ChevronRight size={14} className="text-ink-faint" />
+                <strong className={CRUMB}>{current.label}</strong>
               </>
             ) : (
-              <strong>{pathname === adminPath('/') ? 'Home' : 'Nestovin admin'}</strong>
+              <strong className={CRUMB}>{pathname === adminPath('/') ? 'Home' : 'Nestovin admin'}</strong>
             )}
           </div>
-          <div className="topbar-right">
-            <span className="scope-pill" title="Your data scope">
-              <span className="dot" aria-hidden />
+          <div className="ml-auto flex items-center gap-2">
+            <span
+              className="inline-flex h-7.5 items-center gap-1.5 rounded-full border border-rule-strong bg-surface px-2.5 font-sans text-[12.5px] leading-none font-medium whitespace-nowrap text-ink-soft max-[641px]:hidden"
+              title="Your data scope"
+            >
+              <span className="size-[7px] rounded-full bg-brand" aria-hidden />
               {scopeLabel}
             </span>
             <button type="button" className="icon-btn" onClick={() => setPaletteOpen(true)} aria-label="Search or jump to">

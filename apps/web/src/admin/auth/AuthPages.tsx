@@ -8,10 +8,15 @@ import { supabase, supabaseConfigured } from '../lib/supabase';
 import { Button, ErrorBanner, InfoBanner, TextInput } from '../components/ui';
 import { useAuth } from './AuthProvider';
 
+/** Run-sheet bar in the decorative aside. */
+const LANE = 'absolute top-[3px] bottom-[3px] rounded-[4px] bg-teal-mid/55';
+/** Secondary text link under the form ("Forgot password?", "Back to sign in"). */
+const SUBTLE_LINK = 'self-center text-[13.5px]';
+
 function AuthShell({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
   return (
-    <div className="auth-shell">
-      <aside className="auth-aside" aria-hidden>
+    <div className="grid min-h-screen grid-cols-2 bg-surface max-[901px]:grid-cols-1">
+      <aside className="relative flex flex-col justify-between overflow-hidden bg-shell p-12 text-shell-ink max-[901px]:hidden" aria-hidden>
         <div className="row" style={{ gap: 10 }}>
           <Image src="/nestovin-logo.png" alt="" className="sidebar-logo" width={30} height={30} />
           <span className="sidebar-brand-name" style={{ color: '#fff' }}>
@@ -19,30 +24,30 @@ function AuthShell({ title, subtitle, children }: { title: string; subtitle?: st
           </span>
         </div>
         <div>
-          <h2>Every visit, every community, one run sheet.</h2>
-          <p>Onboard communities, take demand, allocate workers, verify attendance and run payroll from the admin portal.</p>
-          <div className="auth-aside-lanes">
+          <h2 className="max-w-[18ch] text-[30px] leading-[38px] font-semibold text-white">Every visit, every community, one run sheet.</h2>
+          <p className="mt-3 mb-0 max-w-[44ch] text-[15px] leading-[23px] text-shell-muted">Onboard communities, take demand, allocate workers, verify attendance and run payroll from the admin portal.</p>
+          <div className="mt-10 grid gap-2.5">
             {[
               [6, 14, 30, 18, 58, 12],
               [12, 20, 40, 14, 70, 16],
               [4, 10, 24, 22, 52, 20],
               [18, 16, 46, 12, 66, 14],
             ].map((l, i) => (
-              <div key={i} className="auth-aside-lane">
-                <span style={{ left: `${l[0]}%`, width: `${l[1]}%` }} />
-                <span style={{ left: `${l[2]}%`, width: `${l[3]}%` }} />
-                <span style={{ left: `${l[4]}%`, width: `${l[5]}%` }} />
+              <div key={i} className="relative h-[22px] rounded-control-sm bg-white/6">
+                <span className={LANE} style={{ left: `${l[0]}%`, width: `${l[1]}%` }} />
+                <span className={LANE} style={{ left: `${l[2]}%`, width: `${l[3]}%` }} />
+                <span className={LANE} style={{ left: `${l[4]}%`, width: `${l[5]}%` }} />
               </div>
             ))}
           </div>
         </div>
-        <p style={{ fontSize: 12.5 }}>Access is by invitation only. Every action is recorded.</p>
+        <p className="mt-3 mb-0 max-w-[44ch] text-[15px] leading-[23px] text-shell-muted" style={{ fontSize: 12.5 }}>Access is by invitation only. Every action is recorded.</p>
       </aside>
-      <main className="auth-main">
-        <div className="auth-card">
-          <Image src="/nestovin-logo.png" alt="Nestovin" className="auth-logo" width={45} height={40} priority />
-          <h1 className="auth-title">{title}</h1>
-          {subtitle ? <p className="auth-subtitle">{subtitle}</p> : null}
+      <main className="grid place-items-center px-5 py-8">
+        <div className="flex w-full max-w-[400px] flex-col gap-[18px]">
+          <Image src="/nestovin-logo.png" alt="Nestovin" className="h-10 w-auto self-start" width={45} height={40} priority />
+          <h1 className="text-[26px] leading-[34px] font-bold">{title}</h1>
+          {subtitle ? <p className="mx-0 -mt-2 mb-1 text-ink-quiet">{subtitle}</p> : null}
           {children}
         </div>
       </main>
@@ -100,7 +105,7 @@ export function LoginPage() {
         <Button type="submit" busy={busy} disabled={!email || !password}>
           Sign in
         </Button>
-        <Link to="/forgot-password" className="link-subtle">
+        <Link to="/forgot-password" className={SUBTLE_LINK}>
           Forgot password?
         </Link>
       </form>
@@ -138,7 +143,7 @@ export function ForgotPasswordPage() {
           </Button>
         </form>
       )}
-      <Link to="/login" className="link-subtle">
+      <Link to="/login" className={SUBTLE_LINK}>
         Back to sign in
       </Link>
     </AuthShell>
@@ -169,7 +174,7 @@ export function SetPasswordPage() {
     return (
       <AuthShell title="This link has expired">
         <p>Invitation and reset links can be used once and expire. Ask your Super Admin for a new invitation, or request a new reset link.</p>
-        <Link to="/forgot-password" className="link-subtle">
+        <Link to="/forgot-password" className={SUBTLE_LINK}>
           Request a reset link
         </Link>
       </AuthShell>
@@ -307,7 +312,7 @@ export function MfaPage() {
     >
       {preparing ? <p>Preparing…</p> : null}
       {enrolment ? (
-        <div className="mfa-qr">
+        <div className="flex flex-col items-center gap-2 rounded-panel border border-rule p-4">
           <QRCodeSVG value={enrolment.uri} size={176} marginSize={2} title="Authenticator QR code" />
           <p className="field-hint">
             Can’t scan? Enter this key manually: <code className="secret">{enrolment.secret}</code>

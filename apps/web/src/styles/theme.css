@@ -1,0 +1,107 @@
+/*
+ * Shared Tailwind CSS v4 theme for the web app (public website and admin portal).
+ * Brand values come from @nestovin/design-tokens (docs/Design/DESIGN.md): change a
+ * colour there, not here. The admin extensions below (shell, surface steps, state
+ * rules, radii, shadows, easing) are the "Concierge Run Sheet" additions on top of
+ * the same palette.
+ *
+ * Import after `@import 'tailwindcss'` in each surface's entry stylesheet.
+ */
+
+/* Mapped from the design tokens (inline: utilities read the --nv-* variable directly). */
+@theme inline {
+  /* Brand */
+  --color-brand: var(--nv-primary);
+  --color-brand-green: var(--nv-secondary);
+  --color-charcoal: var(--nv-charcoal);
+  --color-teal: var(--nv-teal-action);
+  --color-teal-deep: var(--nv-teal-deep);
+  --color-green-action: var(--nv-green-action);
+
+  /* Surfaces and text */
+  --color-canvas: var(--nv-background);
+  --color-surface: var(--nv-surface);
+  --color-subtle: var(--nv-surface-subtle);
+  --color-ink: var(--nv-text-primary);
+  --color-ink-2: var(--nv-text-secondary);
+  --color-muted: var(--nv-text-muted);
+  --color-line: var(--nv-border);
+
+  /* States */
+  --color-success: var(--nv-success-text);
+  --color-success-bg: var(--nv-success-surface);
+  --color-warning: var(--nv-warning-text);
+  --color-warning-bg: var(--nv-warning-surface);
+  --color-error: var(--nv-error-text);
+  --color-error-bg: var(--nv-error-surface);
+  --color-info: var(--nv-info-text);
+  --color-info-bg: var(--nv-info-surface);
+
+  /* Type (next/font sets --font-manrope / --font-inter on <html>) */
+  --font-display: var(--font-manrope), system-ui, sans-serif;
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+
+  /* Radius */
+  --radius-sm: var(--nv-radius-sm);
+  --radius-md: var(--nv-radius-md);
+  --radius-lg: var(--nv-radius-lg);
+  --radius-xl: var(--nv-radius-xl);
+
+  /* Elevation */
+  --shadow-raise: var(--nv-shadow-1);
+
+  /* Breakpoints from DESIGN.md */
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+}
+
+/* Admin extensions of the palette (fixed values). */
+@theme {
+  /* Deep-teal shell (admin sidebar, auth aside) */
+  --color-shell: #0b3b36;
+  --color-shell-2: #0f4740;
+  --color-shell-3: #155a51;
+  --color-shell-ink: #e3efed;
+  --color-shell-muted: #9dbdb7;
+  --color-shell-rule: rgb(255 255 255 / 0.08);
+  --color-shell-accent: #7fd3c7;
+
+  /* Work surfaces on hairline rules */
+  --color-surface-2: #f9fbfa;
+  --color-sunken: #eef3f1;
+  --color-rule: #e3eae7;
+  --color-rule-strong: #cfdad6;
+  --color-rule-hover: #b5c4bf;
+
+  /* Admin text ramp (ink = charcoal) */
+  --color-ink-soft: #334155;
+  --color-ink-quiet: #56655f;
+  --color-ink-faint: #8a9a96;
+
+  /* Teal steps */
+  --color-teal-ink: #005148;
+  --color-teal-tint: #e6f2f0;
+  --color-teal-tint-2: #cce6e1;
+  --color-teal-mid: #4db6ac;
+
+  /* State rules and extra hues */
+  --color-warning-rule: #f3cf91;
+  --color-error-rule: #f5b5ae;
+  --color-violet: #5b3fa8;
+  --color-violet-bg: #efeafb;
+  --color-gold: #c9a227;
+  --color-toast: #102a27;
+  --color-toast-ink: #f1f7f6;
+
+  /* Admin radii: control-sm 6, control 8, panel 12, dialog 14 */
+  --radius-control-sm: 6px;
+  --radius-control: 8px;
+  --radius-panel: 12px;
+  --radius-dialog: 14px;
+
+  /* Shadows */
+  --shadow-pop: 0 12px 32px -8px rgb(15 23 42 / 0.18), 0 2px 6px rgb(15 23 42 / 0.06);
+
+  /* Motion: ease-glide + three durations (duration-120 / -220 / -420 utilities) */
+  --ease-glide: cubic-bezier(0.16, 1, 0.3, 1);
+}

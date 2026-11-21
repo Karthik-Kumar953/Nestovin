@@ -20,7 +20,6 @@ import {
 import { CheckCheck, ChevronLeft, ChevronRight, Download, FileSpreadsheet, FileDown, Upload, X } from '../../components/icons';
 import { useCategories } from './BasicsSteps';
 import { GridEntry } from './GridEntry';
-import '../locations/locations.css';
 
 const BATCH_TONE: Record<ImportBatch['status'], string> = {
   VALIDATED: 'info',

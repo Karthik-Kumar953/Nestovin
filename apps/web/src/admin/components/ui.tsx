@@ -30,7 +30,9 @@ import {
 
 /*
  * Admin UI kit ("Concierge Run Sheet" system). Every screen builds from these,
- * so visual changes land here and in admin.css, never per screen.
+ * so visual changes land here and in admin.tailwind.css, never per screen.
+ * Shared design-system classes (.btn, .panel, .table …) live in that stylesheet's
+ * components layer; one-off structure here uses Tailwind utilities directly.
  */
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'danger-solid';
@@ -188,6 +190,11 @@ export function SelectInput({
   );
 }
 
+/** Header, title and body of the native <dialog> modal and drawer. */
+const DIALOG_HEAD = 'flex items-center justify-between gap-3 border-b border-rule px-5 py-4';
+const DIALOG_TITLE = 'text-[17px] leading-6 font-bold';
+const DIALOG_BODY = 'flex flex-col gap-4 overflow-y-auto p-5';
+
 function useDialog(open: boolean) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -229,13 +236,15 @@ export function Modal({
     >
       {open ? (
         <>
-          <header className="modal-header">
-            <h2 id={titleId}>{title}</h2>
+          <header className={DIALOG_HEAD}>
+            <h2 id={titleId} className={DIALOG_TITLE}>
+              {title}
+            </h2>
             <button type="button" className="icon-btn" onClick={onClose} aria-label="Close">
               <X size={18} />
             </button>
           </header>
-          <div className="modal-body">{children}</div>
+          <div className={DIALOG_BODY}>{children}</div>
           {footer ? <footer className="modal-footer">{footer}</footer> : null}
         </>
       ) : null}
@@ -277,16 +286,18 @@ export function Drawer({
     >
       {open ? (
         <>
-          <header className="modal-header">
+          <header className={DIALOG_HEAD}>
             <div>
-              <h2 id={titleId}>{title}</h2>
+              <h2 id={titleId} className={DIALOG_TITLE}>
+                {title}
+              </h2>
               {subtitle ? <p className="panel-sub">{subtitle}</p> : null}
             </div>
             <button type="button" className="icon-btn" onClick={onClose} aria-label="Close">
               <X size={18} />
             </button>
           </header>
-          <div className="modal-body" style={{ flex: 1 }}>
+          <div className={`${DIALOG_BODY} flex-1`}>
             {children}
           </div>
           {footer ? <footer className="modal-footer" style={{ borderRadius: 0 }}>{footer}</footer> : null}
@@ -379,7 +390,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
             </div>
           </div>
         </Modal>
-        <div className="toast-region" role="status" aria-live="polite">
+        <div className="pointer-events-none fixed right-5 bottom-5 z-200 flex flex-col gap-2" role="status" aria-live="polite">
           {toasts.map((t) => (
             <div key={t.id} className={`toast ${t.tone}`}>
               {t.tone === 'error' ? <CircleAlert size={16} /> : <CircleCheck size={16} />}
@@ -469,7 +480,7 @@ export function ErrorBanner({ error }: { error: unknown }) {
     <div className="banner banner-error" role="alert">
       <CircleAlert size={16} />
       <div>{message}</div>
-      {error instanceof ApiError && error.requestId ? <span className="banner-ref">Reference {error.requestId}</span> : null}
+      {error instanceof ApiError && error.requestId ? <span className="text-[12px] opacity-80">Reference {error.requestId}</span> : null}
     </div>
   );
 }
@@ -528,9 +539,9 @@ export function Panel({
   return (
     <section className="panel">
       {title || actions ? (
-        <header className="panel-head">
+        <header className="flex flex-wrap items-center justify-between gap-2.5 border-b border-rule px-[18px] py-3.5">
           <div style={{ minWidth: 0 }}>
-            {title ? <h2 className="panel-title">{title}</h2> : null}
+            {title ? <h2 className="m-0 font-display text-[14.5px] leading-5 font-bold">{title}</h2> : null}
             {subtitle ? <p className="panel-sub">{subtitle}</p> : null}
           </div>
           {actions ? <div className="row">{actions}</div> : null}
@@ -634,10 +645,10 @@ export function Skeleton({ height = 16, width = '100%' }: { height?: number; wid
 export function EmptyState({ title, children, icon: Icon = Inbox }: { title: string; children?: ReactNode; icon?: LucideIcon }) {
   return (
     <div className="empty">
-      <span className="empty-icon" aria-hidden>
+      <span className="mb-2 grid size-10 place-items-center rounded-[10px] bg-teal-tint text-teal" aria-hidden>
         <Icon size={20} />
       </span>
-      <p className="empty-title">{title}</p>
+      <p className="m-0 font-display text-[15px] leading-[22px] font-bold">{title}</p>
       {children ? <div className="empty-body">{children}</div> : null}
     </div>
   );
