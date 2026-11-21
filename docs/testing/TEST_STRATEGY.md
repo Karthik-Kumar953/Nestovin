@@ -174,9 +174,11 @@ These tests write no money or payroll data:
 
 | Finding | What the test proves | Test | Status |
 |---|---|---|---|
-| H-2 | A failing payment effect must go to review and keep the evidence, not roll back | unit `review-findings` → "H-2" | ⚠️ BUG-QA-014 (it.fails) |
-| H-3 | A webhook whose processing failed must be retried (or answered non-2xx) | unit `review-findings` → "H-3" | ⚠️ BUG-QA-012 |
-| H-7 | Reconciliation must rotate through open orders (ORDER BY plus a last-checked marker) | unit `review-findings` → "H-7" | ⚠️ BUG-QA-013 |
+| H-2 | A failing payment effect must go to review and keep the evidence, not roll back | unit `review-findings` → "H-2" | ✅ fixed (BUG-QA-014) |
+| H-3 | A webhook whose processing failed must be retried (or answered non-2xx) | unit `review-findings` → "H-3" | ✅ fixed (BUG-QA-012) |
+| H-7 | Reconciliation must rotate through open orders (ORDER BY plus a last-checked marker) | unit `review-findings` → "H-7" | ✅ fixed (BUG-QA-013) |
+| H-4 | Resident money and booking POSTs require an Idempotency-Key (422 without one); same key and body replays the first response; same key with a different body is refused; a 5xx releases the key | integration `idempotency` (lead), `pay-rules` (retries reuse one order) | ✅ |
+| H-6 | Business dates are India dates, not UTC; a lint rule bans `new Date().toISOString().slice(0, 10)` | unit `business-dates` (lead); ESLint `no-restricted-syntax` (CI) | ✅ |
 | M-17 | Check-in must lock the ACTIVE assignment as well as the occurrence | unit `review-findings` → "M-17" (lock shape) | ⚠️ BUG-QA-015; a real two-connection race needs booking fixtures, deferred |
 | M-2 | Money evidence and approved payroll lines are immutable for `app_api` | integration `money-immutability` (read-only) | ⚠️ BUG-QA-016 |
 | M-2 race | A payroll entry cannot land in a run being submitted (the run row is locked) | unit `review-findings` → "M-2 race" | ⚠️ BUG-QA-017 |

@@ -1,4 +1,4 @@
-# Known bugs found by the test suites
+| **Fixed** on gaps-before-apps (merged; test is plain it) || **Fixed** on gaps-before-apps (merged; test is plain it) || **Fixed** on gaps-before-apps (merged; test is plain it) |# Known bugs found by the test suites
 
 Each bug has a test kept in the suite as an expected failure (`it.fails` / `test.fail`) or a skip that points here. When a fix lands, the test starts "unexpectedly passing": flip it to a normal test and move the entry to **Fixed**.
 
@@ -22,9 +22,9 @@ Owner: the lead fixes `apps/api`. Web and mobile bugs go through the lead to the
 | BUG-QA-009 | Low | Admin web | A package price of 0 is marked invalid but still saved as "not offered" | Suspected (code read) |
 | BUG-QA-010 | Low | Admin web | Payments: approving a refund leaves "Needs review" stale; the tabs lack `role="tab"` | Suspected (code read) |
 | BUG-QA-011 | Low | Admin web | Invite admin opens with "Specific clusters" selected and none ticked, so the form shows an error at once | Suspected (code read) |
-| BUG-QA-012 | **High** | API payments | Review H-3: a webhook whose processing failed is answered 200 and never retried | Open |
-| BUG-QA-013 | **High** | API payments | Review H-7: reconciliation re-polls the same 50 open orders (no ORDER BY, no last-checked marker) | Open |
-| BUG-QA-014 | **High** | API payments | Review H-2: a verified payment is rolled back with no record when its business effect throws | Open |
+| BUG-QA-012 | **High** | API payments | Review H-3: a webhook whose processing failed is answered 200 and never retried | **Fixed** on `gaps-before-apps` (merged; test is a plain `it`) |
+| BUG-QA-013 | **High** | API payments | Review H-7: reconciliation re-polls the same 50 open orders (no ORDER BY, no last-checked marker) | **Fixed** on `gaps-before-apps` (merged; test is a plain `it`) |
+| BUG-QA-014 | **High** | API payments | Review H-2: a verified payment is rolled back with no record when its business effect throws | **Fixed** on `gaps-before-apps` (merged; test is a plain `it`) |
 | BUG-QA-015 | Medium | API attendance | Review M-17: check-in locks only the occurrence, so a just-replaced worker can still check in | Open |
 | BUG-QA-016 | Medium | DB grants | Review M-2: payment amounts, provider evidence and approved payroll lines are writable/deletable by the API role | Open |
 | BUG-QA-017 | Medium | API payroll | Review M-2 race: a payroll entry can be added to a run being submitted (run row not locked) | Open |

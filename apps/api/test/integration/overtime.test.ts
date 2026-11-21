@@ -13,7 +13,7 @@ import { SYSTEM_CLAIMS } from '../../src/modules/bookings/payments';
 import { addDays } from '../../src/modules/bookings/pricing';
 import { actor } from '../helpers/fake-deps';
 import { adminPool, appDatabase, databaseAvailable, uniq } from '../helpers/db';
-import { cleanupSuite } from '../helpers/qa-fixtures';
+import { cleanupSuite, makeReadyTolerant } from '../helpers/qa-fixtures';
 
 /* EMP-08: offer -> accept/reject -> admin confirmation creates the schedule entry. */
 
@@ -70,7 +70,8 @@ describe.skipIf(!available)('overtime offers (EMP-08)', { timeout: 120_000 }, ()
       const d = await hr.createEmployee(root, 't', { fullName: `${name} ${s}`, phone: `+9190${Math.floor(10_000_000 + Math.random() * 89_999_999)}`, homeClusterId: c1 });
       await hr.setVerification(root, 't', d.id, itemId, { status: 'VERIFIED' });
       await hr.setQualifications(root, 't', d.id, [maid]);
-      if (name !== 'Chitra') await hr.setReadiness(root, 't', d.id, { readiness: 'READY', version: (await hr.detail(root, d.id)).version });
+      // Other worktrees may have their own required items active on the shared DB.
+      if (name !== 'Chitra') await makeReadyTolerant(hr, admin, root, d.id);
       workers.push({ id: d.id, employeeCode: d.employeeCode, clusterId: c1, mustChangePassword: false });
     }
   }, 180_000);

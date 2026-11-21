@@ -13,8 +13,8 @@ import { scriptedDb, uniqueViolation, type Statement } from '../helpers/scripted
  * database: PaymentService runs on a scripted in-memory driver that records
  * every statement. No money data is written anywhere.
  *
- * Each test asserts the FIXED behaviour and is kept as it.fails until the lead
- * fixes it (docs/testing/BUGS.md: BUG-QA-012…017).
+ * Each test asserts the FIXED behaviour. Open findings stay it.fails until fixed
+ * (docs/testing/BUGS.md: BUG-QA-012…017). H-2, H-3 and H-7 were fixed on gaps-before-apps.
  */
 
 const silent = createLogger('silent', false);
@@ -46,7 +46,7 @@ function providerEventsTable() {
 }
 
 describe('H-3 (BUG-QA-012): a webhook whose processing failed is retried, not acknowledged and dropped', () => {
-  it.fails('the provider retry of a failed event is processed again (or the first answer is not 2xx)', async () => {
+  it('the provider retry of a failed event is processed again (or the first answer is not 2xx)', async () => {
     const table = providerEventsTable();
     const { db } = scriptedDb(table.respond);
     const svc = new PaymentService(db, new FakeRazorpay(), silent);
@@ -69,7 +69,7 @@ describe('H-3 (BUG-QA-012): a webhook whose processing failed is retried, not ac
 });
 
 describe('H-7 (BUG-QA-013): reconciliation rotates through open orders instead of re-polling the same 50', () => {
-  it.fails('the open-order query is ordered and the checked orders are marked', async () => {
+  it('the open-order query is ordered and the checked orders are marked', async () => {
     const asked: string[] = [];
     const provider = new FakeRazorpay();
     provider.fetchOrderPayments = async (orderId: string) => {
@@ -94,7 +94,7 @@ describe('H-7 (BUG-QA-013): reconciliation rotates through open orders instead o
 });
 
 describe('H-2 (BUG-QA-014): a verified payment is never rolled back when its business effect fails', () => {
-  it.fails('a failing effect (e.g. the double-renewal unique index) keeps the evidence and goes to review', async () => {
+  it('a failing effect (e.g. the double-renewal unique index) keeps the evidence and goes to review', async () => {
     const order = {
       id: ORDER_ID,
       status: 'CREATED',

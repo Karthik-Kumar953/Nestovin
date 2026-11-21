@@ -13,7 +13,7 @@ import type { ResidentActor } from '../../src/modules/residents/auth';
 import { addDays } from '../../src/modules/bookings/pricing';
 import { actor } from '../helpers/fake-deps';
 import { adminPool, appDatabase, databaseAvailable, uniq } from '../helpers/db';
-import { cleanupSuite } from '../helpers/qa-fixtures';
+import { cleanupSuite, makeReadyTolerant } from '../helpers/qa-fixtures';
 
 /* Phase 6 (EMP-06/07, RES-10/11, ADM-12/12A, ADR-014). */
 
@@ -121,13 +121,10 @@ describe.skipIf(!available)('attendance and service records (Phase 6)', { timeou
     }
     for (const name of ['Asha', 'Bina']) {
       const d = await hr.createEmployee(root, 't', { fullName: name, phone: phone(), homeClusterId: c1 });
-      // Readiness needs every ACTIVE check; parallel suites on the shared dev DB add their own, so verify all.
-      for (const it of (await q(`select id from app.verification_items where status = 'ACTIVE'`)).rows as { id: string }[]) {
-        await hr.setVerification(root, 't', d.id, it.id, { status: 'VERIFIED' });
-      }
       await hr.setQualifications(root, 't', d.id, [maid]);
-      const v = (await hr.detail(root, d.id)).version;
-      await hr.setReadiness(root, 't', d.id, { readiness: 'READY', version: v });
+      // Readiness needs every ACTIVE required check; parallel suites on the shared dev DB add their own,
+      // possibly between our check and the readiness change, so verify all and retry (qa-fixtures).
+      await makeReadyTolerant(hr, admin, root, d.id);
       workers.push({ id: d.id, employeeCode: d.employeeCode, clusterId: c1, mustChangePassword: false });
     }
     await alloc.confirmStanding(root, 't', comps[0]!, { employeeId: workers[0]!.id });
