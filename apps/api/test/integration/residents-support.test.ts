@@ -247,4 +247,19 @@ describe.skipIf(!available)('residents, household and support (Phase 3)', { time
     expect((await residents.me(F)).membership).toBeNull();
     await expectCode(support.residentDetail(F, ticketId), 'NOT_FOUND');
   });
+
+  it('after a community moves cluster, new rows belong to the new cluster; history keeps the old one (review H-1)', async () => {
+    const loc = new LocationService(db);
+    const comm = (await admin.query(`select community_id from app.flats where id = $1`, [flat1])).rows[0].community_id as string;
+    const before = await support.residentCreate(A, 't', { categoryId, subject: 'Before the move', description: 'Logged before the cluster move.' });
+    await loc.assignCluster(root, 't', comm, { clusterId: c2, reason: 'Workforce rebalance' });
+    try {
+      const after = await support.residentCreate(A, 't', { categoryId, subject: 'After the move', description: 'Logged after the cluster move.' });
+      const rows = (await admin.query(`select id, cluster_id from app.support_tickets where id = any($1)`, [[before.id, after.id]])).rows as { id: string; cluster_id: string }[];
+      expect(rows.find((r) => r.id === before.id)!.cluster_id).toBe(c1);
+      expect(rows.find((r) => r.id === after.id)!.cluster_id).toBe(c2);
+    } finally {
+      await loc.assignCluster(root, 't', comm, { clusterId: c1, reason: 'Move back after test' });
+    }
+  });
 });

@@ -130,9 +130,18 @@ describe.skipIf(!available)('workforce and allocation (Phase 5)', { timeout: 120
     await cleanupSuite({ suffix: s });
   }, 180_000);
 
+  /**
+   * Readiness needs every ACTIVE required check. Other suites running in parallel on the shared dev
+   * database add their own temporary checks, so verify all of them, not only this suite's.
+   */
+  async function verifyAllActiveChecks(employeeId: string) {
+    const items = (await admin.query(`select id from app.verification_items where status = 'ACTIVE'`)).rows as { id: string }[];
+    for (const it of items) await hr.setVerification(root, 't', employeeId, it.id, { status: 'VERIFIED' });
+  }
+
   async function readyEmployee(name: string, cluster: string) {
     const d = await hr.createEmployee(root, 't', { fullName: name, phone: phone(), homeClusterId: cluster });
-    await hr.setVerification(root, 't', d.id, itemId, { status: 'VERIFIED' });
+    await verifyAllActiveChecks(d.id);
     await hr.setQualifications(root, 't', d.id, [maid]);
     const after = await hr.detail(root, d.id);
     return (await hr.setReadiness(root, 't', d.id, { readiness: 'READY', version: after.version })).id;

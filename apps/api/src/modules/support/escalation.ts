@@ -34,7 +34,7 @@ export async function holidaySet(trx: Tx | Database): Promise<Set<string>> {
   const rows = await trx
     .selectFrom('app.business_holidays')
     .select('holiday_date')
-    .where('holiday_date', '>=', sql<string>`current_date - 7`)
+    .where('holiday_date', '>=', sql<string>`(now() at time zone 'Asia/Kolkata')::date - 7`)
     .execute();
   return new Set(rows.map((r) => r.holiday_date));
 }

@@ -352,7 +352,7 @@ export class SupportService {
 
   async holidays() {
     const rows = await withTx(this.db, { userId: null, actorKind: 'system', isSuperAdmin: false, clusterIds: [] }, (trx) =>
-      trx.selectFrom('app.business_holidays').select(['holiday_date', 'name']).where('holiday_date', '>=', sql<string>`current_date - 30`).orderBy('holiday_date').execute(),
+      trx.selectFrom('app.business_holidays').select(['holiday_date', 'name']).where('holiday_date', '>=', sql<string>`(now() at time zone 'Asia/Kolkata')::date - 30`).orderBy('holiday_date').execute(),
     );
     return rows.map((r) => ({ date: r.holiday_date, name: r.name }));
   }

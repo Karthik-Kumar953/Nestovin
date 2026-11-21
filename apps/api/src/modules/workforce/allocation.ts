@@ -7,9 +7,10 @@ import { businessRule, notFound } from '../../lib/errors';
 import type { Logger } from '../../lib/logger';
 import { auditAdmin } from '../audit/audit';
 import { SYSTEM_CLAIMS, setting } from '../bookings/payments';
+import { businessToday } from '../../lib/dates';
 
 const iso = (d: Date | string | null) => (d === null ? null : new Date(d).toISOString());
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => businessToday();
 
 /** Minutes since midnight for 'HH:MM[:SS]'. */
 export const minutesOf = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
@@ -484,7 +485,7 @@ export async function generateOccurrences(trx: Tx, f: { subscriptionId?: string 
       from app.subscription_components c
       join app.subscriptions s on s.id = c.subscription_id
       join app.communities co on co.id = s.community_id
-      cross join lateral generate_series(greatest(s.period_start, current_date), least(s.period_end, current_date + ${horizon}::int), interval '1 day') d
+      cross join lateral generate_series(greatest(s.period_start, (now() at time zone 'Asia/Kolkata')::date), least(s.period_end, (now() at time zone 'Asia/Kolkata')::date + ${horizon}::int), interval '1 day') d
       cross join lateral generate_series(1, c.visits_per_day) v(n)
      where s.status in ('PENDING_ACTIVATION', 'ACTIVE')
        and (c.days_of_week & (1 << (extract(isodow from d)::int - 1))) <> 0

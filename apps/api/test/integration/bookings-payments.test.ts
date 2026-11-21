@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import type pg from 'pg';
 import { NON_REFUNDABLE_DISCLOSURE } from '@nestovin/contracts';
@@ -237,6 +237,31 @@ describe.skipIf(!available)('demand cycles, bookings and payments (Phase 4)', { 
     expect(await payments.handleWebhook(wh.raw, wh.signature, id)).toBe('duplicate');
   });
 
+  it('webhooks: a failed event is reported, re-claimed on retry, and the job reprocesses stuck events (review H-3)', async () => {
+    const wh = webhook({ event: 'payment.failed', payload: {} });
+    const id = `evt_${randomUUID()}`;
+    const spy = vi.spyOn(payments as unknown as { processEvent: () => Promise<void> }, 'processEvent').mockRejectedValueOnce(new Error('db blip'));
+    expect(await payments.handleWebhook(wh.raw, wh.signature, id)).toBe('failed');
+    let row = (await admin.query(`select processed_at, attempts from app.provider_events where event_id = $1`, [id])).rows[0];
+    expect(row).toMatchObject({ processed_at: null, attempts: 1 });
+    expect(await payments.handleWebhook(wh.raw, wh.signature, id)).toBe('ok'); // Razorpay's retry
+    row = (await admin.query(`select processed_at, attempts from app.provider_events where event_id = $1`, [id])).rows[0];
+    expect(row.processed_at).not.toBeNull();
+    expect(row.attempts).toBe(2);
+    expect(await payments.handleWebhook(wh.raw, wh.signature, id)).toBe('duplicate');
+    spy.mockRestore();
+
+    // A valid event stored before a crash (never processed) is picked up by the job.
+    const stuckId = `evt_${randomUUID()}`;
+    await admin.query(
+      `insert into app.provider_events (event_id, event_type, payload, signature_valid, received_at, attempts) values ($1, 'payment.failed', '{"event":"payment.failed","payload":{}}', true, now() - interval '10 minutes', 1)`,
+      [stuckId],
+    );
+    expect(await payments.reprocessEvents()).toBeGreaterThanOrEqual(1);
+    const stuck = (await admin.query(`select processed_at from app.provider_events where event_id = $1`, [stuckId])).rows[0];
+    expect(stuck.processed_at).not.toBeNull();
+  });
+
   it('webhooks: an unsigned event cannot pre-empt the genuine one with the same id (BUG-QA-003)', async () => {
     const wh = webhook({ event: 'payment.failed', payload: {} });
     const id = `evt_${randomUUID()}`;
@@ -329,7 +354,14 @@ describe.skipIf(!available)('demand cycles, bookings and payments (Phase 4)', { 
   it('renewal is a new 100% booking at the current price, once per subscription', async () => {
     const sub = (await residents.bookings(C)).find((b) => b.status === 'CONFIRMED')!.subscription!;
     expect(sub.renewable).toBe(true);
-    const renewal = await residents.renew(C, 't', sub.id);
+    // A double tap: two renewals at the same moment produce exactly one booking (review H-2).
+    const both = await Promise.allSettled([residents.renew(C, 't', sub.id), residents.renew(C, 't', sub.id)]);
+    const won = both.filter((r) => r.status === 'fulfilled');
+    const lost = both.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
+    expect(won).toHaveLength(1);
+    expect(lost).toHaveLength(1);
+    expect((lost[0]!.reason as AppError).code).toBe('CONFLICT');
+    const renewal = (won[0] as PromiseFulfilledResult<Awaited<ReturnType<typeof residents.renew>>>).value;
     expect(renewal.checkout.amountPaise).toBe(500000);
     expect(renewal.booking.startDate).toBe(addDays(sub.periodEnd, 1));
     await expectCode(residents.renew(C, 't', sub.id), 'CONFLICT');
@@ -370,5 +402,26 @@ describe.skipIf(!available)('demand cycles, bookings and payments (Phase 4)', { 
     expect(result.closedCycles).toBeGreaterThanOrEqual(1);
     expect((await ops.getCycle(root, c2cycle.id)).status).toBe('CLOSED');
     expect((await residents.demandRequests(D)).find((r) => r.id === request.id)!.status).toBe('CANCELLED');
+  });
+
+  it('reconciliation checks every open order in turn, never the same one twice in a row (review H-7)', async () => {
+    const seed = await admin.query(`select id from app.payment_orders where provider_order_id is not null order by created_at desc limit 1`);
+    await admin.query(
+      `insert into app.payment_orders (purpose, ref_type, ref_id, resident_id, flat_id, community_id, cluster_id, amount_paise, currency, provider_order_id, idempotency_key, status, expires_at, created_at)
+       select purpose, ref_type, ref_id, resident_id, flat_id, community_id, cluster_id, amount_paise, currency,
+              'order_rc_' || g || '_' || md5(random()::text), 'rc-' || g || '-' || gen_random_uuid(), 'EXPIRED', now() - interval '5 minutes', now() - interval '10 minutes'
+       from app.payment_orders, generate_series(1, 60) g where id = $1`,
+      [seed.rows[0].id],
+    );
+    const asked: string[] = [];
+    const spy = vi.spyOn(fake, 'fetchOrderPayments').mockImplementation(async (orderId: string) => {
+      asked.push(orderId);
+      return [];
+    });
+    await payments.maintenance();
+    await payments.maintenance();
+    spy.mockRestore();
+    expect(asked.length).toBeGreaterThanOrEqual(60);
+    expect(new Set(asked).size).toBe(asked.length); // backoff: nothing re-polled on the next tick
   });
 });

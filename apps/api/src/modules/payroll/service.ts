@@ -17,6 +17,7 @@ import { businessRule, conflict, forbidden, notFound } from '../../lib/errors';
 import { auditAdmin } from '../audit/audit';
 import { employeeClaims, type EmployeeActor } from '../workforce/employee-service';
 import { notify } from '../notifications/service';
+import { businessToday } from '../../lib/dates';
 
 const iso = (d: Date | string | null) => (d === null ? null : new Date(d).toISOString());
 const dayMs = 86_400_000;
@@ -165,7 +166,7 @@ export class PayrollService {
     this.requireGlobal(actor);
     const runId = await this.tx(actor, async (trx) => {
       const { start, end } = monthBounds(month);
-      if (start > new Date().toISOString().slice(0, 10)) throw businessRule('Payroll can be prepared once the month has started');
+      if (start > businessToday()) throw businessRule('Payroll can be prepared once the month has started');
       const period =
         (await trx.selectFrom('app.payroll_periods').select('id').where('month', '=', start).executeTakeFirst()) ??
         (await trx.insertInto('app.payroll_periods').values({ month: start }).returning('id').executeTakeFirstOrThrow());
@@ -427,7 +428,7 @@ export class PayrollService {
     return this.tx(actor, async (trx) => {
       const l = await this.lineInRun(trx, lineId);
       if (l.run_status !== 'APPROVED') throw businessRule('Record payments after the payroll is approved');
-      if (input.paidOn > new Date().toISOString().slice(0, 10)) throw businessRule('The payment date cannot be in the future');
+      if (input.paidOn > businessToday()) throw businessRule('The payment date cannot be in the future');
       const paid = await trx.selectFrom('app.salary_payments').select((eb) => eb.fn.coalesce(eb.fn.sum<string>('amount_paise'), sql<string>`0`).as('paid')).where('line_id', '=', l.id).executeTakeFirstOrThrow();
       const outstanding = Number(l.net_paise) - Number(paid.paid);
       if (input.amountPaise > outstanding) throw businessRule(`Only ${outstanding / 100} is outstanding for this employee`);
@@ -461,7 +462,7 @@ export class PayrollService {
       if (p.reverses_payment_id) throw businessRule('A reversal cannot be reversed');
       const done = await trx.selectFrom('app.salary_payments').select('id').where('reverses_payment_id', '=', p.id).executeTakeFirst();
       if (done) throw businessRule('This payment is already reversed');
-      const today = new Date().toISOString().slice(0, 10);
+      const today = businessToday();
       const rev = await trx
         .insertInto('app.salary_payments')
         .values({ line_id: p.line_id, employee_id: p.employee_id, cluster_id: p.cluster_id, amount_paise: -Number(p.amount_paise), paid_on: today, method: p.method, reference: null, reverses_payment_id: p.id, note: reason, recorded_by: actor.id })
@@ -506,7 +507,7 @@ export class PayrollService {
       const rows = await sql<{ month: string; collected: string; refunded: string; salary: string; bookings: string }>`
         with months as (
           select to_char(m, 'YYYY-MM') as month, m as start
-            from generate_series(date_trunc('month', current_date) - interval '5 months', date_trunc('month', current_date), interval '1 month') m
+            from generate_series(date_trunc('month', (now() at time zone 'Asia/Kolkata')::date) - interval '5 months', date_trunc('month', (now() at time zone 'Asia/Kolkata')::date), interval '1 month') m
         )
         select months.month,
           (select coalesce(sum(t.amount_paise), 0) from app.payment_transactions t where date_trunc('month', t.verified_at) = months.start) as collected,
