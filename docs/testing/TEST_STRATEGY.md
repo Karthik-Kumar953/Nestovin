@@ -123,6 +123,7 @@ Legend: ✅ covered and passing · 🟡 partial · 🔲 not covered yet · ⛔ b
 | EMP-02 Employee ID login | unit matrix (staff session only), `workforce` | `employee_sign_in`, `_invalid` | ✅ API / ⛔ app not merged |
 | EMP-03 / 04 Profile, training | `workforce` | — | 🟡 |
 | EMP-05 Schedule | `workforce` (own schedule only, RLS) | — | ✅ API |
+| EMP-05 Visit detail `GET /v1/employee/visits/:id`; tasks, duration and add-ons on schedule items; `homeClusterName` / `joinedOn` on `/me` (lead branch `gaps-before-apps`) | unit matrix picks up the route automatically after merge (401 without a token, refused for a non-staff session) | — | 🔲 after merge: integration test for own-visit 200 / other worker's visit 404 and the new fields |
 | EMP-06 Attendance code / QR / location | `attendance` | `attendance_check_in_code`, `_qr`, `_invalid_code` | ✅ API / ⛔ app |
 | EMP-07 Completion | `attendance` | — | ✅ API |
 | EMP-08 Overtime | `overtime` | — | ✅ API |
