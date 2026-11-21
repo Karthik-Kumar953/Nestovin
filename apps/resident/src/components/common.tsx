@@ -53,7 +53,7 @@ export function FloatingAction({ label, icon, onPress, offset = 0 }: { label: st
     return (
       <View style={{ position: 'absolute', left: 20, right: 20, bottom: insets.bottom + 64 + offset }} pointerEvents="box-none">
         <PressScale onPress={onPress} haptic="tap" accessibilityRole="button" accessibilityLabel={label} style={elevation.float} className="rounded-full">
-          <GlassSurface tint={colors.tealAction} interactive className="rounded-full overflow-hidden" style={{ borderRadius: 999 }}>
+          <GlassSurface tint={colors.tealAction} interactive style={{ borderRadius: 999, overflow: 'hidden' }}>
             <View className="flex-row items-center justify-center gap-2 h-[56px] px-6">
               <Icon name={icon} color={colors.white} />
               <Text variant="bodyStrong" tone="inverse">

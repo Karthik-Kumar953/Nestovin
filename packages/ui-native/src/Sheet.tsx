@@ -57,7 +57,7 @@ export function Sheet({
           <Pressable style={StyleSheet.absoluteFill} onPress={close} accessibilityRole="button" accessibilityLabel="Close" />
         </Animated.View>
         <View style={{ flex: 1, justifyContent: 'flex-end' }} pointerEvents="box-none">
-          <Animated.View style={[panel, { paddingBottom: Math.max(insets.bottom, 16), maxHeight: '92%' }]} className="bg-white rounded-t-2xl" accessibilityViewIsModal>
+          <Animated.View style={[panel, { paddingBottom: Math.max(insets.bottom, 16), maxHeight: '92%', backgroundColor: colors.white, borderTopLeftRadius: 28, borderTopRightRadius: 28 }]} accessibilityViewIsModal>
             <View className="items-center pt-2.5 pb-1" accessible={false}>
               <View className="h-1.5 w-10 rounded-full bg-line" />
             </View>

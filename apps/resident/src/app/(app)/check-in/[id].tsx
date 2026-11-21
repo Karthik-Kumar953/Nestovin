@@ -101,23 +101,23 @@ function CodeView({ code, onRenew, renewing }: { code: VisitCode; onRenew: () =>
     <View className="items-center gap-6">
       <View className="flex-row gap-2" accessible accessibilityLabel={`Code ${code.otp.split('').join(' ')}`} accessibilityLiveRegion="polite">
         {code.otp.split('').map((d, i) => (
-          <Animated.View
-            key={i}
-            entering={reduce ? FadeIn.duration(150) : ZoomIn.delay(80 + i * 70).springify().damping(12)}
-            className={`h-[64px] w-[46px] rounded-md items-center justify-center ${expired ? 'bg-surface-subtle' : 'bg-teal-50 border-[1.5px] border-teal-200'}`}
-          >
+          <Animated.View key={i} entering={reduce ? FadeIn.duration(150) : ZoomIn.delay(80 + i * 70).springify().damping(12)}>
+            <View className={`h-[64px] w-[46px] rounded-md items-center justify-center ${expired ? 'bg-surface-subtle' : 'bg-teal-50 border-[1.5px] border-teal-200'}`}>
             <Text variant="title" className={expired ? 'text-ink-3' : 'text-charcoal'} style={{ fontVariant: ['tabular-nums'] }}>{d}</Text>
+            </View>
           </Animated.View>
         ))}
       </View>
 
-      <Animated.View entering={reduce ? FadeIn.duration(150) : ZoomIn.delay(560).duration(320)} className="rounded-xl border border-line bg-white p-4" style={{ opacity: expired ? 0.25 : 1 }} accessible accessibilityLabel="QR code for the worker to scan">
+      <Animated.View entering={reduce ? FadeIn.duration(150) : ZoomIn.delay(560).duration(320)} style={{ opacity: expired ? 0.25 : 1 }}>
+        <View className="rounded-xl border border-line bg-white p-4" accessible accessibilityLabel="QR code for the worker to scan">
         <QRCode value={code.qr} size={196} color={colors.charcoal} backgroundColor="#FFFFFF" />
+        </View>
       </Animated.View>
 
       <View className="self-stretch gap-2">
         <View className="h-1.5 rounded-full bg-teal-100 overflow-hidden">
-          <Animated.View style={[barStyle, { backgroundColor: secs < 60 ? colors.warning : colors.tealAction }]} className="h-full rounded-full" />
+          <Animated.View style={[barStyle, { height: '100%', borderRadius: 999, backgroundColor: secs < 60 ? colors.warning : colors.tealAction }]} />
         </View>
         <Text variant="label" tone={expired ? 'error' : secs < 60 ? 'warning' : 'muted'} className="text-center" accessibilityLiveRegion="polite">
           {expired ? 'This code has expired' : `Valid for ${mmss}`}

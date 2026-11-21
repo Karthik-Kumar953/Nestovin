@@ -52,7 +52,7 @@ export function GlassSurface({
   const glass = useLiquidGlass();
   if (glass) {
     return (
-      <GlassView glassEffectStyle="regular" tintColor={tint} isInteractive={interactive} colorScheme="light" style={style} className={className}>
+      <GlassView glassEffectStyle="regular" tintColor={tint} isInteractive={interactive} colorScheme="light" style={[{ overflow: 'hidden' }, style]}>
         {children}
       </GlassView>
     );

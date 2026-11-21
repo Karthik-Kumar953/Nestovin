@@ -44,7 +44,7 @@ export function OtpInput({
   return (
     <View className="gap-2">
       <Pressable onPress={() => ref.current?.focus()} accessibilityRole="none" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-        <Animated.View style={row} className="flex-row justify-between gap-2">
+        <Animated.View style={[{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }, row]}>
           {Array.from({ length }).map((_, i) => {
             const active = i === digits.length;
             const filled = i < digits.length;
