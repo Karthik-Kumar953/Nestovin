@@ -10,6 +10,13 @@ Started 21 Nov 2026. Goal: the Resident app, the Worker app, the Admin portal (`
 | Worker app | worker-app | its own | `apps/employee/**` (new) |
 | Testing | qa | its own | `**/*.test.ts(x)`, `apps/*/e2e/**`, `apps/*/.maestro/**`, `playwright.config.*`, `docs/testing/**` |
 | Architecture review | review | its own | `docs/reviews/**` only (read-only for code) |
+| Admin portal | admin-portal | its own | `apps/web/src/admin/**`, `apps/web/src/app/admin/**` |
+| Public website | website | its own | `apps/web/src/app/(public)/**`, `apps/web/src/site/**`, `apps/web/public/site/**` |
+
+Shared web files (`apps/web/package.json`, `next.config.ts`, the root layout, global CSS, Tailwind config):
+- Both web sessions may add dependencies and the minimum shared config they need.
+- Say so in the commit message.
+- The lead resolves merge conflicts.
 
 Notes on the table:
 - **Worker app and `packages/ui-native`:** the Worker app consumes `packages/ui-native` but does not edit it. It asks the resident-app session for changes through the lead. Until a building block exists there, it keeps a local copy under `apps/employee/src/ui/` and swaps to the shared one later.
