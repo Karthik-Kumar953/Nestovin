@@ -4,8 +4,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { BookingDetail, BookingView, Checkout, ResidentDemandRequest } from '@nestovin/contracts';
 import { Banner, Button, Card, Entrance, Icon, Screen, SkeletonList, StatusChip, Text, colors } from '@nestovin/ui-native';
-import { api, errorMessage, idempotencyKey } from '../../../lib/api';
-import { payExisting, useCheckout } from '../../../lib/checkout';
+import { api, errorMessage } from '../../../lib/api';
+import { payExisting, postWithKey, useCheckout } from '../../../lib/checkout';
 import { dateTime, daysLabel, hhmm, longDate, rupees, shortDate, taskFrequency, today, validity } from '../../../lib/format';
 import { keys, useBookings, useRequests } from '../../../lib/queries';
 import { bookingStatus, requestStatus, subscriptionStatus } from '../../../lib/status';
@@ -71,7 +71,7 @@ function BookingDetailView({ b, request }: { b: BookingView; request?: ResidentD
                 title={`${demand ? 'Pay balance' : 'Pay'} ${rupees(b.outstandingPaise)}`}
                 icon="lock-closed"
                 loading={pay.busy}
-                onPress={() => void pay.start({ purpose: demand ? 'balance' : 'retry', create: async () => ({ checkout: await payExisting(`/v1/resident/bookings/${b.id}/pay`), id: b.id, kind: 'booking', reference: b.reference }) })}
+                onPress={() => void pay.start({ purpose: demand ? 'balance' : 'retry', path: `/v1/resident/bookings/${b.id}/pay`, create: async (key) => ({ checkout: await payExisting(`/v1/resident/bookings/${b.id}/pay`, key), id: b.id, kind: 'booking', reference: b.reference }) })}
               />
             ) : (
               <Button
@@ -81,8 +81,9 @@ function BookingDetailView({ b, request }: { b: BookingView; request?: ResidentD
                 onPress={() =>
                   void pay.start({
                     purpose: 'renew',
-                    create: async () => {
-                      const r = await api<{ booking: BookingView; checkout: Checkout }>(`/v1/resident/subscriptions/${b.subscription!.id}/renew`, { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey() } });
+                    path: `/v1/resident/subscriptions/${b.subscription!.id}/renew`,
+                    create: async (key) => {
+                      const r = await postWithKey<{ booking: BookingView; checkout: Checkout }>(`/v1/resident/subscriptions/${b.subscription!.id}/renew`, key);
                       return { checkout: r.checkout, id: r.booking.id, kind: 'booking', reference: r.booking.reference };
                     },
                   })
@@ -153,7 +154,7 @@ function RequestDetail({ r }: { r: ResidentDemandRequest }) {
           <>
             {pay.error ? <Banner tone="error">{pay.error}</Banner> : null}
             {cancel.error ? <Banner tone="error">{errorMessage(cancel.error)}</Banner> : null}
-            <Button title={`Pay ${rupees(r.initialDuePaise)} and join`} icon="lock-closed" loading={pay.busy} onPress={() => void pay.start({ purpose: 'join', create: async () => ({ checkout: await payExisting(`/v1/resident/demand-requests/${r.id}/pay`), id: r.id, kind: 'request', reference: r.reference }) })} />
+            <Button title={`Pay ${rupees(r.initialDuePaise)} and join`} icon="lock-closed" loading={pay.busy} onPress={() => void pay.start({ purpose: 'join', path: `/v1/resident/demand-requests/${r.id}/pay`, create: async (key) => ({ checkout: await payExisting(`/v1/resident/demand-requests/${r.id}/pay`, key), id: r.id, kind: 'request', reference: r.reference }) })} />
             <Button title="Cancel request" variant="tertiary" loading={cancel.isPending} onPress={confirmCancel} />
           </>
         ) : undefined

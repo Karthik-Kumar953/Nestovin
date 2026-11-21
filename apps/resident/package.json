@@ -61,7 +61,8 @@
     "typecheck": "tsc --noEmit",
     "doctor": "expo-doctor",
     "lint": "eslint .",
-    "images": "node scripts/sync-images.cjs"
+    "images": "node scripts/sync-images.cjs",
+    "test": "vitest run src/lib"
   },
   "private": true
 }

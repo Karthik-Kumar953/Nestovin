@@ -48,5 +48,3 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
 
 export const errorMessage = (e: unknown) => (e instanceof Error ? e.message : 'Something went wrong. Please try again.');
 
-/** A fresh key per payment attempt so a retried tap never creates a second order. */
-export const idempotencyKey = () => `rn-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;

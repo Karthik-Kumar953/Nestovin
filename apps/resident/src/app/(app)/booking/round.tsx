@@ -3,8 +3,7 @@ import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import type { Checkout, ResidentDemandRequest } from '@nestovin/contracts';
 import { Banner, Button, Card, ChoiceTile, Entrance, Icon, Screen, SkeletonList, StatusChip, Text, colors } from '@nestovin/ui-native';
-import { api, idempotencyKey } from '../../../lib/api';
-import { useCheckout } from '../../../lib/checkout';
+import { postWithKey, useCheckout } from '../../../lib/checkout';
 import { dateTime, hhmm, rupees } from '../../../lib/format';
 import { useBookingOptions, useCatalogue } from '../../../lib/queries';
 import { initialEstimate, parseAddons, resolveSelection } from '../../../lib/selection';
@@ -40,21 +39,20 @@ export default function JoinRound() {
 
   const now = initialEstimate(sel.total, cycle.initialPct);
   const toggle = (id: string) => setWindows((w) => (w.includes(id) ? w.filter((x) => x !== id) : w.length < 3 ? [...w, id] : w));
+  const body = {
+    cycleId: cycle.id,
+    selection: { planId: p.planId, serviceId: p.serviceId === 'PACKAGE' ? null : p.serviceId, addonComponentIds: addons },
+    preferredWindowIds: windows,
+    acceptNonRefundable: true as const,
+    disclosureVersion: options.data.disclosure.version,
+  };
   const join = () =>
     pay.start({
       purpose: 'join',
-      create: async () => {
-        const r = await api<{ request: ResidentDemandRequest; checkout: Checkout }>('/v1/resident/demand-requests', {
-          method: 'POST',
-          headers: { 'Idempotency-Key': idempotencyKey() },
-          body: {
-            cycleId: cycle.id,
-            selection: { planId: p.planId, serviceId: p.serviceId === 'PACKAGE' ? null : p.serviceId, addonComponentIds: addons },
-            preferredWindowIds: windows,
-            acceptNonRefundable: true,
-            disclosureVersion: options.data!.disclosure.version,
-          },
-        });
+      path: '/v1/resident/demand-requests',
+      body,
+      create: async (key) => {
+        const r = await postWithKey<{ request: ResidentDemandRequest; checkout: Checkout }>('/v1/resident/demand-requests', key, body);
         return { checkout: r.checkout, id: r.request.id, kind: 'request', reference: r.request.reference };
       },
     });

@@ -3,8 +3,7 @@ import { ScrollView, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import type { BookingView, Checkout } from '@nestovin/contracts';
 import { Banner, Button, Card, ChoiceTile, EmptyState, Entrance, PressScale, Screen, SkeletonList, Text } from '@nestovin/ui-native';
-import { api, idempotencyKey } from '../../../lib/api';
-import { useCheckout } from '../../../lib/checkout';
+import { postWithKey, useCheckout } from '../../../lib/checkout';
 import { dayOfMonth, dayShort, daysLabel, hhmm, localDate, longDate, monthShort, rupees, weekday, ymd } from '../../../lib/format';
 import { useBookingOptions, useCatalogue } from '../../../lib/queries';
 import { parseAddons, resolveSelection } from '../../../lib/selection';
@@ -38,15 +37,14 @@ export default function PickSlot() {
   }
   const total = sel.total;
 
+  const body = { slotId, startDate: start, selection: { planId: p.planId, serviceId: p.serviceId === 'PACKAGE' ? null : p.serviceId, addonComponentIds: addons } };
   const book = () =>
     pay.start({
       purpose: 'book',
-      create: async () => {
-        const r = await api<{ booking: BookingView; checkout: Checkout }>('/v1/resident/bookings', {
-          method: 'POST',
-          headers: { 'Idempotency-Key': idempotencyKey() },
-          body: { slotId, startDate: start, selection: { planId: p.planId, serviceId: p.serviceId === 'PACKAGE' ? null : p.serviceId, addonComponentIds: addons } },
-        });
+      path: '/v1/resident/bookings',
+      body,
+      create: async (key) => {
+        const r = await postWithKey<{ booking: BookingView; checkout: Checkout }>('/v1/resident/bookings', key, body);
         return { checkout: r.checkout, id: r.booking.id, kind: 'booking', reference: r.booking.reference };
       },
     });
