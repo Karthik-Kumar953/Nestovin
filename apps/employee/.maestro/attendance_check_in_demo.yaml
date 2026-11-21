@@ -1,0 +1,20 @@
+# EMP-06 on a DEMO build only (EXPO_PUBLIC_DEMO=1): any 6 digits other than 000000 / 111111 verify,
+# so this proves the screen path Today -> Check in -> code -> "You are checked in" -> Done -> Visit
+# without a resident. The demo store is in memory; launchApp restarts the app, so the visit is
+# ASSIGNED again on every run. On a live build use attendance_check_in_code.yaml instead.
+appId: in.nestovin.employee
+name: attendance_check_in_demo
+tags:
+  - attendance
+  - demo-only
+env:
+  CHECK_IN_CODE: "482915"
+---
+- runFlow: subflows/ensure_signed_in.yaml
+- runFlow: subflows/open_check_in.yaml
+- runFlow: subflows/enter_check_in_code.yaml
+- assertVisible: "You are checked in|Checked in"
+- tapOn: "Done"
+- extendedWaitUntil:
+    visible: "Checked in at .*"
+    timeout: 15000

@@ -1,0 +1,47 @@
+# EMP-02: an empty or malformed Employee ID and a wrong password are rejected (src/app/sign-in.tsx).
+# Uses a well-formed but unknown ID, so no real employee account is touched. Needs a live build
+# (the wrong-password message comes from Supabase Auth).
+appId: in.nestovin.employee
+name: employee_sign_in_invalid
+tags:
+  - auth
+  - smoke
+  - live
+---
+- launchApp:
+    clearState: true
+- runFlow: subflows/open_sign_in.yaml
+# Empty form
+- tapOn:
+    text: "Sign in"
+    below:
+      text: "Ask HR to reset it.*"
+- assertVisible: "Enter your Employee ID, for example NV-000123"
+# Malformed ID (normalizeEmployeeId accepts NV-123 / 123 / NV-000123 only)
+- tapOn: "NV-000123"
+- inputText: "NV-ABC"
+- hideKeyboard
+- tapOn:
+    text: "Sign in"
+    below:
+      text: "Ask HR to reset it.*"
+- assertVisible: "Enter your Employee ID, for example NV-000123"
+- clearState
+- launchApp
+- runFlow: subflows/open_sign_in.yaml
+# Unknown ID + wrong password
+- tapOn: "NV-000123"
+- inputText: "NV-999999"
+- tapOn:
+    text: "Password"
+    index: 1
+- inputText: "wrong-password-123"
+- hideKeyboard
+- tapOn:
+    text: "Sign in"
+    below:
+      text: "Ask HR to reset it.*"
+- extendedWaitUntil:
+    visible: 'Employee ID or password is not correct\.'
+    timeout: 20000
+- assertNotVisible: "Schedule"

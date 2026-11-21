@@ -9,6 +9,7 @@ import { MigrationService } from '../../src/modules/migration/service';
 import type { Database } from '../../src/db/database';
 import { actor } from '../helpers/fake-deps';
 import { appDatabase, databaseAvailable, uniq } from '../helpers/db';
+import { cleanupSuite } from '../helpers/qa-fixtures';
 
 const available = await databaseAvailable();
 
@@ -44,7 +45,10 @@ describe.skipIf(!available)('community setup: migration, catalogue, activation',
   });
   afterAll(async () => {
     await db?.destroy();
-  });
+    // Last, so it never delays the suite's own resets (hook timeouts on a busy shared DB).
+    // Removes this suite's fixtures from the shared dev database (test/helpers/qa-fixtures.ts).
+    await cleanupSuite({ suffix: s });
+  }, 180_000);
 
   it('defines residence categories (needed before import)', async () => {
     await cat.createCategory(root, 't', communityId, { code: 'STD', label: 'Standard 2 BHK', sort: 1 });

@@ -18,11 +18,16 @@
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "db:types": "pnpm --filter @nestovin/api db:types",
-    "dev:web": "pnpm --filter @nestovin/web dev"
+    "dev:web": "pnpm --filter @nestovin/web dev",
+    "e2e": "playwright test",
+    "e2e:admin": "playwright test --project=admin",
+    "e2e:resident-web": "playwright test --project=resident-web --workers=1",
+    "e2e:resident-demo": "playwright test --project=resident-demo"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@next/eslint-plugin-next": "16.4.6",
+    "@playwright/test": "^1.65.1",
     "eslint": "10.15.0",
     "globals": "^17.14.0",
     "prettier": "3.10.1",

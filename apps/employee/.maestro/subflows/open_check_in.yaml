@@ -1,0 +1,12 @@
+# Reusable: Today tab -> the next visit's "Check in" button (src/components/visit.tsx) -> EMP-06 screen.
+# Precondition: the employee has an ASSIGNED visit today (demo build: the 09:00 Cook visit, B-0703).
+appId: in.nestovin.employee
+---
+- tapOn: "Today"
+- extendedWaitUntil:
+    visible: "Check in"
+    timeout: 20000
+- tapOn: "Check in"
+- extendedWaitUntil:
+    visible: "Enter code"
+    timeout: 15000

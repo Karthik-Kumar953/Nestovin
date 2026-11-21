@@ -9,6 +9,7 @@ import { WorkforceAdminService } from '../../src/modules/workforce/admin-service
 import { PayrollService } from '../../src/modules/payroll/service';
 import { actor } from '../helpers/fake-deps';
 import { adminPool, appDatabase, databaseAvailable, uniq } from '../helpers/db';
+import { cleanupSuite } from '../helpers/qa-fixtures';
 
 /* Phase 8 (ADM-14, ADR-014): fixed monthly payroll, review, manual payments, linked expenses. */
 
@@ -67,7 +68,10 @@ describe.skipIf(!available)('payroll and finance (Phase 8)', { timeout: 180_000 
   afterAll(async () => {
     await db?.destroy();
     await admin?.end();
-  });
+    // Last, so it never delays the suite's own resets (hook timeouts on a busy shared DB).
+    // Removes this suite's fixtures from the shared dev database (test/helpers/qa-fixtures.ts).
+    await cleanupSuite({ suffix: s, payrollMonths: month ? [`${month}-01`] : [] });
+  }, 180_000);
 
   const lineOf = async (who: string) => (await pay.detail(root, runId)).lines.find((l) => l.employee.id === e[who])!;
 

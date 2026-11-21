@@ -1,0 +1,18 @@
+# Reusable: type a 6-digit code on the EMP-06 "Enter code" tab. Pass it as CHECK_IN_CODE.
+# The CodeInput (one hidden input, accessibilityLabel "Resident's 6-digit code") submits on the 6th digit;
+# the footer "Check in" button is only a fallback.
+# TODO(app): testID "check-in-code-input".
+appId: in.nestovin.employee
+---
+- tapOn: "Enter code"
+- extendedWaitUntil:
+    visible: "Enter the resident.s code"
+    timeout: 10000
+- tapOn:
+    text: "Resident.s 6-digit code.*"
+    optional: true
+- inputText: ${CHECK_IN_CODE}
+- hideKeyboard
+- extendedWaitUntil:
+    visible: "You are checked in|Checked in|Check-in not accepted|Not sent yet|Something went wrong"
+    timeout: 30000

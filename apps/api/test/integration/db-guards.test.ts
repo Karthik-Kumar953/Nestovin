@@ -3,10 +3,12 @@ import { randomUUID } from 'node:crypto';
 import type pg from 'pg';
 import { allCatalogueGrants, MODULES, MODULE_KEYS } from '@nestovin/contracts';
 import { adminPool, appPool, databaseAvailable, uniq } from '../helpers/db';
+import { cleanupSuite } from '../helpers/qa-fixtures';
 
 const available = await databaseAvailable();
 
 describe.skipIf(!available)('database guards', () => {
+  const s = uniq();
   let admin: pg.Pool;
   let app: pg.Pool;
 
@@ -17,7 +19,10 @@ describe.skipIf(!available)('database guards', () => {
   afterAll(async () => {
     await app?.end();
     await admin?.end();
-  });
+    // Last, so it never delays the suite's own resets (hook timeouts on a busy shared DB).
+    // Removes this suite's fixtures from the shared dev database (test/helpers/qa-fixtures.ts).
+    await cleanupSuite({ suffix: s });
+  }, 180_000);
 
   it('permission catalogue in the DB matches packages/contracts exactly', async () => {
     const { rows: modules } = await admin.query('select key, ref, grantable from app.permission_modules order by key');
@@ -39,7 +44,6 @@ describe.skipIf(!available)('database guards', () => {
   });
 
   it('cluster membership history cannot be deleted or rewritten', async () => {
-    const s = uniq();
     const { rows: [city] } = await admin.query(`insert into app.cities (name, state) values ($1, 'TS') returning id`, [`City ${s}`]);
     const { rows: [cl] } = await admin.query(`insert into app.clusters (name, code) values ($1, $1) returning id`, [`CL${s}`]);
     const { rows: [co] } = await admin.query(

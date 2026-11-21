@@ -1,0 +1,18 @@
+# RES-08/09: pay a pending booking or booking-round request with Razorpay TEST MODE card
+# (Visa 4111 1111 1111 1111, future expiry, any CVV, then "Success" on the simulated bank page)
+# and stop on the app's success screen. Same preconditions as razorpay_test_payment_upi.yaml.
+appId: in.nestovin.resident
+name: razorpay_test_payment_card
+tags:
+  - payments
+  - native-only
+  - live
+---
+- runFlow: subflows/ensure_signed_in.yaml
+- runFlow: subflows/open_payable_booking.yaml
+- runFlow: subflows/razorpay_card_success.yaml
+- extendedWaitUntil:
+    visible: "(Your service is confirmed|Balance paid|You have joined the booking round|Plan renewed).*"
+    timeout: 90000
+- assertVisible: "View booking"
+- assertNotVisible: "(Payment not completed|Payment did not go through|Checking your payment).*"

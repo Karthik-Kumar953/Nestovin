@@ -1,0 +1,41 @@
+# Reusable: complete Razorpay Checkout (TEST MODE ONLY) with Razorpay's published test Visa card
+# 4111 1111 1111 1111, a future expiry (12/30) and any CVV (123), then "Success" on the simulated
+# bank page that Razorpay shows only in test mode. Never a real card.
+appId: in.nestovin.resident
+---
+- extendedWaitUntil:
+    visible: "(?i).*card.*"
+    timeout: 30000
+- runFlow:
+    when:
+      visible: "(?i)email.*"
+    commands:
+      - tapOn: "(?i)email.*"
+      - inputText: ${E2E_PAYMENT_EMAIL}
+      - hideKeyboard
+- tapOn: "(?i).*card.*"
+- tapOn: "(?i)card number|.*card number.*"
+- inputText: "4111111111111111"
+- tapOn: "(?i)expiry.*|MM ?/ ?YY"
+- inputText: "1230"
+- tapOn: "(?i)cvv.*"
+- inputText: "123"
+- hideKeyboard
+- runFlow:
+    when:
+      visible: "(?i)card holder.*|name on card"
+    commands:
+      - tapOn: "(?i)card holder.*|name on card"
+      - inputText: "Nestovin Test"
+      - hideKeyboard
+- tapOn: "(?i)(pay now|pay.*|continue)"
+- runFlow:
+    when:
+      visible: "(?i)save.*card.*"
+    commands:
+      - tapOn: "(?i)(maybe later|skip|not now)"
+# Test-mode bank simulator page
+- extendedWaitUntil:
+    visible: "(?i)success"
+    timeout: 30000
+- tapOn: "(?i)success"

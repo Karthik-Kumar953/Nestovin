@@ -1,0 +1,32 @@
+# Reusable: RES-01 phone OTP sign-in (src/app/sign-in.tsx). Starts on the sign-in screen.
+# Needs: E2E_RESIDENT_PHONE (Supabase TEST phone number, 10 digits), E2E_RESIDENT_OTP (its fixed code).
+#
+# Selectors:
+#  - Phone input: tapped by its placeholder "98765 43210" (the "Mobile number" label Text and the
+#    input's accessibilityLabel share the same text, and the input's description can change once an
+#    error hint is set). TODO(app): testID "phone-input" on the Field.
+#  - Code: OtpInput is one hidden, auto-focused TextInput labelled "Verification code, 6 digits".
+#    Typing the 6th digit calls verify() automatically (onComplete), so there is no button tap.
+appId: in.nestovin.resident
+---
+- extendedWaitUntil:
+    visible: "Sign in or create an account"
+    timeout: 30000
+- tapOn: "98765 43210"
+- inputText: ${E2E_RESIDENT_PHONE}
+- hideKeyboard
+- tapOn: "Send code"
+# A send within 60 s of the last one still opens the code step, with
+# "Too many attempts. Please wait N seconds, then send a new code." (N varies). A Supabase test
+# number has a fixed OTP, so verification still works and the flow carries on.
+- extendedWaitUntil:
+    visible: "Enter the code"
+    timeout: 30000
+- tapOn:
+    text: "Verification code, 6 digits"
+    optional: true
+- inputText: ${E2E_RESIDENT_OTP}
+# Signed-in area: the native tab bar is present for every Home state (new, pending, verified).
+- extendedWaitUntil:
+    visible: "Profile"
+    timeout: 30000

@@ -1,0 +1,52 @@
+# EMP-06 (code method), end to end across both apps on one device, LIVE builds only:
+#  1. the Resident app shows today's check-in code (RES-11),
+#  2. the code is read from its accessibility label "Code d d d d d d",
+#  3. the Worker app checks in with it.
+# Preconditions: both development builds installed against the same test API; the test resident and
+# the test employee share an ASSIGNED visit today; the emulator location is set inside the residence's
+# community (Extended controls -> Location), otherwise check-in succeeds but is flagged ("Checked in").
+# Needs: E2E_RESIDENT_PHONE, E2E_RESIDENT_OTP, E2E_EMPLOYEE_ID, E2E_EMPLOYEE_PASSWORD.
+appId: in.nestovin.employee
+name: attendance_check_in_code
+tags:
+  - attendance
+  - cross-app
+  - live
+---
+# 1. Resident side
+- launchApp:
+    appId: in.nestovin.resident
+    permissions:
+      notifications: allow
+- extendedWaitUntil:
+    visible: "Sign in or create an account|Profile"
+    timeout: 30000
+- runFlow:
+    when:
+      visible: "Sign in or create an account"
+    file: ../../resident/.maestro/subflows/sign_in.yaml
+- tapOn: "Visits"
+- extendedWaitUntil:
+    visible: "Show check-in code"
+    timeout: 15000
+- tapOn: "Show check-in code"
+- extendedWaitUntil:
+    visible: 'Code \d \d \d \d \d \d'
+    timeout: 20000
+- copyTextFrom:
+    text: 'Code \d \d \d \d \d \d'
+- evalScript: ${output.visitCode = maestro.copiedText.replace(/\D/g, '')}
+- tapOn: "Done"
+- stopApp: in.nestovin.resident
+# 2. Worker side
+- runFlow: subflows/ensure_signed_in.yaml
+- runFlow: subflows/open_check_in.yaml
+- runFlow:
+    file: subflows/enter_check_in_code.yaml
+    env:
+      CHECK_IN_CODE: ${output.visitCode}
+- assertVisible: "You are checked in|Checked in"
+- tapOn: "Done"
+- extendedWaitUntil:
+    visible: "Checked in at .*"
+    timeout: 15000

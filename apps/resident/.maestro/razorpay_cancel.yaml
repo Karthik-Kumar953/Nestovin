@@ -1,0 +1,26 @@
+# RES-08: closing Razorpay Checkout keeps the booking and shows the "not completed" result with retry.
+# Same preconditions as razorpay_test_payment_upi.yaml. No payment instrument is entered.
+appId: in.nestovin.resident
+name: razorpay_cancel
+tags:
+  - payments
+  - native-only
+  - live
+---
+- runFlow: subflows/ensure_signed_in.yaml
+- runFlow: subflows/open_payable_booking.yaml
+- extendedWaitUntil:
+    visible: "(?i).*(UPI|card).*"
+    timeout: 30000
+- runFlow: subflows/razorpay_close_checkout.yaml
+- extendedWaitUntil:
+    visible: "Payment not completed.*"
+    timeout: 20000
+- assertVisible: 'No money was taken\. Your booking is saved, so you can try again\.'
+- assertVisible: "Not paid"
+- assertVisible: "Try again"
+# "Try again" reopens the booking, still payable.
+- tapOn: "Try again"
+- extendedWaitUntil:
+    visible: "Pay (balance )?₹[0-9,.]+( and join)?"
+    timeout: 15000

@@ -9,6 +9,7 @@ import { escalateOverdue } from '../../src/modules/support/escalation';
 import type { ResidentActor } from '../../src/modules/residents/auth';
 import { actor } from '../helpers/fake-deps';
 import { adminPool, appDatabase, databaseAvailable, uniq } from '../helpers/db';
+import { cleanupSuite } from '../helpers/qa-fixtures';
 
 /* Phase 7 (ADM-13, ADR-014): working-day deadlines, urgent path, manual and overdue escalation. */
 
@@ -42,7 +43,10 @@ describe.skipIf(!available)('support escalation (Phase 7)', { timeout: 90_000 },
   afterAll(async () => {
     await db?.destroy();
     await admin?.end();
-  });
+    // Last, so it never delays the suite's own resets (hook timeouts on a busy shared DB).
+    // Removes this suite's fixtures from the shared dev database (test/helpers/qa-fixtures.ts).
+    await cleanupSuite({ suffix: s });
+  }, 180_000);
 
   const create = (subject: string) => support.residentCreate(R, 't', { categoryId, subject, description: 'Details of the problem' });
 

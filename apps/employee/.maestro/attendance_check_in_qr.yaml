@@ -1,0 +1,34 @@
+# EMP-06 (QR method). Maestro cannot inject a camera frame, so this flow needs a camera source:
+#  - AVD back camera = "VirtualScene" with the resident's QR placed as a poster, or
+#  - AVD back camera = "Webcam0" pointed at a second phone showing the resident's code sheet
+#    (run apps/resident/.maestro/visit_check_in_code.yaml there).
+# The app accepts only QR payloads starting "NVQR1." (anything else shows
+# "This is not a Nestovin check-in code..."). The flow waits up to 2 minutes for the scan.
+appId: in.nestovin.employee
+name: attendance_check_in_qr
+tags:
+  - attendance
+  - native-only
+  - manual-assist
+  - live
+---
+- runFlow: subflows/ensure_signed_in.yaml
+- runFlow: subflows/open_check_in.yaml
+- tapOn: "Scan QR"
+# launchApp granted the camera; this only covers a build where the grant did not apply.
+- runFlow:
+    when:
+      visible: "Allow the camera to scan"
+    commands:
+      - tapOn: "Allow camera"
+      - runFlow:
+          when:
+            visible: "(?i)(while using the app|only this time|allow)"
+          commands:
+            - tapOn: "(?i)(while using the app|only this time|allow)"
+- extendedWaitUntil:
+    visible: 'Point the camera at the QR in the resident.s app\.'
+    timeout: 15000
+- extendedWaitUntil:
+    visible: "You are checked in|Checked in"
+    timeout: 120000

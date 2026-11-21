@@ -6,6 +6,7 @@ import type { EmailSender, PushSender } from '../../src/integrations/messaging';
 import { SYSTEM_CLAIMS } from '../../src/modules/bookings/payments';
 import { NotificationService, notify } from '../../src/modules/notifications/service';
 import { adminPool, appDatabase, databaseAvailable } from '../helpers/db';
+import { cleanupSuite } from '../helpers/qa-fixtures';
 
 /* RES-13 / EMP-10: outbox -> in-app inbox (+ push when configured), device tokens, read state. */
 
@@ -39,7 +40,10 @@ describe.skipIf(!available)('notifications', { timeout: 90_000 }, () => {
   afterAll(async () => {
     await db?.destroy();
     await admin?.end();
-  });
+    // Last, so it never delays the suite's own resets (hook timeouts on a busy shared DB).
+    // Removes this suite's fixtures from the shared dev database (test/helpers/qa-fixtures.ts).
+    await cleanupSuite({ residentIds: [A, B] });
+  }, 180_000);
 
   it('delivers to the inbox and to registered devices; dead tokens are removed', async () => {
     const svc = new NotificationService(db, push, email);

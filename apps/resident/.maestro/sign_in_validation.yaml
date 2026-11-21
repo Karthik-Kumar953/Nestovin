@@ -1,0 +1,27 @@
+# RES-01: phone validation on a clean install. No SMS is sent (the number never reaches Supabase).
+appId: in.nestovin.resident
+name: sign_in_validation
+tags:
+  - auth
+  - smoke
+  - live
+---
+- launchApp:
+    clearState: true
+    permissions:
+      notifications: allow
+- extendedWaitUntil:
+    visible: "Sign in or create an account"
+    timeout: 30000
+- assertVisible: "Trusted help for your home"
+- assertVisible: "We will text you a 6-digit code."
+# Empty number
+- tapOn: "Send code"
+- assertVisible: "Enter a 10-digit mobile number, for example 98765 43210"
+# Too short
+- tapOn: "98765 43210"
+- inputText: "12345"
+- hideKeyboard
+- tapOn: "Send code"
+- assertVisible: "Enter a 10-digit mobile number, for example 98765 43210"
+- assertNotVisible: "Enter the code"

@@ -1,0 +1,44 @@
+# RES-13: tapping a push opens the same screen as the matching Updates inbox item
+# (src/lib/push.ts usePushNavigation -> src/lib/deeplinks.ts hrefForPush/hrefForEvent).
+#
+# Representative event: ticket.replied. The API sends title "Reply from Nestovin Support"
+# (apps/api/src/modules/notifications/templates.ts) with data { eventType: "ticket.replied", ticketId }.
+# The router opens /ticket/[id]; that screen has the reply composer whose send button is labelled
+# "Send reply" (src/app/(app)/ticket/[id].tsx). Other events: override E2E_PUSH_TITLE / E2E_PUSH_EXPECT
+# (e.g. "Family member approved" -> "Household"; "Payment under review" -> "Bookings").
+#
+# Trigger (not on the device, so the flow is tagged needs-trigger and excluded by default):
+# run this flow; while it waits (up to 2 min), reply to one of the test resident's support tickets
+# from the Admin portal (/admin -> Support -> ticket -> public reply). See MOBILE_TESTING.md,
+# "Triggering a push". An `adb shell cmd notification post` notification is NOT equivalent: it is not
+# delivered through expo-notifications and carries no eventType, so the app cannot route it.
+#
+# Needs a development build with Firebase (google-services.json) and the API's FCM_* settings,
+# notifications allowed, and a Google APIs / Play emulator image.
+# known-gap: kept until the first green run on a dev build (BUG-QA-005, fixed on the resident branch).
+appId: in.nestovin.resident
+name: push_notification_tap
+tags:
+  - push
+  - native-only
+  - needs-trigger
+  - known-gap
+  - live
+env:
+  E2E_PUSH_TITLE: Reply from Nestovin Support
+  E2E_PUSH_EXPECT: Send reply
+---
+- runFlow: subflows/ensure_signed_in.yaml
+# Background the app so the push shows in the shade (a foreground push only refreshes the inbox).
+- pressKey: Home
+- swipe:
+    start: 50%, 1%
+    end: 50%, 70%
+    duration: 400
+- extendedWaitUntil:
+    visible: ${E2E_PUSH_TITLE}
+    timeout: 120000
+- tapOn: ${E2E_PUSH_TITLE}
+- extendedWaitUntil:
+    visible: ${E2E_PUSH_EXPECT}
+    timeout: 20000

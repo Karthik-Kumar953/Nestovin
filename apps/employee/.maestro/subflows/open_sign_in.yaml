@@ -1,0 +1,14 @@
+# Reusable: from the signed-out Welcome screen (src/app/welcome.tsx) to the sign-in form.
+appId: in.nestovin.employee
+---
+- extendedWaitUntil:
+    visible: 'Sign in with Employee ID|Use the Employee ID and password HR gave you\.'
+    timeout: 30000
+- runFlow:
+    when:
+      visible: "Sign in with Employee ID"
+    commands:
+      - tapOn: "Sign in with Employee ID"
+- extendedWaitUntil:
+    visible: 'Use the Employee ID and password HR gave you\.'
+    timeout: 15000
