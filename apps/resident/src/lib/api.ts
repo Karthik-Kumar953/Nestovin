@@ -49,7 +49,3 @@ export const errorMessage = (e: unknown) => (e instanceof Error ? e.message : 'S
 
 /** A fresh key per payment attempt so a retried tap never creates a second order. */
 export const idempotencyKey = () => `rn-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-
-export function rupees(paise: number): string {
-  return `₹${(paise / 100).toLocaleString('en-IN', { minimumFractionDigits: paise % 100 ? 2 : 0, maximumFractionDigits: 2 })}`;
-}
