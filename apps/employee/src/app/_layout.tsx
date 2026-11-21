@@ -28,15 +28,25 @@ const queryClient = new QueryClient({
   },
 });
 
-/** Push tap → the screen for that update (only once signed in). */
+/** Notification responses already routed. Module-level so a remount doesn't route the same tap again. */
+const handledResponses = new Set<string>();
+
+/**
+ * Push tap → the screen for that update (only once signed in). Each response navigates once:
+ * the session object changes on every token refresh, and `useLastNotificationResponse` keeps
+ * returning the last tap, so the effect alone would re-open the screen (BUG-QA-018).
+ */
 function NotificationRouter() {
-  const { session } = useAuth();
+  const signedIn = !!useAuth().session;
   const last = Notifications.useLastNotificationResponse();
   useEffect(() => {
-    if (!session || !last) return;
+    if (!signedIn || !last) return;
+    const id = last.notification.request.identifier;
+    if (handledResponses.has(id)) return;
+    handledResponses.add(id);
     const data = (last.notification.request.content.data ?? {}) as Record<string, unknown>;
     router.push(linkFor(String(data.eventType ?? ''), data));
-  }, [last, session]);
+  }, [last, signedIn]);
   return null;
 }
 
