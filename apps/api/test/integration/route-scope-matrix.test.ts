@@ -6,6 +6,8 @@ import { allCatalogueGrants, grantKey, isGrantable, type GrantKey } from '@nesto
 import { createApp } from '../../src/app';
 import type { Database } from '../../src/db/database';
 import { BookingAdminService } from '../../src/modules/bookings/admin-service';
+import { SupportService } from '../../src/modules/support/service';
+import { WorkforceAdminService } from '../../src/modules/workforce/admin-service';
 import type { ResidentActor } from '../../src/modules/residents/auth';
 import { actor, fakeDeps } from '../helpers/fake-deps';
 import { adminPool, appDatabase, appPool, databaseAvailable } from '../helpers/db';
@@ -31,6 +33,8 @@ describe.skipIf(!available)('route data scope and RLS', { timeout: 120_000 }, ()
   let f: Awaited<ReturnType<typeof commercialFixture>>;
   let http: ReturnType<typeof createApp>;
   let cycleId: string;
+  let ticketId: string;
+  let employeeId: string;
   let A: ResidentActor;
   let B: ResidentActor;
   const root = actor({ id: randomUUID(), isSuperAdmin: true });
@@ -53,6 +57,9 @@ describe.skipIf(!available)('route data scope and RLS', { timeout: 120_000 }, ()
       planIds: [f.planId],
     });
     cycleId = c.id;
+    const categoryId = (await admin.query(`select id from app.ticket_categories where status = 'ACTIVE' order by sort limit 1`)).rows[0].id as string;
+    ticketId = (await new SupportService(db).residentCreate(A, 'qa', { categoryId, subject: `QA scope ${fx.s}`, description: 'Scope matrix fixture ticket.' })).id;
+    employeeId = (await new WorkforceAdminService(db, fakeDeps({}).authAdmin).createEmployee(root, 'qa', { fullName: `QA Worker ${fx.s}`, phone: `+9195${Math.floor(10_000_000 + Math.random() * 89_999_999)}`, homeClusterId: f.north })).id;
 
     const deps = fakeDeps({
       [ids.north]: { status: 'ACTIVE', actor: actor({ id: ids.north, grants: grantable, scope: { type: 'CLUSTERS', clusterIds: [f.north] } }) },
@@ -86,6 +93,9 @@ describe.skipIf(!available)('route data scope and RLS', { timeout: 120_000 }, ()
     ['demand', `/demand-cycles/${cycleId}/summary`],
     ['demand', `/demand-cycles/${cycleId}/requests`],
     ['residents', `/residents/${A.id}`],
+    ['support', `/tickets/${ticketId}`],
+    ['employees', `/employees/${employeeId}`],
+    ['finance', `/employees/${employeeId}/compensation`],
   ];
 
   it('200 for an admin scoped to the record’s cluster, 404 for another cluster', async () => {

@@ -35,11 +35,11 @@ The unit test discovers every route from `apps/api/src/modules/*/routes.ts`. It 
 | Passes with **only** the route's grant | unit | same | ✅ (1 known bug: BUG-QA-002) |
 | Super Admin passes everywhere; Super-Admin-only routes refuse an admin holding all grantable permissions | unit | same | ✅ |
 | Resident and worker APIs refuse admin or other non-phone / non-staff sessions | unit | same | ✅ |
-| 404 out of scope / 200 in scope (locations, catalogue, migration, scheduling, demand, residents) | integration | `route-scope-matrix.test.ts` | ✅ |
+| 404 out of scope / 200 in scope (locations, catalogue, migration, scheduling, demand, residents, support tickets, employees, compensation) | integration | `route-scope-matrix.test.ts` | ✅ |
 | Lists filtered by scope; an out-of-scope write is 404 and changes nothing | integration | same | ✅ |
 | RLS cross-cluster sweep (every RLS table with `cluster_id`) | integration | same | ✅ |
 | RLS cross-household sweep (every RLS table with `resident_id`) and write denial | integration | same, plus `residents-support`, `bookings-payments` | ✅ |
-| 404 / 200 scope for support tickets, employees, visits, attendance, payroll by id | integration | `residents-support`, `workforce`, `attendance`, `payroll` (service level) | 🟡 service-level only; HTTP scope rows still to add |
+| 404 / 200 scope for visits, attendance records and payroll runs by id | integration | `workforce`, `attendance`, `payroll` (service level) | 🟡 service-level only; HTTP rows still to add |
 
 ## 3. PAY-01…16 (PRD §payments; ADR-013/015)
 
@@ -154,6 +154,6 @@ Legend: ✅ covered and passing · 🟡 partial · 🔲 not covered yet · ⛔ b
 2. **Resident web E2E is blocked.** `apps/resident` needs `react-native-web` and `react-dom`, and BUG-QA-004 must be fixed.
 3. **Maestro has not run.** It needs Maestro on the machine, an Android emulator, a dev build, and the Worker app merged.
 4. **FLOW-19 (offline dedupe) has no API surface to test.** Confirm the design with the lead.
-5. **HTTP scope rows to add:** tickets, employees, visits and payroll runs by id. Their service-level scope tests exist.
+5. **HTTP scope rows to add:** visits, attendance records and payroll runs by id. Their service-level scope tests exist.
 6. **Fixture cleanup in older suites.** `bookings-payments`, `workforce` and the other pre-QA suites leave uniquely named rows in the dev DB. Moving them to `Fixtures.cleanup()` is test-only work and comes next.
 7. **The admin E2E flows that need resident or worker data skip.** These are approving verifications, refunds and allocation. A seeded "demo community" fixture (an API script the lead owns) would let them run.
