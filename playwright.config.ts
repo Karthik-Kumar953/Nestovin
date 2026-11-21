@@ -26,7 +26,8 @@ const ADMIN_STORAGE_STATE = 'e2e/.auth/admin.json';
 
 // The Resident Expo web build is opt-in: it needs react-native-web in apps/resident and its own dev server.
 const RESIDENT_WEB = process.env.E2E_RESIDENT_WEB === '1' || process.argv.some((a) => a.includes('resident-web'));
-const RESIDENT_WEB_URL = process.env.E2E_RESIDENT_WEB_URL ?? 'http://localhost:8081';
+const RESIDENT_WEB_PORT = process.env.E2E_RESIDENT_WEB_PORT ?? '8092'; // never the developer's :8081
+const RESIDENT_WEB_URL = process.env.E2E_RESIDENT_WEB_URL ?? `http://localhost:${RESIDENT_WEB_PORT}`;
 
 // Resident app in its DEV-ONLY demo mode (EXPO_PUBLIC_DEMO=1): fixtures, no API, no sign-in.
 // E2E_RESIDENT_APP_DIR points at the Resident app to serve (e.g. another worktree's apps/resident
@@ -114,7 +115,9 @@ export default defineConfig({
     ...(RESIDENT_WEB
       ? [
           {
-            command: 'corepack pnpm --filter @nestovin/resident exec expo start --web --port 8081',
+            // Same app dir as the demo project, so the resident branch can be tested before it is merged.
+            command: `npx expo start --web --port ${RESIDENT_WEB_PORT}`,
+            cwd: RESIDENT_APP_DIR,
             url: RESIDENT_WEB_URL,
             reuseExistingServer: true,
             timeout: 180_000,

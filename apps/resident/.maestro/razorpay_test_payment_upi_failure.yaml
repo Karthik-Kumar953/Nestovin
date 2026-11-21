@@ -1,0 +1,28 @@
+# RES-08: a failed Razorpay TEST MODE UPI payment (failure@razorpay) leaves the booking unpaid and the
+# app shows its "not paid" result with a retry action.
+# Razorpay Checkout stays open after a failure (its retry option is on by default), so the flow closes it.
+# The app maps every Checkout rejection to "Payment not completed" (src/lib/payments.ts, catch around
+# rp.open); "Payment did not go through" is accepted too in case that changes.
+# Same preconditions as razorpay_test_payment_upi.yaml.
+appId: in.nestovin.resident
+name: razorpay_test_payment_upi_failure
+tags:
+  - payments
+  - native-only
+  - live
+env:
+  RZP_TEST_VPA: failure@razorpay
+---
+- runFlow: subflows/ensure_signed_in.yaml
+- runFlow: subflows/open_payable_booking.yaml
+- runFlow: subflows/razorpay_upi.yaml
+- extendedWaitUntil:
+    visible: "(?i).*(failed|retry|try again|payment not completed|payment did not go through).*"
+    timeout: 60000
+- runFlow: subflows/razorpay_close_checkout.yaml
+- extendedWaitUntil:
+    visible: "(Payment not completed|Payment did not go through).*"
+    timeout: 30000
+- assertVisible: "Not paid"
+- assertVisible: "Try again"
+- assertNotVisible: "(Your service is confirmed|Balance paid|You have joined the booking round|Plan renewed).*"

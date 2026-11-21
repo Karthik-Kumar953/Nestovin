@@ -1,28 +1,18 @@
 # EMP-06: a wrong or expired code is rejected with a reason; attendance is not recorded.
-appId: in.nestovin.employee # PLACEHOLDER
+# Live: 000000 is never an issued code. Demo build: 000000 is the fixture's rejected code.
+appId: in.nestovin.employee
 name: attendance_check_in_invalid_code
 tags:
   - attendance
-  - skeleton
+  - live
+  - demo-ok
+env:
+  CHECK_IN_CODE: "000000"
 ---
 - runFlow: subflows/ensure_signed_in.yaml
-- tapOn: "Today|My schedule|Schedule"
-- tapOn:
-    text: "Check in"
-    index: 0
-- runFlow:
-    when:
-      visible: "Enter code|Use code"
-    commands:
-      - tapOn: "Enter code|Use code"
-- tapOn:
-    text: "Code|Check-in code"
-    index: 1
-- inputText: "000000"
-- hideKeyboard
-- tapOn: "Verify|Check in|Submit"
-# TODO(app): exact message from the API error
-- extendedWaitUntil:
-    visible: ".*(not correct|invalid|expired).*"
-    timeout: 20000
-- assertNotVisible: ".*Checked in.*"
+- runFlow: subflows/open_check_in.yaml
+- runFlow: subflows/enter_check_in_code.yaml
+- assertVisible: "Check-in not accepted"
+- assertVisible: "Check the 6 digits with the resident and try again.*"
+- assertVisible: "Try again"
+- assertNotVisible: "You are checked in|Checked in"

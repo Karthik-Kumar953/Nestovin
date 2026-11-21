@@ -1,10 +1,13 @@
-# RES-01: sign in with a Supabase test phone number + fixed OTP, then sign out.
+# RES-01/RES-14: sign in with a Supabase TEST phone number + fixed OTP, see the tabs, then sign out.
 # Needs: -e E2E_RESIDENT_PHONE=9xxxxxxxxx -e E2E_RESIDENT_OTP=123456
+# Wrong-code and resend-limit copy is covered on web (apps/resident/e2e/sign-in.spec.ts): a second
+# send on device within 60 s answers "Too many attempts. Please wait N seconds, then send a new code."
 appId: in.nestovin.resident
 name: sign_in_phone_otp
 tags:
   - auth
   - smoke
+  - live
 ---
 - launchApp:
     clearState: true
@@ -16,16 +19,21 @@ tags:
 - assertVisible: "Visits"
 - assertVisible: "Support"
 - assertVisible: "Profile"
-# A wrong code is rejected (separate attempt after sign-out would hit the
-# 60-second OTP resend limit, so the negative case lives in the web suite).
+# Sign out (RES-14): a row at the bottom of Profile, then a confirmation dialog.
 - tapOn: "Profile"
-- extendedWaitUntil:
-    visible: "Signed in as.*"
-    timeout: 15000
 - scrollUntilVisible:
     element:
       text: "Sign out"
+    timeout: 15000
 - tapOn: "Sign out"
 - extendedWaitUntil:
-    visible: "Welcome to Nestovin"
+    visible: 'You will need a new code to sign in again\.'
+    timeout: 10000
+# Dialog button (Android may render it upper-case), below the dialog message.
+- tapOn:
+    text: "(?i)sign out"
+    below:
+      text: 'You will need a new code to sign in again\.'
+- extendedWaitUntil:
+    visible: "Sign in or create an account"
     timeout: 15000

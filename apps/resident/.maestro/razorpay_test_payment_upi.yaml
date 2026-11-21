@@ -1,33 +1,28 @@
-# RES-08/09: pay a pending booking or demand request with Razorpay TEST MODE UPI.
+# RES-08/09: pay a pending booking or booking-round request with Razorpay TEST MODE UPI
+# (success@razorpay) and stop on the app's success screen (src/app/(app)/payment-result.tsx).
 # Preconditions:
-#  - a development build (react-native-razorpay is native; Expo Go shows
-#    "Payments need the Nestovin app build").
-#  - the API uses Razorpay test keys (rzp_test_...).
-#  - the test resident has a booking "Awaiting payment" or a demand request
-#    "Awaiting payment" (create one from Book, or seed it).
-# Needs: E2E_RESIDENT_PHONE, E2E_RESIDENT_OTP, E2E_PAYMENT_EMAIL (used only if Razorpay asks).
+#  - a development build (react-native-razorpay is native; Expo Go and web show
+#    "Pay in the Nestovin app build"). NOT a demo build: demo mode skips Razorpay entirely.
+#  - the API runs with Razorpay TEST keys (rzp_test_...).
+#  - the test resident has something to pay (see subflows/open_payable_booking.yaml).
+# Needs: E2E_RESIDENT_PHONE, E2E_RESIDENT_OTP; E2E_PAYMENT_EMAIL only if Razorpay asks for an email.
 appId: in.nestovin.resident
 name: razorpay_test_payment_upi
 tags:
   - payments
   - native-only
+  - live
+env:
+  RZP_TEST_VPA: success@razorpay
 ---
 - runFlow: subflows/ensure_signed_in.yaml
-- tapOn: "Home"
-- scrollUntilVisible:
-    element:
-      text: "My bookings and payments"
-- tapOn: "My bookings and payments"
+- runFlow: subflows/open_payable_booking.yaml
+- runFlow: subflows/razorpay_upi.yaml
+# Success titles depend on what was paid (copyFor in payment-result.tsx). The trailing .* also matches
+# the screen's grouped accessibility label "<title>. <body>".
 - extendedWaitUntil:
-    visible: "Bookings and payments"
-    timeout: 15000
-- scrollUntilVisible:
-    element:
-      text: "Pay (balance )?₹.*"
-    timeout: 20000
-- tapOn: "Pay (balance )?₹.*"
-- runFlow: subflows/razorpay_upi_success.yaml
-- extendedWaitUntil:
-    visible: 'Payment received and verified\.'
-    timeout: 60000
-- assertNotVisible: "Payment was not completed.*"
+    visible: "(Your service is confirmed|Balance paid|You have joined the booking round|Plan renewed).*"
+    timeout: 90000
+- assertVisible: "View booking"
+- assertVisible: "Back to Home"
+- assertNotVisible: "(Payment not completed|Payment did not go through|Checking your payment).*"

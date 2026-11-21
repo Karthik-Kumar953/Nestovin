@@ -1,35 +1,46 @@
-# Reusable: EMP-02 Employee ID + password sign-in.
-# TODO(app): confirm labels; prefer testIDs "employee-id-input" and "password-input".
-appId: in.nestovin.employee # PLACEHOLDER until apps/employee/app.json exists
+# Reusable: EMP-02 Employee ID + password sign-in (src/app/sign-in.tsx). Starts signed out.
+# Needs: E2E_EMPLOYEE_ID (e.g. NV-000123), E2E_EMPLOYEE_PASSWORD.
+#
+# Selectors:
+#  - Employee ID input: tapped by its placeholder "NV-000123" (label Text and input share "Employee ID").
+#  - Password input: no placeholder, so label + index 1 (index 0 is the label Text).
+#  - "Sign in" is both the page title and the footer button; the button is the one below the
+#    "Forgot your password?" card.
+#  TODO(app): testIDs "employee-id-input", "password-input", "sign-in-button".
+appId: in.nestovin.employee
 ---
-- extendedWaitUntil:
-    visible: "Employee ID"
-    timeout: 30000
-- tapOn:
-    text: "Employee ID"
-    index: 1
+- runFlow: open_sign_in.yaml
+- tapOn: "NV-000123"
 - inputText: ${E2E_EMPLOYEE_ID}
 - tapOn:
     text: "Password"
     index: 1
 - inputText: ${E2E_EMPLOYEE_PASSWORD}
 - hideKeyboard
-- tapOn: "Sign in"
-# A temporary password issued by HR may force a change on first login (open decision in EMP-02).
+- tapOn:
+    text: "Sign in"
+    below:
+      text: "Ask HR to reset it.*"
+- extendedWaitUntil:
+    visible: 'Today|Set your own password|Employee ID or password is not correct\.'
+    timeout: 30000
+# First login with an HR temporary password forces a change (src/app/change-password.tsx). The new
+# password must differ from the temporary one, so it comes from E2E_EMPLOYEE_NEW_PASSWORD; afterwards
+# use that value as E2E_EMPLOYEE_PASSWORD. Prefer a test employee that has already changed it.
 - runFlow:
     when:
-      visible: "Set a new password|Change password"
+      visible: "Set your own password"
     commands:
       - tapOn:
           text: "New password"
           index: 1
-      - inputText: ${E2E_EMPLOYEE_PASSWORD}
+      - inputText: ${E2E_EMPLOYEE_NEW_PASSWORD}
       - tapOn:
-          text: "Confirm password"
+          text: "Type it again"
           index: 1
-      - inputText: ${E2E_EMPLOYEE_PASSWORD}
+      - inputText: ${E2E_EMPLOYEE_NEW_PASSWORD}
       - hideKeyboard
-      - tapOn: "Save|Continue"
+      - tapOn: "Save new password"
 - extendedWaitUntil:
-    visible: "Today|My schedule|Schedule"
+    visible: "Today"
     timeout: 30000

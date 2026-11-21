@@ -1,0 +1,14 @@
+# Reusable: close Razorpay Checkout with the system back button and confirm its exit prompt, but only
+# while Checkout is still open. The app then gets a rejected promise and shows "Payment not completed".
+appId: in.nestovin.resident
+---
+- runFlow:
+    when:
+      notVisible: "(Payment not completed|Payment did not go through).*"
+    commands:
+      - back
+      - runFlow:
+          when:
+            visible: "(?i)(yes.*|cancel payment.*|exit)"
+          commands:
+            - tapOn: "(?i)(yes.*|cancel payment.*|exit)"

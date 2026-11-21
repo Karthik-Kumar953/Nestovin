@@ -1,11 +1,12 @@
-# EMP-02: an enabled employee signs in with Employee ID and password and sees the schedule (EMP-05).
-# Needs: -e E2E_EMPLOYEE_ID=... -e E2E_EMPLOYEE_PASSWORD=...
-appId: in.nestovin.employee # PLACEHOLDER
+# EMP-02/EMP-05: an enabled employee signs in with Employee ID and password and lands on Today.
+# Needs: -e E2E_EMPLOYEE_ID=NV-000123 -e E2E_EMPLOYEE_PASSWORD=...
+#        (-e E2E_EMPLOYEE_NEW_PASSWORD=... only if the account still has an HR temporary password)
+appId: in.nestovin.employee
 name: employee_sign_in
 tags:
   - auth
   - smoke
-  - skeleton
+  - live
 ---
 - launchApp:
     clearState: true
@@ -14,4 +15,8 @@ tags:
       location: allow
       camera: allow
 - runFlow: subflows/sign_in.yaml
-- assertVisible: "Today|My schedule|Schedule"
+- assertVisible: "Today"
+- assertVisible: "Schedule"
+- assertVisible: "Updates"
+- assertVisible: "Me"
+- assertVisible: "Visits today: .*"

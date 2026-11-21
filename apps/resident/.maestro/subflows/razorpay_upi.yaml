@@ -1,0 +1,26 @@
+# Reusable: complete Razorpay Checkout (TEST MODE ONLY, API key rzp_test_...) with one of Razorpay's
+# published test VPAs, passed by the calling flow as RZP_TEST_VPA:
+#   success@razorpay -> the payment succeeds
+#   failure@razorpay -> the payment fails
+# Never a real UPI ID. Checkout is Razorpay's WebView; these labels match the standard checkout and may
+# need adjusting if Razorpay changes its UI (inspect with `maestro studio`).
+appId: in.nestovin.resident
+---
+- extendedWaitUntil:
+    visible: "(?i).*UPI.*"
+    timeout: 30000
+# The app prefills contact (and email when the resident has one); Razorpay asks only if missing.
+- runFlow:
+    when:
+      visible: "(?i)email.*"
+    commands:
+      - tapOn: "(?i)email.*"
+      - inputText: ${E2E_PAYMENT_EMAIL}
+      - hideKeyboard
+- tapOn: "(?i).*UPI.*"
+- tapOn:
+    text: "(?i).*UPI ID.*|.*VPA.*|.*example@okhdfcbank.*"
+    optional: true
+- inputText: ${RZP_TEST_VPA}
+- hideKeyboard
+- tapOn: "(?i)(verify and pay|pay now|pay.*|continue)"

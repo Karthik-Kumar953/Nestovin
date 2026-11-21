@@ -28,6 +28,7 @@ Owner: the lead fixes `apps/api`. Web and mobile bugs go through the lead to the
 | BUG-QA-015 | Medium | API attendance | Review M-17: check-in locks only the occurrence, so a just-replaced worker can still check in | Open |
 | BUG-QA-016 | Medium | DB grants | Review M-2: payment amounts, provider evidence and approved payroll lines are writable/deletable by the API role | Open |
 | BUG-QA-017 | Medium | API payroll | Review M-2 race: a payroll entry can be added to a run being submitted (run row not locked) | Open |
+| BUG-QA-018 | Low | Worker app | A push tap can re-open the same screen after a token refresh | Open (code read) |
 
 ---
 
@@ -119,6 +120,14 @@ Full evidence and fixes are in the review: `docs/reviews/2026-11-system-review.m
 - **BUG-QA-017 (M-2 race).** Test: `review-findings.test.ts` → "M-2 race".
   - `lineInRun` ends with `for update of "l"`, so `r.status` is read unlocked. `addItem` can therefore commit into a run that `submit` has just moved to `IN_REVIEW`.
   - Suspected: `apps/api/src/modules/payroll/service.ts` `lineInRun()`.
+
+## BUG-QA-018 (Low): a Worker push tap can navigate again later
+- **Found by:** reading code while updating the Maestro flows; the Worker app branch is not merged yet.
+- **Steps:** tap an `overtime.offered` push, leave the Extra work screen, then wait for the auth token to refresh.
+- **Expected:** one navigation per tap.
+- **Actual:** Extra work opens again. The tap handler effect re-runs whenever the session object changes, and `src/lib/auth.tsx:31` creates a new session object on every auth event.
+- **Suspected:** `apps/employee/src/app/_layout.tsx:32-39` on `claude/worker-app-f91ce1`. The Resident app remembers which notifications it has already handled; the Worker app should do the same.
+- **Test:** `apps/employee/.maestro/push_notification_tap.yaml` (tagged `known-gap`, `needs-trigger`).
 
 ## Suspected admin web issues (found by reading code; confirm when E2E credentials exist)
 - **BUG-QA-007:** `apps/web/src/admin/pages/workforce/EmployeesPage.tsx:194`. `{e.readinessGaps.length && …}` renders "0".

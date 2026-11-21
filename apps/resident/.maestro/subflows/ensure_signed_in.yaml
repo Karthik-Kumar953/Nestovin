@@ -1,14 +1,14 @@
-# Reusable: open the app and sign in only if the sign-in screen shows.
+# Reusable: open the Resident app and sign in only if the sign-in screen shows.
+# A demo build (EXPO_PUBLIC_DEMO=1) is always signed in, so the sign-in step is skipped there.
 appId: in.nestovin.resident
 ---
 - launchApp:
     permissions:
       notifications: allow
 - extendedWaitUntil:
-    visible:
-      text: "Welcome to Nestovin|Hello.*"
+    visible: "Sign in or create an account|Profile"
     timeout: 30000
 - runFlow:
     when:
-      visible: "Welcome to Nestovin"
+      visible: "Sign in or create an account"
     file: sign_in.yaml

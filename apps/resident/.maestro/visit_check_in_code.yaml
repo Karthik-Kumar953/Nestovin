@@ -1,24 +1,37 @@
-# RES-10/11 + EMP-06 (resident side): show the 6-digit check-in code and QR.
-# Precondition: the test resident has a visit today with a worker assigned.
+# RES-10/11 (resident side of EMP-06): open today's check-in code and QR from Visits.
+# Precondition (live): the test resident has a visit today with a worker assigned (canShowCode).
+# Demo build (EXPO_PUBLIC_DEMO=1): today's 07:00 Cook visit has a code (482915), so it passes as is.
+#
+# The six digits are separate Text views inside one accessible View labelled "Code 4 8 2 9 1 5"
+# (src/app/(app)/check-in/[id].tsx), so the flow matches that label, not a 6-digit string.
+# TODO(app): testID "check-in-code" on that View.
 appId: in.nestovin.resident
 name: visit_check_in_code
 tags:
   - visits
+  - live
+  - demo-ok
 ---
 - runFlow: subflows/ensure_signed_in.yaml
 - tapOn: "Visits"
 - extendedWaitUntil:
     visible: "Upcoming"
     timeout: 15000
-- scrollUntilVisible:
-    element:
-      text: "Show check-in code"
+# Floating button, shown only when a visit can show a code.
+- extendedWaitUntil:
+    visible: "Show check-in code"
     timeout: 15000
 - tapOn: "Show check-in code"
 - extendedWaitUntil:
     visible: "Check-in code"
     timeout: 15000
-- assertVisible: '\d{6}'
+- extendedWaitUntil:
+    visible: 'Code \d \d \d \d \d \d'
+    timeout: 20000
+- assertVisible: "QR code for the worker to scan"
 - assertVisible: 'Valid for \d+:\d{2}'
+- assertVisible: 'Never share this code by phone or message\. It works once, only for this visit\.'
 - tapOn: "Done"
-- assertVisible: "Upcoming"
+- extendedWaitUntil:
+    visible: "Upcoming"
+    timeout: 10000

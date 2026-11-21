@@ -1,14 +1,24 @@
-# EMP-10: tapping an assignment/offer push opens the related screen in the Worker app.
-# Run this flow, then trigger the event from /admin (assign a visit, send an
-# overtime offer, decide leave). Pass the title and the text on the target screen:
-#   -e E2E_PUSH_TITLE="New overtime offer" -e E2E_PUSH_EXPECT="Accept"
-appId: in.nestovin.employee # PLACEHOLDER
+# EMP-10: tapping a push opens the related screen in the Worker app
+# (src/app/_layout.tsx NotificationRouter -> src/lib/links.ts linkFor).
+#
+# Representative event: overtime.offered. The API sends title "Additional work offered"
+# (apps/api/src/modules/notifications/templates.ts) with data { eventType: "overtime.offered", ... };
+# linkFor opens /offers, whose header is "Extra work". Other events: override E2E_PUSH_TITLE /
+# E2E_PUSH_EXPECT (e.g. leave.decided -> "Leave"; payslip.available -> payslips screen).
+#
+# Trigger: run this flow; while it waits (up to 2 min) send the test employee an overtime offer from
+# /admin (Workforce -> Overtime -> offer). See MOBILE_TESTING.md, "Triggering a push".
+appId: in.nestovin.employee
 name: employee_push_notification_tap
 tags:
   - push
   - native-only
   - needs-trigger
-  - skeleton
+  - known-gap
+  - live
+env:
+  E2E_PUSH_TITLE: Additional work offered
+  E2E_PUSH_EXPECT: Extra work
 ---
 - runFlow: subflows/ensure_signed_in.yaml
 - pressKey: Home

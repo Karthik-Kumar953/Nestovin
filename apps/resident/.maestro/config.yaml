@@ -1,9 +1,18 @@
-# Maestro workspace config for the Resident app (appId in.nestovin.resident, from app.json).
-# Run all default flows:   maestro test apps/resident/.maestro -e E2E_RESIDENT_PHONE=... -e E2E_RESIDENT_OTP=...
-# Run one tag:             maestro test apps/resident/.maestro --include-tags=smoke
-# Flows tagged `needs-trigger` wait for something outside the device (a push sent
-# from the Admin portal or API) and are excluded by default; run them with
-#   maestro test apps/resident/.maestro/push_notification_tap.yaml -e ...
+# Maestro workspace config for the Resident app (appId in.nestovin.resident, from apps/resident/app.json).
+#
+# Run all default flows (live build, real test backend):
+#   maestro test apps/resident/.maestro -e E2E_RESIDENT_PHONE=... -e E2E_RESIDENT_OTP=... -e E2E_PAYMENT_EMAIL=...
+# Run one tag:
+#   maestro test apps/resident/.maestro --include-tags=smoke -e ...
+# Demo build (EXPO_PUBLIC_DEMO=1, fixtures, auto signed in, no backend):
+#   maestro test apps/resident/.maestro --include-tags=demo-ok
+#
+# Tags (see docs/testing/MOBILE_TESTING.md, "Tags"):
+#   live          needs a development build talking to the test API + Supabase test phone
+#   demo-ok       also passes on a demo build (EXPO_PUBLIC_DEMO=1)
+#   needs-trigger waits for something outside the device (a push); excluded by default
+#   known-gap     the behaviour is not yet confirmed on a device; tag is removed after the first green run
+#   native-only   needs native modules (Razorpay, FCM); not possible in Expo Go or on web
 # Reusable steps live in subflows/ and are not run on their own.
 flows:
   - "*"

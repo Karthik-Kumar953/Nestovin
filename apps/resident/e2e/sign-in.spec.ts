@@ -63,18 +63,16 @@ test.describe('Sign in: phone entry', () => {
     await page.route(OTP_URL, (r) => json(r, 429, { code: 429, error_code: 'over_sms_send_rate_limit', msg: 'SMS rate limit exceeded' }));
     await page.getByLabel('Mobile number').fill('9876543210');
     await page.getByRole('button', { name: 'Send code' }).click();
-    await expect(page.getByRole('alert')).toHaveText('Too many attempts. Please wait a minute and try again.');
+    // Copy from claude/resident-app-0932e5 e539651 (BUG-QA-006 fix); N comes from Supabase or defaults to 60.
+    await expect(page.getByRole('alert')).toHaveText(/^Too many attempts\. Please wait \d+ seconds, then send a new code\.$/);
   });
 
   test('shows the rate-limit message when a code is re-requested within 60 s', async ({ page }) => {
-    // Known bug: sign-in.tsx only checks err.message.includes('rate'). Supabase's
-    // per-user resend window answers 429 "For security purposes, you can only
-    // request this after N seconds." which falls through to the generic error.
-    test.fail(true, 'App bug: 429 over_request_rate_limit is not recognised (src/app/sign-in.tsx:26)');
+    // BUG-QA-006 (fixed in e539651): 429 over_request_rate_limit used to fall through to the generic error.
     await page.route(OTP_URL, (r) => json(r, 429, { code: 429, error_code: 'over_request_rate_limit', msg: 'For security purposes, you can only request this after 42 seconds.' }));
     await page.getByLabel('Mobile number').fill('9876543210');
     await page.getByRole('button', { name: 'Send code' }).click();
-    await expect(page.getByRole('alert')).toHaveText('Too many attempts. Please wait a minute and try again.');
+    await expect(page.getByRole('alert')).toHaveText('Too many attempts. Please wait 42 seconds, then send a new code.');
   });
 });
 
@@ -129,11 +127,7 @@ test.describe('Sign in: OTP step', () => {
   });
 
   test('a successful verification opens Home (mocked session and API)', async ({ page }) => {
-    // Known bug on web: saving the session calls SecureStore.setItemAsync, which
-    // does not exist in expo-secure-store's web build, so verifyOtp throws a
-    // TypeError, the button stays busy and Home never opens. Remove this line
-    // once src/lib/supabase.ts uses a web-capable store.
-    test.fail(process.env.E2E_RESIDENT_WEB_AUTH !== '1', 'App bug: session cannot be saved on web (src/lib/supabase.ts:18, src/app/sign-in.tsx:34)');
+    // BUG-QA-004 (fixed in e539651): the web build now stores the session in localStorage.
     await page.route(VERIFY_URL, (r) => json(r, 200, fakeSession('+919876543210')));
     await page.route(/\/v1\/resident\/me(\?|$)/, (r) =>
       json(r, 200, { id: '00000000-0000-4000-8000-000000000001', phone: '+919876543210', fullName: 'Asha Rao', email: null, status: 'ACTIVE', membership: null, verification: null, version: 1 }),

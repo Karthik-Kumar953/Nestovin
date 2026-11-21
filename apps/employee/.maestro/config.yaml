@@ -1,18 +1,22 @@
-# Maestro workspace config for the Worker app (apps/employee).
-# SKELETON: the Worker app is being built on another branch. These flows follow
-# docs/Architecture/Nestovin_Individual_Module_Workflows_v1.0_Final.md (EMP-02,
-# EMP-05, EMP-06, EMP-10). Labels marked TODO(app) must be aligned with the real
-# screens, and appId must match apps/employee/app.json once it exists
-# (placeholder: in.nestovin.employee).
+# Maestro workspace config for the Worker app (apps/employee, appId in.nestovin.employee from its app.json).
+# Selectors follow the worker-app branch (src/app/welcome.tsx, sign-in.tsx, (app)/(tabs)/_layout.tsx,
+# (app)/visit/[id]/check-in.tsx, src/components/visit.tsx). Re-check after that branch merges.
 #
-# Run:  maestro test apps/employee/.maestro -e E2E_EMPLOYEE_ID=... -e E2E_EMPLOYEE_PASSWORD=...
+# Live build:  maestro test apps/employee/.maestro -e E2E_EMPLOYEE_ID=NV-000123 -e E2E_EMPLOYEE_PASSWORD=...
+# Demo build (EXPO_PUBLIC_DEMO=1, signed in, fixture visits; code 000000 is rejected, any other 6 digits verify):
+#              maestro test apps/employee/.maestro --include-tags=demo-ok
+#
+# Tags: see docs/testing/MOBILE_TESTING.md, "Tags". needs-trigger (push), manual-assist (camera QR) and
+# demo-only (attendance_check_in_demo.yaml) are excluded by default; run them by file name.
 flows:
   - "*"
 excludeTags:
   - needs-trigger
   - manual-assist
+  - demo-only
 executionOrder:
   continueOnFailure: true
   flowsOrder:
     - employee_sign_in_invalid
     - employee_sign_in
+    - attendance_check_in_invalid_code
