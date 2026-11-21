@@ -66,6 +66,7 @@ export function PressScale({
   onPress,
   disabled,
   className,
+  containerClassName,
   accessibilityLabel,
   accessibilityHint,
   accessibilityRole = 'button',
@@ -76,6 +77,8 @@ export function PressScale({
   onPress?: () => void;
   disabled?: boolean;
   className?: string;
+  /** Classes for the animated wrapper (layout: flex-1, width, margins). */
+  containerClassName?: string;
   accessibilityLabel?: string;
   accessibilityHint?: string;
   accessibilityRole?: 'button' | 'link' | 'radio' | 'checkbox' | 'tab';
@@ -85,7 +88,7 @@ export function PressScale({
   const scale = useSharedValue(1);
   const a = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return (
-    <Animated.View style={[a, style]}>
+    <Animated.View style={[a, style]} className={containerClassName}>
       <Pressable
         onPress={onPress}
         disabled={disabled}
@@ -141,7 +144,7 @@ export function Button({
   }[variant];
   const fg = variant === 'primary' || variant === 'danger' || variant === 'onDark' ? c.white : variant === 'light' ? c.tealDeep : c.tealAction;
   return (
-    <PressScale onPress={onPress} disabled={off} accessibilityLabel={title} accessibilityHint={accessibilityHint} accessibilityState={{ busy: !!busy }} className={cx('flex-row items-center justify-center gap-2.5', shape, h, v, off && 'opacity-50', className)}>
+    <PressScale onPress={onPress} disabled={off} accessibilityLabel={title} accessibilityHint={accessibilityHint} accessibilityState={{ busy: !!busy }} containerClassName={className} className={cx('flex-row items-center justify-center gap-2.5', shape, h, v, off && 'opacity-50')}>
       {busy ? (
         <ActivityIndicator color={fg} />
       ) : (

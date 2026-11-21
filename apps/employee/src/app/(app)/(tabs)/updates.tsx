@@ -32,7 +32,7 @@ export default function Updates() {
   return (
     <Screen title="Updates" subtitle={unread ? `${unread} new` : undefined} onRefresh={() => qc.invalidateQueries({ queryKey: qk.inbox })}>
       {unread ? (
-        <PressScale onPress={() => read.mutate('all')} accessibilityLabel="Mark all as read" className="self-end">
+        <PressScale onPress={() => read.mutate('all')} accessibilityLabel="Mark all as read" containerClassName="self-end">
           <View className="min-h-[44px] flex-row items-center gap-1.5 px-1">
             <CheckCheck size={18} color={c.tealAction} />
             <Text className="font-semibold text-teal-action">Mark all as read</Text>

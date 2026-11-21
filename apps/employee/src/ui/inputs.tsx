@@ -16,14 +16,14 @@ export function CodeInput({ value, onChange, error, autoFocus }: { value: string
   const [focused, setFocused] = useState(false);
   const digits = value.padEnd(6, ' ').slice(0, 6).split('');
   return (
-    <Pressable onPress={() => ref.current?.focus()} accessible={false} className="items-center">
-      <View className="flex-row gap-2.5">
+    <Pressable onPress={() => ref.current?.focus()} accessible={false} className="w-full items-center">
+      <View className="w-full max-w-[340px] flex-row gap-2">
         {digits.map((d, i) => {
           const active = focused && i === Math.min(value.length, 5);
           return (
             <View
               key={i}
-              className={`h-[64px] w-[48px] items-center justify-center rounded-md border-2 bg-surface ${error ? 'border-error-text' : active ? 'border-teal-action' : d.trim() ? 'border-teal-action/40' : 'border-line'}`}
+              className={`h-[64px] flex-1 items-center justify-center rounded-md border-2 bg-surface ${error ? 'border-error-text' : active ? 'border-teal-action' : d.trim() ? 'border-teal-action/40' : 'border-line'}`}
             >
               <Text allowFontScaling={false} className="font-heading text-[30px] text-charcoal">
                 {d.trim()}

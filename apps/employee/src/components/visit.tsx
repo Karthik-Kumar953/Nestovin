@@ -40,7 +40,6 @@ function Tasks({ tasks }: { tasks?: string[] | null }) {
  */
 export function NextVisitCard({ visit }: { visit: Visit }) {
   const live = isLive(visit);
-  const s = visitStatus(visit.status);
   const open = () => router.push({ pathname: '/visit/[id]', params: { id: visit.occurrenceId } });
   return (
     <View className="overflow-hidden rounded-2xl bg-surface" style={shadow.float}>
@@ -64,7 +63,7 @@ export function NextVisitCard({ visit }: { visit: Visit }) {
         <View className="gap-3 px-5 pt-4">
           <View className="flex-row items-start justify-between gap-3">
             <View className="flex-1 gap-1">
-              <Text className="font-display text-[26px] leading-8 text-charcoal">{flatLabel(visit.flat)}</Text>
+              <Text className="font-display text-2xl leading-8 text-charcoal">{flatLabel(visit.flat)}</Text>
               <View className="flex-row items-center gap-1.5">
                 <Building2 size={16} color={c.textSecondary} />
                 <Muted>{visit.flat.communityName}</Muted>
@@ -75,7 +74,6 @@ export function NextVisitCard({ visit }: { visit: Visit }) {
           <View className="flex-row items-center gap-3 rounded-lg bg-mint px-4 py-3">
             <Clock3 size={22} color={c.tealDeep} strokeWidth={2} />
             <Text className="flex-1 font-heading text-xl text-teal-deep">{timeWindow(visit.startsAt, visit.endsAt)}</Text>
-            <Pill label={s.label} tone={s.tone} />
           </View>
           <Tasks tasks={visit.tasks} />
         </View>
@@ -108,17 +106,19 @@ export function TimelineRow({ visit, last, highlight }: { visit: Visit; last: bo
         {!last ? <View className="w-0.5 flex-1 bg-line" /> : null}
       </View>
       <PressScale
-        className="mb-3 flex-1"
+        containerClassName="mb-3 flex-1"
         onPress={() => router.push({ pathname: '/visit/[id]', params: { id: visit.occurrenceId } })}
         accessibilityLabel={`${time(visit.startsAt) ?? 'Time to be confirmed'}, ${visit.serviceName}, ${flatLabel(visit.flat)}, ${s.label}`}
       >
         <View className={`flex-row items-center gap-3 rounded-xl border bg-surface p-3.5 ${highlight ? 'border-teal-action/50' : 'border-line/70'}`}>
           <ServiceIcon serviceName={visit.serviceName} size="sm" />
-          <View className="flex-1 gap-0.5">
+          <View className="min-w-0 flex-1 gap-1.5">
             <Text className={`font-semibold ${done ? 'text-ink-secondary' : ''}`}>{flatLabel(visit.flat)}</Text>
-            <Muted className="text-sm">{visit.serviceName}</Muted>
+            <View className="flex-row flex-wrap items-center gap-2">
+              <Muted className="text-sm">{visit.serviceName}</Muted>
+              <Pill label={s.label} tone={s.tone} />
+            </View>
           </View>
-          <Pill label={s.label} tone={s.tone} />
         </View>
       </PressScale>
     </View>

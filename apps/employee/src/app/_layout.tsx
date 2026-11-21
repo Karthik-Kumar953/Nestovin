@@ -1,5 +1,6 @@
 import '../../global.css';
 import '../lib/net';
+import '../ui/interop';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import { Stack, router } from 'expo-router';

@@ -146,7 +146,7 @@ export default function CheckIn() {
         ) : null}
 
         {outcome?.kind === 'rejected' ? (
-          <ResultPanel tone="error" title="Check-in not accepted" body={outcome.message} hint="Ask the resident to open a new code in their app, then try again." />
+          <ResultPanel tone="error" title="Check-in not accepted" body={outcome.message} hint="Check the 6 digits with the resident and try again. If the code has expired, ask them to open a new one." />
         ) : outcome?.kind === 'offline' ? (
           <ResultPanel tone="warning" title="Not sent yet" body="There is no internet connection. Your code is kept on this screen and will be sent automatically when the signal returns." hint="Codes expire after a few minutes. If it fails later, ask the resident for a new one." />
         ) : outcome?.kind === 'error' ? (
@@ -302,7 +302,7 @@ function LocationChip({ fix, onRetry }: { fix: Fix | 'pending'; onRetry: () => v
         <Text className="flex-1 text-[15px] text-warning-text">{text}</Text>
       </View>
       <View className="flex-row gap-2">
-        <Button title="Try again" size="md" variant="secondary" icon={MapPin} onPress={onRetry} className="flex-1" />
+        <Button title="Get location again" size="md" variant="secondary" icon={MapPin} onPress={onRetry} className="flex-1" />
         {fix.status === 'denied' ? <Button title="Settings" size="md" variant="ghost" onPress={() => void Linking.openSettings()} /> : null}
       </View>
     </View>
