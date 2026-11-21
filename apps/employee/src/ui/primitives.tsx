@@ -264,7 +264,7 @@ export function Field({
           secureTextEntry={isSecret && !reveal}
           multiline={multiline}
           textAlignVertical={multiline ? 'top' : 'center'}
-          className={cx('flex-1 px-4 font-body text-[17px] text-ink', multiline && 'py-3.5')}
+          className={cx('flex-1 self-stretch px-4 font-body text-[17px] text-ink', multiline ? 'min-h-[108px] py-3.5' : 'min-h-[52px]')}
           onFocus={(e) => {
             setFocused(true);
             input.onFocus?.(e);

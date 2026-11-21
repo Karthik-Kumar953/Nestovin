@@ -37,10 +37,13 @@ export default function Schedule() {
   };
 
   return (
-    <Screen title="Schedule" subtitle={`${range.format(parseDay(week))} – ${range.format(parseDay(end))}`} onRefresh={() => qc.invalidateQueries({ queryKey: qk.scheduleAll })}>
+    <Screen title="Schedule" onRefresh={() => qc.invalidateQueries({ queryKey: qk.scheduleAll })}>
       <View className="flex-row items-center gap-2">
         <IconButton icon={ChevronLeft} label="Previous week" onPress={() => moveWeek(-1)} />
-        <View className="flex-1 flex-row justify-between" accessibilityRole="tablist">
+        <Text accessibilityRole="header" className="flex-1 text-center font-semibold text-[17px]">{`${range.format(parseDay(week))} – ${range.format(parseDay(end))}`}</Text>
+        <IconButton icon={ChevronRight} label="Next week" onPress={() => moveWeek(1)} />
+      </View>
+      <View className="flex-row gap-1" accessibilityRole="tablist">
           {days.map((d) => {
             const on = d === day;
             const count = byDay.get(d) ?? 0;
@@ -54,7 +57,7 @@ export default function Schedule() {
                 accessibilityRole="tab"
                 accessibilityState={{ selected: on }}
                 accessibilityLabel={`${longDay(d)}, ${count} ${count === 1 ? 'visit' : 'visits'}`}
-                className={`h-[72px] w-[13.5%] items-center justify-center gap-1 rounded-lg ${on ? 'bg-teal-action' : d === today ? 'border-[1.5px] border-teal-action/50 bg-surface' : 'bg-surface'}`}
+                className={`h-[72px] flex-1 items-center justify-center gap-1 rounded-lg ${on ? 'bg-teal-action' : d === today ? 'border-[1.5px] border-teal-action/50 bg-surface' : 'bg-surface'}`}
               >
                 <Text className={`text-[12px] ${on ? 'font-semibold text-white/90' : 'text-ink-secondary'}`}>{wd.format(parseDay(d))}</Text>
                 <Text className={`font-heading text-lg ${on ? 'text-white' : 'text-charcoal'}`}>{Number(d.slice(8))}</Text>
@@ -66,8 +69,6 @@ export default function Schedule() {
               </Pressable>
             );
           })}
-        </View>
-        <IconButton icon={ChevronRight} label="Next week" onPress={() => moveWeek(1)} />
       </View>
 
       <Section title={day === today ? 'Today' : longDay(day)}>

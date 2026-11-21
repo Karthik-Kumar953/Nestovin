@@ -302,7 +302,7 @@ function LocationChip({ fix, onRetry }: { fix: Fix | 'pending'; onRetry: () => v
         <Text className="flex-1 text-[15px] text-warning-text">{text}</Text>
       </View>
       <View className="flex-row gap-2">
-        <Button title="Get location again" size="md" variant="secondary" icon={MapPin} onPress={onRetry} className="flex-1" />
+        <Button title="Retry location" size="md" variant="secondary" icon={MapPin} onPress={onRetry} className="flex-1" />
         {fix.status === 'denied' ? <Button title="Settings" size="md" variant="ghost" onPress={() => void Linking.openSettings()} /> : null}
       </View>
     </View>
