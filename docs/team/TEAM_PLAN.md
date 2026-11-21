@@ -67,6 +67,16 @@ Notes on the table:
     - what is stubbed or waiting on the API
     - your branch name
 
+## Skills to use (installed 21 Nov 2026)
+| Area | Skill |
+|---|---|
+| Project, in `.claude/skills/` | `ui-ux-pro-max`, `ui-styling`, `database-architect` |
+| User, in `~/.claude/skills/` | `vercel-react-native-skills` (mobile apps), `vercel-react-best-practices` and `vercel-composition-patterns` (admin and shared React), `vercel-react-view-transitions` (admin and website motion), `find-skills` (to look for more) |
+| User plugins | `supabase` and `postgres-best-practices` (Supabase's official skills) |
+| MCP | read-only Supabase MCP for the dev project (`supabase`), once the owner signs in |
+
+Read a skill's `SKILL.md` before relying on it. Skills marked third-party were reviewed by the lead before install.
+
 ## Milestones
 - **M1 (foundations):**
   - NativeWind and tokens, shared building blocks, image registry, motion primitives
