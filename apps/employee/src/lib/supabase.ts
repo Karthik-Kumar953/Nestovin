@@ -1,4 +1,5 @@
 import 'react-native-get-random-values';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import * as aesjs from 'aes-js';
@@ -43,7 +44,8 @@ class LargeSecureStore {
 
 export const supabase = createClient(env.supabaseUrl || 'http://localhost', env.supabaseKey || 'missing-key', {
   auth: {
-    storage: new LargeSecureStore(),
+    // Web builds (preview and Playwright only) have no keystore: AsyncStorage maps to localStorage there.
+    storage: Platform.OS === 'web' ? AsyncStorage : new LargeSecureStore(),
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,

@@ -8,7 +8,7 @@ import { ChefHat, HandHeart, Send, Sparkles } from 'lucide-react-native';
 import { createApplicantSchema } from '@nestovin/contracts';
 import { ApiError, api, errorMessage } from '../lib/api';
 import { haptic } from '../lib/haptics';
-import { Banner, BrandImage, Chip, Field, Muted, Screen, Stagger, Text, Title, Button } from '../ui';
+import { Banner, BrandImage, Button, Chip, Field, Heading, Muted, Screen, Stagger, Text } from '../ui';
 
 type Input = z.input<typeof createApplicantSchema>;
 type Output = z.output<typeof createApplicantSchema>;
@@ -59,7 +59,7 @@ export default function Apply() {
           <View className="flex-row items-center gap-4 rounded-xl bg-mint p-4">
             <BrandImage name="ill-applicant" variant="illustration" className="h-20 w-20" iconSize={28} />
             <View className="flex-1 gap-1">
-              <Title>Work with Nestovin</Title>
+              <Heading className="text-2xl leading-8">Work with Nestovin</Heading>
               <Muted>Tell us about yourself. HR will call you about the next steps.</Muted>
             </View>
           </View>
@@ -69,7 +69,7 @@ export default function Apply() {
             <Controller
               control={control}
               name="fullName"
-              render={({ field }) => <Field label="Full name" value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} autoComplete="name" textContentType="name" autoCapitalize="words" error={errors.fullName?.message} />}
+              render={({ field }) => <Field label="Full name" value={field.value} onChangeText={field.onChange} onBlur={field.onBlur} autoComplete="name" textContentType="name" autoCapitalize="words" error={errors.fullName ? 'Enter your full name' : undefined} />}
             />
             <Controller
               control={control}
@@ -81,7 +81,7 @@ export default function Apply() {
             <Controller
               control={control}
               name="city"
-              render={({ field }) => <Field label="City or area" optional value={field.value ?? ''} onChangeText={field.onChange} onBlur={field.onBlur} autoCapitalize="words" error={errors.city?.message} />}
+              render={({ field }) => <Field label="City or area" optional value={field.value ?? ''} onChangeText={field.onChange} onBlur={field.onBlur} autoCapitalize="words" error={errors.city ? 'Keep this under 80 characters' : undefined} />}
             />
           </View>
         </Stagger>
@@ -120,7 +120,7 @@ export default function Apply() {
             control={control}
             name="experienceNote"
             render={({ field }) => (
-              <Field label="Your experience" optional multiline value={field.value ?? ''} onChangeText={field.onChange} onBlur={field.onBlur} placeholder="For example: 3 years cooking for families in Whitefield" maxLength={1000} error={errors.experienceNote?.message} />
+              <Field label="Your experience" optional multiline value={field.value ?? ''} onChangeText={field.onChange} onBlur={field.onBlur} placeholder="For example: 3 years cooking for families in Whitefield" maxLength={1000} error={errors.experienceNote ? 'Keep this under 1000 characters' : undefined} />
             )}
           />
         </Stagger>

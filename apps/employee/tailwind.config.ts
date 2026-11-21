@@ -8,6 +8,8 @@ import { colors, radius } from '@nestovin/design-tokens';
  */
 export default {
   content: ['./src/**/*.{ts,tsx}'],
+  // Light mode only (Mobile_Design_System.md); 'class' so nothing follows the OS theme.
+  darkMode: 'class',
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   presets: [require('nativewind/preset')],
   theme: {

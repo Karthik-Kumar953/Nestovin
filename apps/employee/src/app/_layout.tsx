@@ -1,6 +1,7 @@
 import '../../global.css';
 import '../lib/net';
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -50,7 +51,7 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <StatusBar style="dark" />
-          <NotificationRouter />
+          {Platform.OS !== 'web' ? <NotificationRouter /> : null}
           <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.background } }}>
             <Stack.Screen name="index" options={{ animation: 'fade' }} />
             <Stack.Screen name="welcome" options={{ animation: 'fade' }} />

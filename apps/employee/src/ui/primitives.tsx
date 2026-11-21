@@ -15,8 +15,26 @@ const cx = (...parts: (string | false | null | undefined)[]) => parts.filter(Boo
 
 // ---------------------------------------------------------------- text
 
+const SIZE = /^text-(xs|sm|base|lg|xl|[2-9]xl|\[\d+px\])$/;
+const ALIGN = /^text-(left|center|right|justify)$/;
+const FAMILY = /^font-(display|heading|title|body|medium|semibold)$/;
+
+/**
+ * Default body text (Inter 16/24, ink) where each default is dropped when the
+ * caller sets that property, because NativeWind applies conflicting classes by
+ * stylesheet order, not by the order in className.
+ */
+export function textClass(className?: string) {
+  const parts = (className ?? '').split(/\s+/).filter(Boolean);
+  const hasSize = parts.some((p) => SIZE.test(p));
+  const hasLeading = parts.some((p) => p.startsWith('leading-'));
+  const hasFamily = parts.some((p) => FAMILY.test(p));
+  const hasColor = parts.some((p) => p.startsWith('text-') && !SIZE.test(p) && !ALIGN.test(p));
+  return cx(!hasFamily && 'font-body', !hasSize && 'text-base', !hasSize && !hasLeading && 'leading-6', !hasColor && 'text-ink', className);
+}
+
 export function Text({ className, ...props }: TextProps & { className?: string }) {
-  return <RNText allowFontScaling className={cx('font-body text-base leading-6 text-ink', className)} {...props} />;
+  return <RNText allowFontScaling className={textClass(className)} {...props} />;
 }
 export function Title({ children, className }: { children: ReactNode; className?: string }) {
   return (
@@ -36,7 +54,8 @@ export function Label({ children, className }: { children: ReactNode; className?
   return <RNText allowFontScaling className={cx('font-semibold text-[13px] uppercase tracking-wider text-ink-secondary', className)}>{children}</RNText>;
 }
 export function Muted({ children, className }: { children: ReactNode; className?: string }) {
-  return <RNText allowFontScaling className={cx('font-body text-[15px] leading-[22px] text-ink-secondary', className)}>{children}</RNText>;
+  const sized = (className ?? '').split(/\s+/).some((p) => SIZE.test(p));
+  return <RNText allowFontScaling className={textClass(cx(!sized && 'text-[15px] leading-[22px]', 'text-ink-secondary', className))}>{children}</RNText>;
 }
 
 // ---------------------------------------------------------------- press feedback
