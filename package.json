@@ -20,7 +20,8 @@
     "db:types": "pnpm --filter @nestovin/api db:types",
     "dev:web": "pnpm --filter @nestovin/web dev",
     "e2e": "playwright test",
-    "e2e:admin": "playwright test --project=admin"
+    "e2e:admin": "playwright test --project=admin",
+    "e2e:resident-web": "playwright test --project=resident-web --workers=1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

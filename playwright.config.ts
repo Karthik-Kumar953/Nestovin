@@ -20,6 +20,10 @@ const WEB_URL = process.env.E2E_WEB_URL ?? 'http://localhost:3000';
 const API_URL = process.env.E2E_API_URL ?? 'http://localhost:4000';
 const ADMIN_STORAGE_STATE = 'e2e/.auth/admin.json';
 
+// The Resident Expo web build is opt-in: it needs react-native-web in apps/resident and its own dev server.
+const RESIDENT_WEB = process.env.E2E_RESIDENT_WEB === '1' || process.argv.some((a) => a.includes('resident-web'));
+const RESIDENT_WEB_URL = process.env.E2E_RESIDENT_WEB_URL ?? 'http://localhost:8081';
+
 export default defineConfig({
   testDir: 'apps/web/e2e',
   outputDir: 'test-results',
@@ -47,10 +51,22 @@ export default defineConfig({
     },
     {
       name: 'admin',
+      testDir: 'apps/web/e2e',
       testMatch: /.*\.spec\.ts$/,
       dependencies: ['setup'],
       use: { ...devices['Desktop Chrome'], storageState: ADMIN_STORAGE_STATE, acceptDownloads: true },
     },
+    ...(RESIDENT_WEB
+      ? [
+          {
+            name: 'resident-web',
+            testDir: 'apps/resident/e2e',
+            testMatch: /.*\.spec\.ts$/,
+            fullyParallel: false, // signed-in specs share one Supabase test phone (60 s OTP resend limit)
+            use: { ...devices['Pixel 7'], baseURL: RESIDENT_WEB_URL },
+          },
+        ]
+      : []),
   ],
   webServer: [
     {
@@ -69,5 +85,18 @@ export default defineConfig({
       stdout: 'ignore',
       stderr: 'pipe',
     },
+    ...(RESIDENT_WEB
+      ? [
+          {
+            command: 'corepack pnpm --filter @nestovin/resident exec expo start --web --port 8081',
+            url: RESIDENT_WEB_URL,
+            reuseExistingServer: true,
+            timeout: 180_000,
+            env: { CI: '1', BROWSER: 'none' },
+            stdout: 'ignore' as const,
+            stderr: 'pipe' as const,
+          },
+        ]
+      : []),
   ],
 });
