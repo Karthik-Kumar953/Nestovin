@@ -338,16 +338,28 @@ export class PayrollService {
     return r;
   }
 
+  /**
+   * Locks the run, then the line (review M-2 race). Locking the run first, in the same order as
+   * submit and approve, means an entry can never land in a run that was just submitted, and the
+   * two paths cannot deadlock.
+   */
   private async lineInRun(trx: Tx, lineId: string) {
-    const l = await trx
+    const run = await trx
       .selectFrom('app.payroll_lines as l')
       .innerJoin('app.payroll_runs as r', 'r.id', 'l.run_id')
-      .select(['l.id', 'l.run_id', 'l.cluster_id', 'l.employee_id', 'l.net_paise', 'r.status as run_status'])
+      .select(['r.status as run_status'])
       .where('l.id', '=', lineId)
-      .forUpdate('l')
+      .forUpdate('r')
+      .executeTakeFirst();
+    if (!run) throw notFound('Payroll line');
+    const l = await trx
+      .selectFrom('app.payroll_lines as l')
+      .select(['l.id', 'l.run_id', 'l.cluster_id', 'l.employee_id', 'l.net_paise'])
+      .where('l.id', '=', lineId)
+      .forUpdate()
       .executeTakeFirst();
     if (!l) throw notFound('Payroll line');
-    return l;
+    return { ...l, run_status: run.run_status };
   }
 
   /** Authorised manual earning/deduction with a reason (only while the run is a draft). */

@@ -150,7 +150,9 @@ export class AttendanceService {
       .innerJoin('app.communities as c', 'c.id', 'o.community_id')
       .select(['o.id', 'o.status', 'o.flat_id', 'o.cluster_id', 'o.scheduled_date', 'o.starts_at', 'o.ends_at', 'a.employee_id', 'c.timezone', 'c.location_lat', 'c.location_lng', 'c.geofence_radius_m'])
       .where('o.id', '=', occurrenceId)
-      .forUpdate('o')
+      // Lock the ACTIVE assignment too (review M-17): a replacement that commits first makes this row
+      // no longer ACTIVE, so a worker who was just replaced cannot check in.
+      .forUpdate(['o', 'a'])
       .executeTakeFirst();
     if (!o || o.employee_id !== actor.id) throw notFound('Visit');
     return o;

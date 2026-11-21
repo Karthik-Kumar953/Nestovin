@@ -116,9 +116,19 @@ try {
       { flat: flats[3], name: 'Ananya Rao (Demo)', service: 'COOK', start: istTime(60), minutes: 90, tasks: [['Meal preparation', 'PER_VISIT', 1], ['Kitchen counter cleaning', 'PER_VISIT', 1], ['Refrigerator wipe-down', 'WEEKLY', 1]] },
       { flat: flats[1], name: 'Vikram Shah (Demo)', service: 'MAID', start: istTime(180), minutes: 60, tasks: [['Sweeping and mopping', 'PER_VISIT', 1], ['Dish washing', 'PER_VISIT', 1], ['Bathroom deep clean', 'WEEKLY', 1]] },
     ];
+    // DEMO_RESIDENT_PHONE (E.164, e.g. +919999900001): the first household uses this number, so a
+    // Supabase test OTP for it signs in as that resident on a phone. Unused if already taken.
+    let ownPhone = process.env.DEMO_RESIDENT_PHONE?.trim();
+    if (ownPhone && !/^\+91\d{10}$/.test(ownPhone)) throw new Error('DEMO_RESIDENT_PHONE must look like +91XXXXXXXXXX');
+    if (ownPhone && (await q(`select 1 from auth.users where phone = $1`, [ownPhone.slice(1)])).rowCount) {
+      console.warn('DEMO_RESIDENT_PHONE already belongs to a user; the demo households get random numbers.');
+      ownPhone = undefined;
+    }
     for (const h of households) {
       const residentId = randomUUID();
-      const phone = `+9199000${Math.floor(10000 + Math.random() * 89999)}`;
+      const phone = ownPhone ?? `+9199000${Math.floor(10000 + Math.random() * 89999)}`;
+      if (ownPhone) console.warn(`✓ ${h.name} signs in with DEMO_RESIDENT_PHONE`);
+      ownPhone = undefined;
       await q(`insert into auth.users (id, phone, aud, role) values ($1, $2, 'authenticated', 'authenticated')`, [residentId, phone.slice(1)]);
       await q(`insert into app.resident_profiles (id, phone, full_name) values ($1, $2, $3)`, [residentId, phone, h.name]);
       const m = (await q(`insert into app.residence_memberships (resident_id, flat_id, kind, occupancy, status) values ($1, $2, 'PRIMARY', 'OWNER', 'VERIFIED') returning id, cluster_id`, [residentId, h.flat.id])).rows[0];
