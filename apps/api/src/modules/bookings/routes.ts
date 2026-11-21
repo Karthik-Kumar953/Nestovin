@@ -198,8 +198,9 @@ export function razorpayWebhookRoutes(payments: PaymentService): Router {
   r.post('/razorpay', express.raw({ type: 'application/json', limit: '256kb' }), async (req, res) => {
     const raw = Buffer.isBuffer(req.body) ? req.body : Buffer.from('');
     const outcome = await payments.handleWebhook(raw, req.header('x-razorpay-signature'), req.header('x-razorpay-event-id'));
-    // Duplicates and valid events answer 200 so Razorpay stops retrying.
-    res.status(outcome === 'rejected' ? 400 : 200).json({ status: outcome });
+    // Processed and duplicate events answer 200 so Razorpay stops retrying; a processing failure answers 500
+    // so Razorpay retries (review H-3), and the reprocess job also picks it up.
+    res.status(outcome === 'rejected' ? 400 : outcome === 'failed' ? 500 : 200).json({ status: outcome });
   });
   return r;
 }

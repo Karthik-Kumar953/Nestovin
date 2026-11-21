@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import type pg from 'pg';
 import { NON_REFUNDABLE_DISCLOSURE } from '@nestovin/contracts';
@@ -231,6 +231,31 @@ describe.skipIf(!available)('demand cycles, bookings and payments (Phase 4)', { 
     const id = `evt_${randomUUID()}`;
     expect(await payments.handleWebhook(wh.raw, wh.signature, id)).toBe('ok');
     expect(await payments.handleWebhook(wh.raw, wh.signature, id)).toBe('duplicate');
+  });
+
+  it('webhooks: a failed event is reported, re-claimed on retry, and the job reprocesses stuck events (review H-3)', async () => {
+    const wh = webhook({ event: 'payment.failed', payload: {} });
+    const id = `evt_${randomUUID()}`;
+    const spy = vi.spyOn(payments as unknown as { processEvent: () => Promise<void> }, 'processEvent').mockRejectedValueOnce(new Error('db blip'));
+    expect(await payments.handleWebhook(wh.raw, wh.signature, id)).toBe('failed');
+    let row = (await admin.query(`select processed_at, attempts from app.provider_events where event_id = $1`, [id])).rows[0];
+    expect(row).toMatchObject({ processed_at: null, attempts: 1 });
+    expect(await payments.handleWebhook(wh.raw, wh.signature, id)).toBe('ok'); // Razorpay's retry
+    row = (await admin.query(`select processed_at, attempts from app.provider_events where event_id = $1`, [id])).rows[0];
+    expect(row.processed_at).not.toBeNull();
+    expect(row.attempts).toBe(2);
+    expect(await payments.handleWebhook(wh.raw, wh.signature, id)).toBe('duplicate');
+    spy.mockRestore();
+
+    // A valid event stored before a crash (never processed) is picked up by the job.
+    const stuckId = `evt_${randomUUID()}`;
+    await admin.query(
+      `insert into app.provider_events (event_id, event_type, payload, signature_valid, received_at, attempts) values ($1, 'payment.failed', '{"event":"payment.failed","payload":{}}', true, now() - interval '10 minutes', 1)`,
+      [stuckId],
+    );
+    expect(await payments.reprocessEvents()).toBeGreaterThanOrEqual(1);
+    const stuck = (await admin.query(`select processed_at from app.provider_events where event_id = $1`, [stuckId])).rows[0];
+    expect(stuck.processed_at).not.toBeNull();
   });
 
   it('webhooks: an unsigned event cannot pre-empt the genuine one with the same id (BUG-QA-003)', async () => {

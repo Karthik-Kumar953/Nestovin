@@ -676,6 +676,7 @@ export interface ProviderEventsTable {
   received_at: Generated<Date>;
   processed_at: Timestamp | null;
   processing_error: string | null;
+  attempts: Generated<number>;
 }
 
 export interface PaymentTransactionsTable {
@@ -715,7 +716,8 @@ export type PaymentExceptionReason =
   | 'DUPLICATE_PAYMENT'
   | 'RECORD_NOT_PAYABLE'
   | 'UNAPPROVED_REFUND'
-  | 'UNKNOWN_ORDER';
+  | 'UNKNOWN_ORDER'
+  | 'WEBHOOK_FAILED';
 export interface PaymentExceptionsTable {
   id: Generated<string>;
   order_id: string | null;

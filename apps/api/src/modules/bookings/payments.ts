@@ -312,7 +312,7 @@ export class PaymentService {
   // ------------------------------------------------------------------ webhooks
 
   /** Razorpay webhook: verify signature, store raw event once, process idempotently. */
-  async handleWebhook(rawBody: Buffer, signature: string | undefined, eventIdHeader: string | undefined): Promise<'ok' | 'duplicate' | 'rejected'> {
+  async handleWebhook(rawBody: Buffer, signature: string | undefined, eventIdHeader: string | undefined): Promise<'ok' | 'duplicate' | 'rejected' | 'failed'> {
     if (!this.provider) return 'rejected';
     const valid = Boolean(signature) && this.provider.verifyWebhookSignature(rawBody, signature!);
     let body: { event?: string; payload?: Record<string, { entity?: Record<string, unknown> }> };
@@ -336,28 +336,74 @@ export class PaymentService {
       this.logger.warn({ eventType }, 'razorpay webhook with invalid signature rejected');
       return 'rejected';
     }
-    const inserted = await withTx(this.db, SYSTEM_CLAIMS, (trx) =>
+    // A retry of an event that was never processed re-claims it instead of being treated as a duplicate (review H-3).
+    const claimed = await withTx(this.db, SYSTEM_CLAIMS, (trx) =>
       trx
         .insertInto('app.provider_events')
-        .values({ event_id: eventId, event_type: eventType, payload: JSON.stringify(body), signature_valid: true })
-        .onConflict((oc) => oc.column('event_id').doNothing())
+        .values({ event_id: eventId, event_type: eventType, payload: JSON.stringify(body), signature_valid: true, attempts: 1 })
+        .onConflict((oc) =>
+          oc
+            .column('event_id')
+            .doUpdateSet({ attempts: sql`app.provider_events.attempts + 1` })
+            .where('app.provider_events.processed_at', 'is', null)
+            .where('app.provider_events.signature_valid', '=', true),
+        )
         .returning('id')
         .executeTakeFirst(),
     );
-    if (!inserted) return 'duplicate';
+    if (!claimed) return 'duplicate';
+    return (await this.processStored(claimed.id, eventType, body.payload ?? {})) ? 'ok' : 'failed';
+  }
 
+  /** Runs one stored event; records success or the error. Returns false when processing threw. */
+  private async processStored(rowId: string, eventType: string, payload: Record<string, { entity?: Record<string, unknown> }>): Promise<boolean> {
     try {
-      await this.processEvent(eventType, body.payload ?? {});
+      await this.processEvent(eventType, payload);
       await withTx(this.db, SYSTEM_CLAIMS, (trx) =>
-        trx.updateTable('app.provider_events').set({ processed_at: sql`now()` }).where('id', '=', inserted.id).execute(),
+        trx.updateTable('app.provider_events').set({ processed_at: sql`now()`, processing_error: null }).where('id', '=', rowId).execute(),
       );
+      return true;
     } catch (err) {
       this.logger.error({ err, eventType }, 'razorpay webhook processing failed');
       await withTx(this.db, SYSTEM_CLAIMS, (trx) =>
-        trx.updateTable('app.provider_events').set({ processing_error: String((err as Error).message).slice(0, 500) }).where('id', '=', inserted.id).execute(),
+        trx.updateTable('app.provider_events').set({ processing_error: String((err as Error).message).slice(0, 500) }).where('id', '=', rowId).execute(),
       );
+      return false;
     }
-    return 'ok';
+  }
+
+  /**
+   * Job step (review H-3): retries valid webhook events that were stored but never processed,
+   * for example after a crash between storing and processing. After MAX attempts the event is
+   * surfaced once in the ADM-08 exceptions queue instead of failing silently.
+   */
+  async reprocessEvents(now = new Date(), max = 8): Promise<number> {
+    const stuck = await withTx(this.db, SYSTEM_CLAIMS, (trx) =>
+      trx
+        .selectFrom('app.provider_events')
+        .select(['id', 'event_id', 'event_type', 'payload', 'attempts'])
+        .where('processed_at', 'is', null)
+        .where('signature_valid', '=', true)
+        .where('received_at', '<', new Date(now.getTime() - 2 * 60_000))
+        .where('received_at', '>', new Date(now.getTime() - 7 * 24 * 3600_000))
+        .where('attempts', '<=', max)
+        .orderBy('received_at')
+        .limit(50)
+        .execute(),
+    );
+    let done = 0;
+    for (const e of stuck) {
+      const attempts = e.attempts + 1;
+      await withTx(this.db, SYSTEM_CLAIMS, (trx) => trx.updateTable('app.provider_events').set({ attempts }).where('id', '=', e.id).execute());
+      const body = (typeof e.payload === 'string' ? JSON.parse(e.payload) : e.payload) as { payload?: Record<string, { entity?: Record<string, unknown> }> };
+      if (await this.processStored(e.id, e.event_type, body.payload ?? {})) done++;
+      else if (attempts > max) {
+        await withTx(this.db, SYSTEM_CLAIMS, (trx) =>
+          trx.insertInto('app.payment_exceptions').values({ reason_code: 'WEBHOOK_FAILED', detail: `Webhook ${e.event_type} (${e.event_id}) failed ${attempts} times` }).execute(),
+        );
+      }
+    }
+    return done;
   }
 
   private async processEvent(eventType: string, payload: Record<string, { entity?: Record<string, unknown> }>) {
@@ -447,8 +493,16 @@ export class PaymentService {
    * never called back"), expire stale orders, close finished cycles and expire
    * unpaid demand-led balances (ADR-013: initial amount retained).
    */
-  async maintenance(now = new Date()): Promise<{ reconciled: number; expiredOrders: number; closedCycles: number; expiredBalances: number; endedSubscriptions: number; lapsedBookings: number }> {
+  async maintenance(now = new Date()): Promise<{ reconciled: number; reprocessedEvents: number; expiredOrders: number; closedCycles: number; expiredBalances: number; endedSubscriptions: number; lapsedBookings: number }> {
     let reconciled = 0;
+    let reprocessedEvents = 0;
+    if (this.provider) {
+      try {
+        reprocessedEvents = await this.reprocessEvents(now);
+      } catch (err) {
+        this.logger.error({ err }, 'webhook reprocessing failed');
+      }
+    }
     if (this.provider) {
       const open = await withTx(this.db, SYSTEM_CLAIMS, (trx) =>
         trx
@@ -547,6 +601,7 @@ export class PaymentService {
         .executeTakeFirst();
       return {
         reconciled,
+        reprocessedEvents,
         expiredOrders: Number(expiredOrders.numUpdatedRows),
         closedCycles: closing.length,
         expiredBalances: overdue.length,
