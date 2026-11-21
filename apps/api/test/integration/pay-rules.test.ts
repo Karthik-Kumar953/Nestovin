@@ -208,6 +208,29 @@ describe.skipIf(!available)('PAY rules (integration)', { timeout: 120_000 }, () 
     expect(r.initialPaidPaise ?? 0).toBe(0);
   });
 
+  it('idempotency: retrying "pay" with the same Idempotency-Key reuses one payment order', async () => {
+    const r = (await residents.demandRequests(R[6]!))[0]!;
+    const key = `qa-${randomUUID()}`;
+    const first = await residents.payAgain(R[6]!, { type: 'DEMAND_REQUEST', id: r.id }, key);
+    const again = await residents.payAgain(R[6]!, { type: 'DEMAND_REQUEST', id: r.id }, key);
+    expect(again.paymentOrderId).toBe(first.paymentOrderId);
+    expect(again.providerOrderId).toBe(first.providerOrderId);
+    // The open order for the record is reused, so a retry never creates a second charge.
+    const open = (await admin.query(`select count(*)::int n from app.payment_orders where ref_id = $1 and status = 'CREATED'`, [r.id])).rows[0].n;
+    expect(open).toBe(1);
+  });
+
+  it('idempotency: one key cannot open a second order for a different record', async () => {
+    const key = `qa-${randomUUID()}`;
+    const r6 = (await residents.demandRequests(R[6]!))[0]!;
+    const r7 = (await residents.demandRequests(R[7]!))[0]!;
+    // No open orders, so the next pay inserts a fresh order carrying the key.
+    await admin.query(`update app.payment_orders set status = 'EXPIRED' where ref_id = any($1) and status = 'CREATED'`, [[r6.id, r7.id]]);
+    await residents.payAgain(R[6]!, { type: 'DEMAND_REQUEST', id: r6.id }, key);
+    expect((await admin.query(`select count(*)::int n from app.payment_orders where idempotency_key = $1`, [key])).rows[0].n).toBe(1);
+    await expectCode(residents.payAgain(R[7]!, { type: 'DEMAND_REQUEST', id: r7.id }, key), 'BUSINESS_RULE_VIOLATION');
+  });
+
   let balanceBookingId: string;
   it('PAY-14: an unpaid demand-led balance never activates the subscription', async () => {
     // R[3] is COMMITTED in cycle30 (PAY-10). Publish a slot set for that request.
