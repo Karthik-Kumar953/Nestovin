@@ -40,7 +40,7 @@ export default function Apply() {
         auth: false,
         body: { ...values, city: values.city || undefined, experienceNote: values.experienceNote || undefined, website: undefined },
       });
-      haptic.success();
+      // The confirmation screen plays the success haptic.
       router.replace('/applied');
     } catch (e) {
       haptic.error();

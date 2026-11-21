@@ -38,6 +38,75 @@ To test check-in, the worker needs a visit **today** with status `ASSIGNED`, and
 npx eas-cli@latest build --profile development --platform android
 ```
 
+## Device checklist (needs a real phone or an iOS build)
+These cannot be checked on Windows, in a browser or on the Android emulator. Tick them on a development build before a demo. Use the test worker from `seed:dev-demo` and a resident who can open the visit's check-in code in the Resident app.
+
+**Check-in by QR (real camera)**
+- [ ] First tap on "Scan QR" shows the system camera prompt with "Scan the resident's check-in QR code."
+- [ ] Allow → live camera with the corner frame and scan line; the resident's QR checks in once, with no double submit while "Checking…" shows.
+- [ ] Any other QR (a payment or website QR) shows "This is not a Nestovin check-in code" with an error haptic, and nothing is sent.
+- [ ] Deny → "Allow the camera to scan" with "Allow camera"; after "Don't ask again", the button becomes "Open settings" and opens the app's settings.
+- [ ] "Enter code" still works with the camera denied.
+
+**Location permission and the denied path**
+- [ ] Opening check-in shows the system location prompt once, with "Your location is recorded once, only when you check in to a visit."; there is no background-location prompt.
+- [ ] Allowed → "Location ready · accurate to N m" appears before the code is entered.
+- [ ] Denied, or location services off → the amber note "You can still check in; it will be reviewed", "Retry location" and "Settings"; check-in still succeeds and shows "Flagged for review".
+- [ ] Indoors with a weak fix, the reading gives up after about 10 seconds and uses a recent last-known position; check-in is never blocked waiting for GPS.
+
+**GPS accuracy flags (geofence 200 m per community)**
+- [ ] Inside the community, a check-in shows "You are checked in" with no flags.
+- [ ] More than 200 m from the community pin, it is still verified but shows "Flagged for review: You seemed to be outside the community's check-in area" with a warning haptic; Admin → Attendance lists it for review.
+- [ ] The low-accuracy flag appears only after `gps_accuracy_threshold_m` is set (it is OPEN today), so don't expect it before that.
+- [ ] Wrong code → "Check-in not accepted" with the reason; after 5 wrong codes, the resident must open a new code.
+- [ ] Airplane mode during check-in → "Not sent yet"; turning it off re-sends the same attempt once automatically, and Admin shows one check-in, not two.
+
+**VoiceOver (iOS) and TalkBack (Android): Today and check-in**
+- [ ] Today reads the greeting as a heading, then "Visits today: 3", "Completed: 1/3", "Offers: 1" as single items.
+- [ ] The hero card reads "Next visit: Cook, Flat B-0703 · Tower B, 9:00 am – 10:30 am", and "Check in" reads as a button with a hint.
+- [ ] Each timeline row reads time, service, flat and status in one swipe; the decorative photos and rings are skipped.
+- [ ] On check-in, "Enter code" and "Scan QR" read as tabs with the selected state; the code field reads the digits one by one.
+- [ ] The result (verified, flagged, rejected, not sent) is announced without focus jumping, and "Done" / "Try again" is reachable next.
+- [ ] Icon-only buttons (close, previous and next week, show password) have spoken names.
+
+**Native font scale at 200%** (iOS: Larger Accessibility Sizes at the largest; Android: Font size max plus Display size)
+- [ ] Today: the stats wrap into two columns, the timeline shows the time inside each card, task chips wrap inside the card, and nothing is cut off.
+- [ ] Check-in: the tabs, location note and buttons wrap and stay tappable; the 6 code boxes keep their size (their digits do not scale).
+- [ ] Schedule week strip and the leave calendar stay on one grid (their digits stop growing at 1.4×).
+- [ ] Bold Text (iOS) does not clip any label.
+
+**Reduce Motion on** (iOS: Accessibility → Motion; Android: Remove animations)
+- [ ] Lists and cards appear without sliding; pushed screens crossfade instead of sliding.
+- [ ] Buttons and cards dim on press instead of scaling.
+- [ ] The check-in, completion and application result marks appear in their final state at once.
+- [ ] The live dot on an in-progress visit, the skeleton shimmer and the QR scan line are still.
+
+**Liquid Glass (iOS 26) and its fallbacks**
+- [ ] The tab bar is system glass, minimises when you scroll down, and shows SF Symbols (sun, calendar, bell, person); the Updates tab shows an unread badge.
+- [ ] "Check in" / "Complete visit" on a visit, and "Request leave" on Leave, are full-width glass capsules with a teal tint above the tab bar, and they don't cover the last item.
+- [ ] Cards, lists, the code boxes, banners and forms are never glass.
+- [ ] Reduce Transparency on (Accessibility → Display & Text Size): the floating actions switch live to a solid teal capsule with white text.
+- [ ] iOS 18 or earlier: the same solid fallback, with no crash.
+- [ ] Android: Material 3 tab bar with a mint indicator and labels always shown; the floating action is a right-aligned extended FAB with 16 dp corners.
+
+**Haptics (physical phone only)**
+- [ ] Selection tick on the check-in tabs, week days, service chips, correction choices, calendar days and payslip rows.
+- [ ] Success on a verified check-in, completing a visit, accepting an offer, requesting or cancelling leave, setting the new password and sending the application.
+- [ ] Warning on a flagged check-in; error on a wrong code, a wrong password and any failed send.
+- [ ] On Android 13+, CONFIRM and REJECT feel distinct from a plain tap.
+
+**Push taps to deep links (development build with Firebase configured)**
+- [ ] After the first sign-in and password change, the app asks for notification permission once; the device is then registered for the worker.
+- [ ] Tapping each push, both while the app runs and from a closed app, opens its screen once:
+  - extra work offered → Extra work
+  - leave decided → Leave
+  - payslip available → Payslips
+  - new regular work, a visit added or overtime confirmed → that visit, or Schedule
+  - correction reviewed → that visit
+  - anything else → Updates
+- [ ] A push tap while signed out opens nothing until sign-in, and sign-out removes the device so a shared phone stops getting this worker's pushes.
+- [ ] A push received while the app is open updates the Updates badge within a minute.
+
 ## Screens
 - **Welcome** (signed out): sign in, or apply.
 - **Apply** (public, EMP-01) and its confirmation. Submitting never creates a login.
