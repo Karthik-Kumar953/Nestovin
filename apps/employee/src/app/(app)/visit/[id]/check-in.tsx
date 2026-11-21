@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Linking, Pressable, View } from 'react-native';
+import { Linking, View } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import { AlertTriangle, Camera, Check, CloudUpload, Hash, LocateFixed, LocateOff, Loader, MapPin, QrCode, RotateCcw, ScanLine, Settings, X } from 'lucide-react-native';
 import type { CheckInInput, CheckInResult } from '@nestovin/contracts';
 import { ApiError, errorMessage } from '../../../../lib/api';
-import { flatLabel, timeWindow } from '../../../../lib/format';
+import { addressLabel, timeWindow } from '../../../../lib/format';
 import { haptic } from '../../../../lib/haptics';
 import { newClientEventId } from '../../../../lib/ids';
 import { oneShotLocation, type Fix } from '../../../../lib/location';
 import { useOnline } from '../../../../lib/net';
 import { useCheckIn, useVisit } from '../../../../lib/queries';
-import { BrandImage, Button, CodeInput, IconButton, Muted, ResultMark, Screen, ServiceIcon, Stagger, Text, c, shadow } from '../../../../ui';
+import { BrandImage, Button, CodeInput, IconButton, Muted, ResultMark, Screen, Segmented, ServiceIcon, Stagger, Text, c } from '../../../../ui';
 
 type Method = 'OTP' | 'QR';
 type Outcome =
@@ -133,10 +133,10 @@ export default function CheckIn() {
       >
         {visit ? (
           <Stagger index={0}>
-            <View className="flex-row items-center gap-3 rounded-xl border border-line/70 bg-surface p-3.5">
+            <View className="flex-row items-center gap-3 rounded-lg border border-line bg-surface p-3">
               <ServiceIcon serviceName={visit.serviceName} />
               <View className="flex-1">
-                <Text className="font-semibold">{flatLabel(visit.flat)}</Text>
+                <Text className="font-semibold text-charcoal">{addressLabel(visit.flat)}</Text>
                 <Muted className="text-sm">
                   {visit.serviceName} · {timeWindow(visit.startsAt, visit.endsAt)}
                 </Muted>
@@ -153,12 +153,23 @@ export default function CheckIn() {
           <ResultPanel tone="error" title="Something went wrong" body={outcome.message} hint="Your code is kept. Tap Send again." />
         ) : (
           <>
-            <Segmented value={method} onChange={(m) => { haptic.select(); setMethod(m); }} />
+            <Segmented<Method>
+              label="Check-in method"
+              value={method}
+              onChange={(m) => {
+                haptic.select();
+                setMethod(m);
+              }}
+              options={[
+                { value: 'OTP', label: 'Enter code', icon: Hash },
+                { value: 'QR', label: 'Scan QR', icon: QrCode },
+              ]}
+            />
             {method === 'OTP' ? (
               <Stagger index={1}>
-                <View className="gap-5 rounded-2xl border border-line/70 bg-surface px-4 py-6">
+                <View className="gap-5 rounded-lg border border-line bg-surface px-4 py-6">
                   <View className="items-center gap-1">
-                    <Text className="font-heading text-xl text-charcoal">Enter the resident’s code</Text>
+                    <Text accessibilityRole="header" className="font-display text-headline text-charcoal">Enter the resident’s code</Text>
                     <Muted className="text-center">Ask the resident to open this visit in their Nestovin app and read out the 6 digits.</Muted>
                   </View>
                   <CodeInput value={code} onChange={onCode} autoFocus />
@@ -176,34 +187,6 @@ export default function CheckIn() {
   );
 }
 
-function Segmented({ value, onChange }: { value: Method; onChange: (m: Method) => void }) {
-  const opts: { m: Method; label: string; icon: typeof Hash }[] = [
-    { m: 'OTP', label: 'Enter code', icon: Hash },
-    { m: 'QR', label: 'Scan QR', icon: QrCode },
-  ];
-  return (
-    <View className="flex-row rounded-lg bg-mint-strong/60 p-1" accessibilityRole="tablist">
-      {opts.map((o) => {
-        const on = value === o.m;
-        return (
-          <Pressable
-            key={o.m}
-            onPress={() => onChange(o.m)}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: on }}
-            accessibilityLabel={o.label}
-            className={`min-h-[48px] flex-1 flex-row items-center justify-center gap-2 rounded-md ${on ? 'bg-surface' : ''}`}
-            style={on ? shadow.card : undefined}
-          >
-            <o.icon size={20} color={on ? c.tealDeep : c.textSecondary} strokeWidth={2} />
-            <Text className={on ? 'font-semibold text-teal-deep' : 'font-medium text-ink-secondary'}>{o.label}</Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
-
 function Scanner({ onScan, busy }: { onScan: (data: string) => void; busy: boolean }) {
   const [perm, request] = useCameraPermissions();
   const [wrong, setWrong] = useState(false);
@@ -215,12 +198,12 @@ function Scanner({ onScan, busy }: { onScan: (data: string) => void; busy: boole
   }, [line, reduce]);
   const lineStyle = useAnimatedStyle(() => ({ transform: [{ translateY: line.value * 200 }] }));
 
-  if (!perm) return <View className="aspect-square rounded-2xl bg-charcoal" />;
+  if (!perm) return <View className="aspect-square rounded-lg bg-charcoal" />;
   if (!perm.granted) {
     return (
-      <View className="items-center gap-4 rounded-2xl border border-line/70 bg-surface p-6">
+      <View className="items-center gap-4 rounded-lg border border-line bg-surface p-6">
         <BrandImage name="ill-checkin-phone" variant="illustration" className="h-36 w-36" iconSize={40} />
-        <Text className="text-center font-heading text-xl text-charcoal">Allow the camera to scan</Text>
+        <Text accessibilityRole="header" className="text-center font-display text-headline text-charcoal">Allow the camera to scan</Text>
         <Muted className="text-center">The camera is used only to read the resident’s QR code. Nothing is recorded.</Muted>
         {perm.canAskAgain ? (
           <Button title="Allow camera" icon={Camera} onPress={() => void request()} className="self-stretch" />
@@ -233,7 +216,7 @@ function Scanner({ onScan, busy }: { onScan: (data: string) => void; busy: boole
   }
   return (
     <View className="gap-3">
-      <View className="aspect-square overflow-hidden rounded-2xl bg-charcoal">
+      <View className="aspect-square overflow-hidden rounded-lg bg-charcoal">
         <CameraView
           style={{ flex: 1 }}
           facing="back"
@@ -255,7 +238,7 @@ function Scanner({ onScan, busy }: { onScan: (data: string) => void; busy: boole
         />
         <View pointerEvents="none" className="absolute inset-0 items-center justify-center">
           {/* Viewfinder: one even frame (no thick corner brackets) on a light tint. */}
-          <View className="h-[240px] w-[240px] rounded-2xl border-2 border-white/90 bg-white/10">
+          <View className="h-[240px] w-[240px] rounded-lg border-2 border-white/90 bg-white/10">
             <Animated.View style={[{ position: 'absolute', left: 16, right: 16, top: 20, height: 2, backgroundColor: c.mintStrong, opacity: 0.9 }, lineStyle]} />
           </View>
         </View>
@@ -275,7 +258,7 @@ function Scanner({ onScan, busy }: { onScan: (data: string) => void; busy: boole
 function LocationChip({ fix, onRetry }: { fix: Fix | 'pending'; onRetry: () => void }) {
   if (fix === 'pending') {
     return (
-      <View className="flex-row items-center gap-3 rounded-lg bg-subtle p-4" accessibilityLiveRegion="polite">
+      <View className="flex-row items-center gap-3 rounded-md bg-subtle p-3.5" accessibilityLiveRegion="polite">
         <Loader size={20} color={c.textSecondary} />
         <Text className="flex-1 text-body-sm text-ink-secondary">Getting your location once for this check-in…</Text>
       </View>
@@ -284,7 +267,7 @@ function LocationChip({ fix, onRetry }: { fix: Fix | 'pending'; onRetry: () => v
   if (fix.status === 'ok') {
     const acc = fix.accuracyM !== undefined ? Math.round(fix.accuracyM) : null;
     return (
-      <View className="flex-row items-center gap-3 rounded-lg bg-mint p-4" accessibilityLiveRegion="polite">
+      <View className="flex-row items-center gap-3 rounded-md bg-mint p-3.5" accessibilityLiveRegion="polite">
         <LocateFixed size={20} color={c.tealDeep} />
         <Text className="flex-1 text-body-sm text-teal-deep">
           Location ready{acc !== null ? ` · accurate to ${acc} m` : ''}. It is saved only with this check-in.
@@ -294,7 +277,7 @@ function LocationChip({ fix, onRetry }: { fix: Fix | 'pending'; onRetry: () => v
   }
   const text = fix.status === 'denied' ? 'Location is not allowed. You can still check in; it will be reviewed.' : fix.status === 'off' ? 'Location is turned off. You can still check in; it will be reviewed.' : 'Could not get your location. You can still check in; it will be reviewed.';
   return (
-    <View className="gap-3 rounded-lg bg-warning-surface p-4" accessibilityLiveRegion="polite">
+    <View className="gap-3 rounded-md bg-warning-surface p-3.5" accessibilityLiveRegion="polite">
       <View className="flex-row items-center gap-3">
         <LocateOff size={20} color={c.warningText} />
         <Text className="flex-1 text-body-sm text-warning-text">{text}</Text>
@@ -309,9 +292,9 @@ function LocationChip({ fix, onRetry }: { fix: Fix | 'pending'; onRetry: () => v
 
 function ResultPanel({ tone, title, body, hint }: { tone: 'warning' | 'error'; title: string; body: string; hint?: string }) {
   return (
-    <View className="items-center gap-2 rounded-2xl border border-line/70 bg-surface px-5 pb-6" accessibilityLiveRegion="assertive">
+    <View className="items-center gap-2 rounded-lg border border-line bg-surface px-5 pb-6" accessibilityLiveRegion="assertive">
       <ResultMark tone={tone} size={84} />
-      <Text accessibilityRole="header" className="text-center font-heading text-2xl text-charcoal">
+      <Text accessibilityRole="header" className="text-center font-display text-headline text-charcoal">
         {title}
       </Text>
       <Text className="text-center text-lead text-ink">{body}</Text>
@@ -345,7 +328,7 @@ function Verified({ result, visitId }: { result: CheckInResult; visitId: string 
         </Stagger>
         {flagged ? (
           <Stagger index={3}>
-            <View className="gap-2 rounded-xl bg-warning-surface p-4">
+            <View className="gap-2 rounded-md bg-warning-surface p-3.5">
               <Text className="font-semibold text-warning-text">Flagged for review</Text>
               {result.flags.map((f) => (
                 <View key={f} className="flex-row gap-2.5">

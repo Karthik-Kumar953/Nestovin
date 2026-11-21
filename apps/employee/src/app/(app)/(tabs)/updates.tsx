@@ -23,7 +23,7 @@ const ICONS: Record<string, { icon: LucideIcon; bg: string; fg: string }> = {
 };
 const FALLBACK_ICON = { icon: Bell, bg: c.surfaceSubtle, fg: c.textSecondary };
 const unreadStyle = shadow.card;
-const listContent = { paddingHorizontal: 20, paddingBottom: 120 };
+const listContent = { paddingHorizontal: 16, paddingBottom: 120 };
 const keyOf = (n: InboxItem) => n.id;
 
 /** One update. Memoised: the inbox refetches every minute and rows rarely change. */
@@ -31,24 +31,24 @@ const UpdateRow = memo(function UpdateRow({ item, onOpen }: { item: InboxItem; o
   const k = ICONS[item.eventType] ?? FALLBACK_ICON;
   const unread = !item.readAt;
   return (
-    <View className="pb-3">
+    <View className="pb-2">
       <PressScale onPress={() => onOpen(item)} accessibilityLabel={`${unread ? 'New. ' : ''}${item.title}. ${item.body.replace(/\.$/, '')}. ${ago(item.createdAt)}`} accessibilityHint="Opens the related screen">
-        <View className={`flex-row gap-4 rounded-xl border p-4 ${unread ? 'border-teal-action/30 bg-mint-soft' : 'border-line/70 bg-surface'}`} style={unread ? unreadStyle : undefined}>
-          <View className="h-11 w-11 items-center justify-center rounded-md" style={{ backgroundColor: k.bg }}>
-            <k.icon size={22} color={k.fg} strokeWidth={2} />
+        <View className={`flex-row gap-3 rounded-lg border px-4 py-3 ${unread ? 'border-mint-strong bg-mint-soft' : 'border-line bg-surface'}`} style={unreadStyle}>
+          <View className="h-10 w-10 items-center justify-center rounded-md" style={{ backgroundColor: k.bg }}>
+            <k.icon size={20} color={k.fg} strokeWidth={2} />
           </View>
           <View className="flex-1 gap-0.5">
             <View className="flex-row items-center justify-between gap-2">
-              <Text className={`flex-1 ${unread ? 'font-semibold' : 'font-medium'}`}>{item.title}</Text>
+              <Text className={`flex-1 text-body-sm text-charcoal ${unread ? 'font-semibold' : 'font-medium'}`}>{item.title}</Text>
               {unread ? (
-                <View className="flex-row items-center gap-1.5 rounded-full bg-mint px-2 py-0.5" accessible={false}>
+                <View className="flex-row items-center gap-1.5 rounded-full bg-mint px-2.5 py-1" accessible={false}>
                   <View className="h-2 w-2 rounded-full bg-teal-action" />
                   <Text className="font-semibold text-label text-teal-deep">New</Text>
                 </View>
               ) : null}
             </View>
-            <Text className="text-body-sm text-ink-secondary">{item.body}</Text>
-            <Text className="pt-1 text-label text-ink-secondary">{ago(item.createdAt)}</Text>
+            <Text className="text-sm text-ink-secondary">{item.body}</Text>
+            <Text className="pt-1 text-caption text-ink-secondary">{ago(item.createdAt)}</Text>
           </View>
         </View>
       </PressScale>
@@ -80,7 +80,7 @@ export default function Updates() {
   const unread = q.data?.unread ?? 0;
 
   const header = (
-    <View className="gap-4 pb-4 pt-2">
+    <View className="gap-4 pb-4 pt-3">
       <View className="flex-row flex-wrap items-end justify-between gap-x-4 gap-y-1">
         <View className="gap-1">
           <Title>Updates</Title>

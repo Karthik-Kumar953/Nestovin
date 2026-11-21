@@ -67,7 +67,7 @@ export default function ChangePassword() {
     >
       <View className="h-6" />
       <Stagger index={0}>
-        <View className="h-16 w-16 items-center justify-center rounded-xl bg-mint">
+        <View className="h-16 w-16 items-center justify-center rounded-lg bg-mint">
           <KeyRound size={30} color={c.tealDeep} strokeWidth={2} />
         </View>
       </Stagger>

@@ -1,15 +1,14 @@
-import { View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { View, useWindowDimensions } from 'react-native';
 import type { UseQueryResult } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BadgeCheck, Building2, CheckCheck, ChevronRight, Clock3, ScanLine, Sun } from 'lucide-react-native';
-import { servicePhoto } from '../assets/images';
+import { Check, CheckCheck, ClipboardList, Clock3, FileText, ScanLine, Sun } from 'lucide-react-native';
 import { ApiError } from '../lib/api';
-import { flatLabel, time, timeWindow } from '../lib/format';
+import { addressLabel, duration, shortAddress, time, timeParts, timeWindow } from '../lib/format';
 import { visitStatus } from '../lib/queries';
 import type { VisitTask } from '@nestovin/contracts';
 import type { Visit, VisitDetail } from '../lib/types';
-import { BrandImage, Button, EmptyState, ErrorState, LoadingList, Muted, Screen, Pill, PressScale, PulseDot, ServiceIcon, Text, c, gradients, shadow, toneColors, useLargeText } from '../ui';
+import { Button, Card, EmptyState, ErrorState, LoadingList, Muted, Screen, Pill, PressScale, Text, c, serviceGlyph, shadow, useLargeText, type Tone } from '../ui';
 
 export const isOpen = (v: Visit) => v.status === 'ASSIGNED' || v.status === 'SCHEDULED';
 export const isLive = (v: Visit) => v.status === 'IN_PROGRESS';
@@ -47,7 +46,7 @@ export function Tasks({ tasks, max }: { tasks: VisitTask[]; max?: number }) {
       {shown.map((t) => {
         const f = taskFrequency(t);
         return (
-          <View key={t.name} className="max-w-full rounded-2xl bg-subtle px-3 py-1.5">
+          <View key={t.name} className="max-w-full rounded-md bg-subtle px-3 py-1.5">
             {/* One wrapping Text so long names stay inside the card at large text sizes. */}
             <Text className="text-sm text-ink">
               {t.name}
@@ -57,7 +56,7 @@ export function Tasks({ tasks, max }: { tasks: VisitTask[]; max?: number }) {
         );
       })}
       {more > 0 ? (
-        <View className="rounded-full bg-subtle px-3 py-1.5">
+        <View className="rounded-md bg-subtle px-3 py-1.5">
           <Text className="text-sm text-ink-secondary">+{more} more</Text>
         </View>
       ) : null}
@@ -65,98 +64,138 @@ export function Tasks({ tasks, max }: { tasks: VisitTask[]; max?: number }) {
   );
 }
 
+/** Current time, re-read every 30 s so "Starts in 25 min" stays true while the screen is open. */
+export function useNow(intervalMs = 30_000): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), intervalMs);
+    return () => clearInterval(t);
+  }, [intervalMs]);
+  return now;
+}
+
 /**
- * Hero card on Today: service photo, flat in large type, time window, status
- * and the one action that matters now (check in, or complete).
+ * The time chip on the next-visit card, derived only from the visit's own
+ * start and end times: "Starts in 25 min" (amber inside the hour), "Due now",
+ * or "In progress" once checked in.
+ */
+export function startChip(visit: Visit, now: number): { label: string; tone: Tone } {
+  if (isLive(visit)) return { label: 'In progress', tone: 'teal' };
+  if (!visit.startsAt) return { label: 'Time to be confirmed', tone: 'neutral' };
+  const mins = (new Date(visit.startsAt).getTime() - now) / 60_000;
+  if (mins > 60) return { label: `Starts in ${duration(mins)}`, tone: 'neutral' };
+  if (mins > 1) return { label: `Starts in ${duration(mins)}`, tone: 'warning' };
+  if (visit.endsAt && now > new Date(visit.endsAt).getTime()) return { label: 'Time window passed', tone: 'warning' };
+  return { label: 'Due now', tone: 'warning' };
+}
+
+/**
+ * Next-visit card (direction C): service and "Next visit", the time chip, the
+ * address large, community, time window, then Details + the one action that
+ * matters now (Check in, or Complete visit once checked in).
  */
 export function NextVisitCard({ visit }: { visit: Visit }) {
   const live = isLive(visit);
+  const now = useNow();
+  const chip = startChip(visit, now);
+  const large = useLargeText();
+  const Glyph = serviceGlyph(visit.serviceName);
   const open = () => router.push({ pathname: '/visit/[id]', params: { id: visit.occurrenceId } });
   return (
-    <View className="overflow-hidden rounded-2xl bg-surface" style={shadow.float}>
-      <PressScale onPress={open} accessibilityLabel={`${live ? 'Current visit' : 'Next visit'}: ${visit.serviceName}, ${flatLabel(visit.flat)}, ${timeWindow(visit.startsAt, visit.endsAt)}`} accessibilityHint="Opens the visit">
-        <View className="h-36">
-          <BrandImage name={servicePhoto(visit.serviceName)} className="h-full w-full" />
-          <LinearGradient colors={gradients.scrim} style={{ position: 'absolute', inset: 0 }} />
-          <View className="absolute left-4 right-4 top-4 flex-row items-center justify-between">
-            <View className="flex-row items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5">
-              {live ? <PulseDot size={7} /> : <Clock3 size={14} color={c.tealDeep} strokeWidth={2.25} />}
-              <Text className="font-semibold text-label text-teal-deep">{live ? 'In progress' : 'Next visit'}</Text>
+    <Card raised pad="none">
+      <PressScale
+        onPress={open}
+        accessibilityLabel={`${live ? 'Current visit' : 'Next visit'}: ${visit.serviceName}, ${addressLabel(visit.flat)}, ${visit.flat.communityName}, ${timeWindow(visit.startsAt, visit.endsAt)}. ${chip.label}`}
+        accessibilityHint="Opens the visit"
+      >
+        <View className="gap-3 px-4 pt-4">
+          <View className="flex-row flex-wrap items-center justify-between gap-2">
+            <View className="flex-row items-center gap-1.5">
+              <Glyph size={16} color={c.tealAction} strokeWidth={2} />
+              <Text className="font-semibold text-label text-teal-action">
+                {visit.serviceName} · {live ? 'Current visit' : 'Next visit'}
+              </Text>
             </View>
+            <Pill label={chip.label} tone={chip.tone} icon={live ? undefined : Clock3} />
           </View>
-          <View className="absolute bottom-3 left-4 right-4 flex-row items-end justify-between">
-            <View className="min-w-0 flex-1 flex-row items-center gap-3">
-              <ServiceIcon serviceName={visit.serviceName} />
-              <Text numberOfLines={1} className="min-w-0 flex-1 font-heading text-stat text-white">{visit.serviceName}</Text>
+          <View className="gap-0.5">
+            <Text accessibilityRole="header" className="font-display text-headline text-charcoal">
+              {addressLabel(visit.flat)}
+            </Text>
+            <Muted className="text-sm">{visit.flat.communityName}</Muted>
+          </View>
+          <View className="flex-row flex-wrap items-center gap-x-4 gap-y-1.5">
+            <View className="flex-row items-center gap-1.5">
+              <Clock3 size={16} color={c.textSecondary} />
+              <Text className="font-semibold text-sm">{timeWindow(visit.startsAt, visit.endsAt)}</Text>
             </View>
-          </View>
-        </View>
-        <View className="gap-3 px-5 pt-4">
-          <View className="flex-row items-start justify-between gap-3">
-            <View className="flex-1 gap-1">
-              <Text className="font-display text-2xl leading-8 text-charcoal">{flatLabel(visit.flat)}</Text>
+            {visit.tasks.length ? (
               <View className="flex-row items-center gap-1.5">
-                <Building2 size={16} color={c.textSecondary} />
-                <Muted>{visit.flat.communityName}</Muted>
+                <ClipboardList size={16} color={c.textSecondary} />
+                <Text className="font-semibold text-sm">
+                  {visit.tasks.length} {visit.tasks.length === 1 ? 'task' : 'tasks'}
+                </Text>
               </View>
-            </View>
-            <ChevronRight size={22} color={c.textSecondary} />
+            ) : null}
           </View>
-          <View className="flex-row items-center gap-3 rounded-lg bg-mint px-4 py-3">
-            <Clock3 size={22} color={c.tealDeep} strokeWidth={2} />
-            <Text className="flex-1 font-heading text-xl text-teal-deep">{timeWindow(visit.startsAt, visit.endsAt)}</Text>
-          </View>
-          <Tasks tasks={visit.tasks} max={4} />
         </View>
       </PressScale>
-      <View className="p-5 pt-4">
+      <View className={`mx-4 mb-4 mt-4 gap-2 border-t border-line pt-4 ${large ? 'flex-col-reverse' : 'flex-row'}`}>
+        <Button title="Details" variant="secondary" size="md" icon={FileText} onPress={open} className={large ? undefined : 'flex-1'} />
         {live ? (
-          <Button title="Complete visit" icon={CheckCheck} onPress={() => router.push({ pathname: '/visit/[id]/complete', params: { id: visit.occurrenceId } })} />
+          <Button title="Complete visit" size="md" icon={CheckCheck} onPress={() => router.push({ pathname: '/visit/[id]/complete', params: { id: visit.occurrenceId } })} className={large ? undefined : 'flex-[1.5]'} />
         ) : (
-          <Button title="Check in" icon={ScanLine} onPress={() => router.push({ pathname: '/visit/[id]/check-in', params: { id: visit.occurrenceId } })} accessibilityHint="Enter or scan the resident's code" />
+          <Button
+            title="Check in"
+            size="md"
+            icon={ScanLine}
+            onPress={() => router.push({ pathname: '/visit/[id]/check-in', params: { id: visit.occurrenceId } })}
+            accessibilityHint="Enter or scan the resident's code"
+            className={large ? undefined : 'flex-[1.5]'}
+          />
         )}
       </View>
-    </View>
+    </Card>
   );
 }
 
-/** One row of the day's timeline: time rail, dot, compact card. */
-export function TimelineRow({ visit, last, highlight }: { visit: Visit; last: boolean; highlight?: boolean }) {
+const DONE = new Set(['COMPLETED', 'COMPLETION_SUBMITTED']);
+
+/**
+ * Compact visit row (direction C "Also today"): time column, hairline,
+ * service and address, then the status chip in words.
+ */
+export function VisitRow({ visit, detail }: { visit: Visit; detail?: string }) {
   const s = visitStatus(visit.status);
-  const t = toneColors[s.tone];
-  const done = visit.status === 'COMPLETED' || visit.status === 'COMPLETION_SUBMITTED';
+  const done = DONE.has(visit.status);
+  const tp = timeParts(visit.startsAt);
   const large = useLargeText();
+  // Below 360 dp (or with large text) the chip moves under the address so the text never gets squeezed.
+  const { width } = useWindowDimensions();
+  const stackChip = large || width < 360;
+  const sub = detail ?? visit.flat.communityName;
+  const chip = <Pill label={done ? 'Done' : s.label} tone={s.tone} icon={done ? Check : undefined} className={stackChip ? 'mt-1' : undefined} />;
   return (
-    <View className="flex-row gap-3">
-      {large ? null : (
-        <View className="w-[68px] items-end pt-4">
-          <Text className={`font-semibold text-body-sm ${done ? 'text-ink-secondary' : 'text-charcoal'}`}>{time(visit.startsAt) ?? '—'}</Text>
+    <PressScale
+      onPress={() => router.push({ pathname: '/visit/[id]', params: { id: visit.occurrenceId } })}
+      accessibilityLabel={`${time(visit.startsAt) ?? 'Time to be confirmed'}, ${visit.serviceName}, ${shortAddress(visit.flat)}, ${sub}, ${s.label}`}
+      accessibilityHint="Opens the visit"
+    >
+      <View className={`min-h-[64px] gap-3 rounded-lg border border-line bg-surface px-4 py-3 ${large ? '' : 'flex-row items-center'}`} style={shadow.card}>
+        <View className={large ? 'flex-row items-baseline gap-1' : 'w-14'}>
+          <Text className={`font-display text-base leading-5 ${done ? 'text-ink-secondary' : 'text-charcoal'}`}>{tp?.hm ?? '—'}</Text>
+          <Text className="text-caption text-ink-secondary">{tp?.ap ?? 'TBC'}</Text>
         </View>
-      )}
-      <View className="items-center">
-        <View className="mt-[18px] h-4 w-4 items-center justify-center rounded-full" style={{ backgroundColor: highlight ? c.tealAction : t.bg, borderWidth: 2, borderColor: highlight ? c.mintStrong : t.dot }}>
-          {done ? <BadgeCheck size={10} color={t.fg} /> : null}
+        <View className={`min-w-0 flex-1 gap-0.5 self-stretch justify-center ${large ? '' : 'border-l border-line pl-3'}`}>
+          <Text className={`font-semibold text-body-sm ${done ? 'text-ink-secondary' : 'text-charcoal'}`}>
+            {visit.serviceName} · {shortAddress(visit.flat)}
+          </Text>
+          <Text className="text-label text-ink-secondary">{sub}</Text>
+          {stackChip ? chip : null}
         </View>
-        {!last ? <View className="w-0.5 flex-1 bg-line" /> : null}
+        {stackChip ? null : chip}
       </View>
-      <PressScale
-        containerClassName="mb-3 flex-1"
-        onPress={() => router.push({ pathname: '/visit/[id]', params: { id: visit.occurrenceId } })}
-        accessibilityLabel={`${time(visit.startsAt) ?? 'Time to be confirmed'}, ${visit.serviceName}, ${flatLabel(visit.flat)}, ${s.label}`}
-      >
-        <View className={`flex-row items-center gap-3 rounded-xl border bg-surface p-3.5 ${highlight ? 'border-teal-action/50' : 'border-line/70'}`}>
-          {large ? null : <ServiceIcon serviceName={visit.serviceName} size="sm" />}
-          <View className="min-w-0 flex-1 gap-1.5">
-            {large ? <Text className="font-semibold text-teal-deep">{time(visit.startsAt) ?? 'Time to be confirmed'}</Text> : null}
-            <Text className={`font-semibold ${done ? 'text-ink-secondary' : ''}`}>{flatLabel(visit.flat)}</Text>
-            <View className="flex-row flex-wrap items-center gap-2">
-              <Muted className="text-sm">{visit.serviceName}</Muted>
-              <Pill label={s.label} tone={s.tone} />
-            </View>
-          </View>
-        </View>
-      </PressScale>
-    </View>
+    </PressScale>
   );
 }
 

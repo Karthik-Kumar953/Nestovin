@@ -2,7 +2,7 @@ import { View } from 'react-native';
 import { router } from 'expo-router';
 import { CheckCircle2, Circle, CircleX, GraduationCap, Hourglass, ShieldCheck, Sparkles } from 'lucide-react-native';
 import type { Me } from '../lib/types';
-import { BrandImage, Button, Card, Muted, Pill, ProgressRing, Stagger, Text, c } from '../ui';
+import { BrandImage, Button, Card, Muted, Pill, ProgressBar, Stagger, Text, c } from '../ui';
 
 /** Readiness numbers from /me: required checks, qualifications, training. */
 export function readinessOf(me: Me) {
@@ -18,10 +18,10 @@ function Step({ done, failed, title, detail }: { done: boolean; failed?: boolean
   const Icon = failed ? CircleX : done ? CheckCircle2 : Circle;
   return (
     <View className="flex-row items-start gap-3 py-2" accessibilityLabel={`${title}: ${detail}`}>
-      <Icon size={24} color={failed ? c.errorText : done ? c.greenAction : c.textMuted} strokeWidth={2} />
+      <Icon size={22} color={failed ? c.errorText : done ? c.greenAction : c.textSecondary} strokeWidth={2} />
       <View className="flex-1">
-        <Text className="font-semibold">{title}</Text>
-        <Muted>{detail}</Muted>
+        <Text className="font-semibold text-body-sm text-charcoal">{title}</Text>
+        <Muted className="text-sm">{detail}</Muted>
       </View>
     </View>
   );
@@ -37,16 +37,19 @@ export function NotReadyCard({ me }: { me: Me }) {
   return (
     <View className="gap-4">
       <Stagger index={0}>
-        <Card className="overflow-hidden p-0">
-          <View className="flex-row items-center gap-4 bg-warning-surface/60 p-5">
-            <ProgressRing value={r.progress} label={`${Math.round(r.progress * 100)}%`} color={c.tealAction} />
-            <View className="flex-1 gap-1">
+        <Card raised pad="none" className="overflow-hidden">
+          <View className="gap-3 p-4">
+            <View className="flex-row flex-wrap items-center justify-between gap-2">
               <Pill label="Not ready yet" tone="warning" icon={Hourglass} />
-              <Text className="font-heading text-xl text-charcoal">Almost ready to start work</Text>
-              <Muted>HR will assign visits once these are done.</Muted>
+              <Text className="font-semibold text-sm text-charcoal">{Math.round(r.progress * 100)}% done</Text>
             </View>
+            <View className="gap-1">
+              <Text accessibilityRole="header" className="font-display text-headline text-charcoal">Almost ready to start work</Text>
+              <Muted className="text-sm">HR will assign visits once these are done.</Muted>
+            </View>
+            <ProgressBar value={r.progress} label={`${Math.round(r.progress * 100)}% of your readiness steps done`} />
           </View>
-          <View className="px-5 pb-3 pt-2">
+          <View className="border-t border-line px-4 pb-2 pt-1">
             <Step
               done={r.total > 0 && r.verified === r.total}
               failed={r.rejected > 0}
@@ -62,11 +65,11 @@ export function NotReadyCard({ me }: { me: Me }) {
         <Stagger index={1}>
           <Card className="gap-1">
             <View className="mb-1 flex-row items-center gap-2">
-              <ShieldCheck size={20} color={c.tealDeep} />
-              <Text className="font-heading text-lg text-charcoal">Your checks</Text>
+              <ShieldCheck size={18} color={c.tealDeep} />
+              <Text accessibilityRole="header" className="font-heading text-base text-charcoal">Your checks</Text>
             </View>
             {me.verifications.map((v, i) => (
-              <View key={v.name} className={`min-h-[44px] flex-row items-center justify-between py-2 ${i < me.verifications.length - 1 ? 'border-b border-line/60' : ''}`}>
+              <View key={v.name} className={`min-h-[44px] flex-row items-center justify-between py-2 ${i < me.verifications.length - 1 ? 'border-b border-line' : ''}`}>
                 <Text className="flex-1">{v.name}</Text>
                 <Text className={`font-semibold text-sm ${v.status === 'VERIFIED' ? 'text-success-text' : v.status === 'REJECTED' ? 'text-error-text' : 'text-warning-text'}`}>
                   {v.status === 'VERIFIED' ? 'Verified' : v.status === 'REJECTED' ? 'Not accepted' : 'Pending'}
@@ -78,11 +81,11 @@ export function NotReadyCard({ me }: { me: Me }) {
       ) : null}
       {r.trainingTotal > r.trainingDone ? (
         <Stagger index={2}>
-          <View className="flex-row items-center gap-4 overflow-hidden rounded-xl bg-teal-deep p-5">
-            <BrandImage name="ill-training" variant="illustration" className="h-16 w-16" iconSize={22} />
+          <View className="flex-row items-center gap-3 rounded-lg border border-mint-strong bg-mint-soft p-4">
+            <BrandImage name="ill-training" variant="illustration" className="h-14 w-14" iconSize={20} />
             <View className="flex-1 gap-3">
-              <Text className="font-heading text-lg text-white">Watch your training videos</Text>
-              <Button title="Open training" variant="light" size="md" icon={GraduationCap} onPress={() => router.push('/training')} />
+              <Text className="font-heading text-base text-charcoal">Watch your training videos</Text>
+              <Button title="Open training" size="md" icon={GraduationCap} onPress={() => router.push('/training')} />
             </View>
           </View>
         </Stagger>

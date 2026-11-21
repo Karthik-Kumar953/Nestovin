@@ -1,6 +1,6 @@
 import '../../global.css';
 import '../lib/net';
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { Platform } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -14,9 +14,10 @@ import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-goog
 import { AuthProvider, useAuth } from '../lib/auth';
 import { ApiError } from '../lib/api';
 import { linkFor } from '../lib/links';
+import { AnimatedSplash } from '../ui/splash';
 import { c } from '../ui/theme';
 
-void SplashScreen.preventAutoHideAsync();
+void SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,9 +53,8 @@ function NotificationRouter() {
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({ Manrope_600SemiBold, Manrope_700Bold, Manrope_800ExtraBold, Inter_400Regular, Inter_500Medium, Inter_600SemiBold });
-  useEffect(() => {
-    if (fontsLoaded || fontError) void SplashScreen.hideAsync();
-  }, [fontsLoaded, fontError]);
+  // The native splash (brand background + logo) stays up until fonts load and the
+  // in-app splash has painted its first (identical) frame; it hides itself then.
   if (!fontsLoaded && !fontError) return null;
   return (
     <SafeAreaProvider>
@@ -62,6 +62,7 @@ export default function RootLayout() {
         <AuthProvider>
           <StatusBar style="dark" />
           {Platform.OS !== 'web' ? <NotificationRouter /> : null}
+          <SplashGate>
           <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.background } }}>
             <Stack.Screen name="index" options={{ animation: 'fade' }} />
             <Stack.Screen name="welcome" options={{ animation: 'fade' }} />
@@ -69,8 +70,15 @@ export default function RootLayout() {
             <Stack.Screen name="change-password" options={{ animation: 'fade', gestureEnabled: false }} />
             <Stack.Screen name="applied" options={{ gestureEnabled: false }} />
           </Stack>
+          </SplashGate>
         </AuthProvider>
       </QueryClientProvider>
     </SafeAreaProvider>
   );
+}
+
+/** Holds the animated splash until the stored session has been restored, so nobody sees a flash of the wrong screen. */
+function SplashGate({ children }: { children: ReactNode }) {
+  const { ready } = useAuth();
+  return <AnimatedSplash ready={ready}>{children}</AnimatedSplash>;
 }

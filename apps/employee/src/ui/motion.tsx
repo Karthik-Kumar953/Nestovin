@@ -140,7 +140,7 @@ export function FloatingAction({ label, icon: Icon, onPress, hint }: { label: st
   if (Platform.OS === 'android') {
     return (
       <View className="absolute bottom-5 right-5" style={shadow.float}>
-        <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} accessibilityHint={hint} android_ripple={{ color: `${c.white}33` }} className="overflow-hidden rounded-2xl bg-teal-action">
+        <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} accessibilityHint={hint} android_ripple={{ color: `${c.white}33` }} className="overflow-hidden rounded-lg bg-teal-action">
           {content}
         </Pressable>
       </View>

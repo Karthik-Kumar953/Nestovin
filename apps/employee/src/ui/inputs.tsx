@@ -83,7 +83,7 @@ export function RangeCalendar({ start, end, onChange, min = isoDay() }: { start:
     else onChange(start, day);
   };
   return (
-    <View className="gap-3 rounded-xl border border-line bg-surface p-4">
+    <View className="gap-3 rounded-lg border border-line bg-surface p-4">
       <View className="flex-row items-center justify-between">
         {canBack ? <IconButton icon={ChevronLeft} label="Previous month" onPress={() => shift(-1)} /> : <View className="h-12 w-12" />}
         <Text accessibilityRole="header" className="font-heading text-lg text-charcoal">

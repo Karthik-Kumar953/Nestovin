@@ -51,7 +51,7 @@ export default function Complete() {
   return (
     <Screen edges={['bottom', 'left', 'right']} footer={<Button title="Mark visit complete" icon={CheckCheck} busy={m.isPending} onPress={() => void submit()} />}>
       <View className="gap-1">
-        <Text className="font-heading text-2xl text-charcoal">Finished the work?</Text>
+        <Text className="font-display text-headline text-charcoal">Finished the work?</Text>
         <Muted>{`${visit.serviceName} · ${flatLabel(visit.flat)}`}</Muted>
       </View>
       <Field label="Note for Operations" optional multiline value={note} onChangeText={setNote} maxLength={1000} placeholder="For example: the resident asked to skip the balcony today" hint="Only Nestovin staff see this note" />

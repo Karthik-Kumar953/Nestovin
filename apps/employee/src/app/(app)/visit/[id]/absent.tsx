@@ -59,7 +59,7 @@ export default function ResidentAbsent() {
 
   return (
     <Screen edges={['bottom', 'left', 'right']} footer={<Button title="Record resident not available" variant="danger" icon={UserX} busy={busy} onPress={() => void submit()} />}>
-      <View className="flex-row items-center gap-4 rounded-xl bg-warning-surface p-4">
+      <View className="flex-row items-center gap-3 rounded-md bg-warning-surface p-3.5">
         <DoorClosed size={28} color={c.warningText} />
         <View className="flex-1">
           <Text className="font-semibold text-warning-text">Nobody answered the door?</Text>

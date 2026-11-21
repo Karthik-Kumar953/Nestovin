@@ -9,10 +9,10 @@ import { c } from '../../../ui';
 
 const icon = (Icon: LucideIcon) =>
   function TabIcon({ focused, color, size }: { focused: boolean; color: ColorValue; size: number }) {
-    // Decorative: the tab's accessible name comes from its label.
+    // Decorative: the tab's accessible name comes from its label. Active tab: teal pill behind the icon (direction C).
     return (
-      <View aria-hidden>
-        <Icon color={String(color)} size={size} strokeWidth={focused ? 2.5 : 2} aria-hidden />
+      <View aria-hidden style={{ width: 56, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: focused ? c.teal100 : 'transparent' }}>
+        <Icon color={String(color)} size={Math.min(size, 24)} strokeWidth={focused ? 2.25 : 2} aria-hidden />
       </View>
     );
   };
@@ -48,9 +48,9 @@ export default function TabsLayoutWeb() {
         headerShown: false,
         tabBarActiveTintColor: c.tealAction,
         tabBarInactiveTintColor: c.textSecondary,
-        tabBarLabelStyle: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
-        tabBarItemStyle: { minHeight: 56, paddingVertical: 4 },
-        tabBarStyle: { backgroundColor: c.surface, borderTopColor: c.border, height: 64 },
+        tabBarLabelStyle: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginTop: 2 },
+        tabBarItemStyle: { minHeight: 60, paddingVertical: 6 },
+        tabBarStyle: { backgroundColor: c.surface, borderTopColor: c.border, height: 68 },
         sceneStyle: { backgroundColor: c.background },
       }}
     >

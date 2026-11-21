@@ -7,7 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { monthLabel, rupees } from '../../lib/format';
 import { haptic } from '../../lib/haptics';
 import { qk, usePayslips } from '../../lib/queries';
-import { BrandImage, Divider, EmptyState, ErrorState, LoadingList, Muted, Pill, PressScale, Screen, Stagger, Text, c, shadow, useLargeText, type Tone } from '../../ui';
+import { Divider, EmptyState, ErrorState, LoadingList, Muted, Pill, PressScale, Screen, Stagger, Text, c, shadow, useLargeText, type Tone } from '../../ui';
 
 const PAID: Record<Payslip['paymentStatus'], { label: string; tone: Tone }> = {
   PAID: { label: 'Paid', tone: 'success' },
@@ -20,9 +20,11 @@ const PAID: Record<Payslip['paymentStatus'], { label: string; tone: Tone }> = {
 export default function Payslips() {
   const qc = useQueryClient();
   const q = usePayslips();
-  const [open, setOpen] = useState<string | null>(null);
+  // undefined = not touched yet: the latest month starts open.
+  const [touched, setOpen] = useState<string | null | undefined>(undefined);
   const large = useLargeText();
   const items = [...(q.data ?? [])].sort((a, b) => b.month.localeCompare(a.month));
+  const open = touched === undefined ? (items[0]?.month ?? null) : touched;
 
   return (
     <Screen edges={['bottom', 'left', 'right']} onRefresh={() => qc.invalidateQueries({ queryKey: qk.payslips })}>
@@ -32,25 +34,13 @@ export default function Payslips() {
         <ErrorState error={q.error} onRetry={() => void q.refetch()} />
       ) : items.length ? (
         <>
-          <Stagger index={0}>
-            <View className="overflow-hidden rounded-2xl bg-teal-deep p-5">
-              <View className="absolute -bottom-6 -right-4 opacity-90">
-                <BrandImage name="ill-payslip" variant="illustration" className="h-28 w-28" iconSize={30} />
-              </View>
-              <Text className="font-medium text-white/85">{monthLabel(items[0]!.month)}</Text>
-              <Text className="font-display text-metric text-white">{rupees(items[0]!.netPaise)}</Text>
-              <Text className="text-white/85">Net pay</Text>
-              <View className="mt-3 self-start">
-                <Pill label={PAID[items[0]!.paymentStatus].label} tone={PAID[items[0]!.paymentStatus].tone} />
-              </View>
-            </View>
-          </Stagger>
+          <Muted className="px-1">Approved payslips. Tap a month for the details.</Muted>
           {items.map((p, i) => {
             const isOpen = open === p.month;
             const s = PAID[p.paymentStatus];
             return (
               <Stagger key={p.month} index={i + 1}>
-                <View className="overflow-hidden rounded-xl border border-line/70 bg-surface" style={shadow.card}>
+                <View className="overflow-hidden rounded-lg border border-line bg-surface" style={i === 0 ? shadow.float : shadow.card}>
                   <PressScale
                     onPress={() => {
                       haptic.select();
@@ -62,17 +52,21 @@ export default function Payslips() {
                   >
                     <View className="min-h-[72px] flex-row items-center gap-3 p-4">
                       <View className="flex-1 gap-1">
-                        <Text className="font-semibold">{monthLabel(p.month)}</Text>
-                        {large ? <Text className="font-heading text-xl text-charcoal">{rupees(p.netPaise)}</Text> : null}
+                        <Text className="font-semibold text-charcoal">{monthLabel(p.month)}</Text>
+                        {large ? <Text className="font-display text-headline text-charcoal">{rupees(p.netPaise)}</Text> : null}
                         <Pill label={s.label} tone={s.tone} />
                       </View>
-                      {large ? null : <Text className="font-heading text-xl text-charcoal">{rupees(p.netPaise)}</Text>}
+                      {large ? null : (
+                        <Text className="font-display text-headline text-charcoal" style={{ fontVariant: ['tabular-nums'] }}>
+                          {rupees(p.netPaise)}
+                        </Text>
+                      )}
                       {isOpen ? <ChevronUp size={22} color={c.textSecondary} /> : <ChevronDown size={22} color={c.textSecondary} />}
                     </View>
                   </PressScale>
                   {isOpen ? (
                     <Animated.View entering={FadeIn.duration(200).reduceMotion(ReduceMotion.System)}>
-                      <View className="gap-2.5 border-t border-line/60 bg-mint-soft p-4">
+                      <View className="gap-2.5 border-t border-line bg-subtle/60 p-4">
                       <Line label="Payable days" value={`${p.payableDays} of ${p.daysInMonth}`} />
                       <Line label="Earnings" value={rupees(p.earningsPaise)} />
                       <Line label="Deductions" value={p.deductionsPaise ? `− ${rupees(p.deductionsPaise)}` : rupees(0)} />
@@ -87,7 +81,7 @@ export default function Payslips() {
               </Stagger>
             );
           })}
-          <Muted className="text-sm">Questions about your pay? Talk to your supervisor or HR.</Muted>
+          <Muted className="px-1 text-sm">Questions about your pay? Talk to your supervisor or HR.</Muted>
         </>
       ) : (
         <EmptyState image="ill-payslip" title="No payslips yet" body="Your payslip appears here after the month’s payroll is approved." />

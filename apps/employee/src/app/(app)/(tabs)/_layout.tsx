@@ -4,7 +4,7 @@ import { c } from '../../../ui';
 
 /**
  * Four tabs, worker-first. iOS 26: system Liquid Glass tab bar that minimises
- * on scroll. Android: Material 3 bar with a mint indicator and labels always on.
+ * on scroll. Android: Material 3 bar with a teal-tint pill indicator and labels always on.
  */
 export default function TabsLayout() {
   const inbox = useInbox();
@@ -13,7 +13,7 @@ export default function TabsLayout() {
     <NativeTabs
       tintColor={c.tealAction}
       iconColor={{ default: c.textSecondary, selected: c.tealAction }}
-      indicatorColor={c.mintStrong}
+      indicatorColor={c.teal100}
       labelVisibilityMode="labeled"
       minimizeBehavior="onScrollDown"
       labelStyle={{ default: { color: c.textSecondary }, selected: { color: c.tealDeep } }}

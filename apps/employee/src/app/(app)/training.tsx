@@ -1,14 +1,13 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
-import { LinearGradient } from 'expo-linear-gradient';
 import { CheckCircle2, Play } from 'lucide-react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { trainingPhoto } from '../../assets/images';
 import { errorMessage } from '../../lib/api';
 import { haptic } from '../../lib/haptics';
 import { qk, useCompleteTraining, useMe } from '../../lib/queries';
-import { BrandImage, Button, EmptyState, ErrorState, LoadingList, Muted, PressScale, ProgressRing, Screen, Stagger, Text, c, gradients, notify, shadow, useLargeText } from '../../ui';
+import { BrandImage, Button, EmptyState, ErrorState, LoadingList, Muted, PressScale, ProgressBar, Screen, Stagger, Text, c, notify, shadow, useLargeText } from '../../ui';
 
 /**
  * EMP-04 training: open the video link, then confirm it was watched. The
@@ -48,12 +47,18 @@ export default function Training() {
     <Screen edges={['bottom', 'left', 'right']} onRefresh={() => qc.invalidateQueries({ queryKey: qk.me })}>
       {items.length ? (
         <Stagger index={0}>
-          <View className="flex-row items-center gap-4 rounded-xl bg-surface p-4" style={shadow.card}>
-            <ProgressRing value={items.length ? done / items.length : 0} label={`${done}/${items.length}`} size={68} />
-            <View className="flex-1 gap-0.5">
-              <Text className="font-heading text-lg text-charcoal">{done === items.length ? 'All videos watched' : 'Your training'}</Text>
-              <Muted className="text-sm">{done === items.length ? 'Well done. HR can see your progress.' : 'Watch each video, then tap “I have watched it”.'}</Muted>
+          <View className="gap-3 rounded-lg border border-line bg-surface p-4" style={shadow.card}>
+            <View className="flex-row flex-wrap items-baseline justify-between gap-x-3">
+              <Text accessibilityRole="header" className="font-heading text-base text-charcoal">{done === items.length ? 'All videos watched' : 'Your training'}</Text>
+              <Text className="text-sm text-ink-secondary">
+                <Text className="font-semibold text-sm text-charcoal">
+                  {done} of {items.length}
+                </Text>{' '}
+                watched
+              </Text>
             </View>
+            <ProgressBar value={items.length ? done / items.length : 0} label={`${done} of ${items.length} training videos watched`} />
+            <Muted className="text-sm">{done === items.length ? 'Well done. HR can see your progress.' : 'Watch each video, then tap “I have watched it”.'}</Muted>
           </View>
         </Stagger>
       ) : null}
@@ -62,18 +67,18 @@ export default function Training() {
           const isDone = !!t.completedAt;
           return (
             <Stagger key={t.itemId} index={i + 1}>
-              <View className="overflow-hidden rounded-2xl border border-line/70 bg-surface" style={shadow.card}>
+              <View className="overflow-hidden rounded-lg border border-line bg-surface" style={shadow.card}>
                 <PressScale onPress={() => void watch(t.itemId, t.url)} accessibilityLabel={`Play ${t.title}`} accessibilityHint="Opens the video">
-                  <View className="h-40">
+                  {/* Image slot wrk-training-1..3 (16:9 thumbnail); designed fallback until added. */}
+                  <View style={{ aspectRatio: 16 / 9 }}>
                     <BrandImage name={trainingPhoto(i)} className="h-full w-full" />
-                    <LinearGradient colors={gradients.scrimSoft} style={{ position: 'absolute', inset: 0 }} />
                     <View className="absolute inset-0 items-center justify-center">
-                      <View className="h-16 w-16 items-center justify-center rounded-full bg-white/95" style={shadow.float}>
-                        <Play size={28} color={c.tealDeep} fill={c.tealDeep} />
+                      <View className="h-14 w-14 items-center justify-center rounded-full bg-white" style={shadow.float}>
+                        <Play size={24} color={c.tealDeep} fill={c.tealDeep} />
                       </View>
                     </View>
                     {isDone ? (
-                      <View className="absolute left-3 top-3 flex-row items-center gap-1.5 rounded-full bg-white px-3 py-1.5">
+                      <View className="absolute left-3 top-3 flex-row items-center gap-1 rounded-full bg-success-surface px-2.5 py-1">
                         <CheckCircle2 size={16} color={c.greenAction} />
                         <Text className="font-semibold text-label text-success-text">Watched</Text>
                       </View>
@@ -81,7 +86,7 @@ export default function Training() {
                   </View>
                 </PressScale>
                 <View className="gap-3 p-4">
-                  <Text className="font-heading text-lg text-charcoal">{t.title}</Text>
+                  <Text className="font-heading text-base text-charcoal">{t.title}</Text>
                   {isDone ? (
                     <Muted className="text-sm">Completed on {new Date(t.completedAt!).toLocaleDateString('en-IN', { day: 'numeric', month: 'long' })}</Muted>
                   ) : (

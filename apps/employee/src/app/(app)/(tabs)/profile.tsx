@@ -1,7 +1,6 @@
 import { View } from 'react-native';
 import { router } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BadgeCheck, Building2, CalendarCheck2, CalendarOff, ChevronRight, Clock3, GraduationCap, LogOut, Phone, ReceiptIndianRupee, ShieldCheck, TimerReset } from 'lucide-react-native';
+import { Building2, CalendarCheck2, CalendarOff, ChevronRight, Clock3, GraduationCap, LogOut, Phone, ReceiptIndianRupee, ShieldCheck, TimerReset } from 'lucide-react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import Constants from 'expo-constants';
 import { readinessOf } from '../../../components/readiness';
@@ -9,7 +8,7 @@ import { daysLabel, initials, longDay } from '../../../lib/format';
 import { unregisterPush } from '../../../lib/push';
 import { qk, useMe } from '../../../lib/queries';
 import { supabase } from '../../../lib/supabase';
-import { Avatar, Button, Card, ErrorState, ListRow, LoadingList, Muted, Pill, Rings, Screen, Section, ServiceIcon, Stagger, Text, c, confirmAction, gradients } from '../../../ui';
+import { Avatar, Button, Card, Divider, ErrorState, ListRow, LoadingList, Muted, Pill, Screen, Section, ServiceIcon, Stagger, Text, c, confirmAction } from '../../../ui';
 
 /** EMP-03: own profile (read-only in V1; HR edits), links and sign-out. */
 export default function Profile() {
@@ -38,33 +37,28 @@ export default function Profile() {
   return (
     <Screen title="Me" onRefresh={() => qc.invalidateQueries({ queryKey: qk.me })}>
       <Stagger index={0}>
-        <LinearGradient colors={gradients.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 24, overflow: 'hidden', padding: 20 }}>
-          <View className="absolute -right-24 -top-24" pointerEvents="none">
-            <Rings opacity={0.12} />
-          </View>
+        <Card raised className="gap-4">
           <View className="flex-row items-center gap-4">
-            <View className="rounded-full border-2 border-white/40">
-              <Avatar initials={initials(m.fullName)} size={68} />
-            </View>
-            <View className="flex-1 gap-1">
-              <Text className="font-heading text-2xl text-white">{m.fullName}</Text>
-              <View className="flex-row items-center gap-2 self-start rounded-full bg-white/15 px-3 py-1">
-                <BadgeCheck size={16} color={c.white} />
-                <Text accessibilityLabel={`Employee ID ${m.employeeCode.split('').join(' ')}`} className="font-semibold tracking-wider text-white">
-                  {m.employeeCode}
-                </Text>
-              </View>
+            <Avatar initials={initials(m.fullName)} size={64} />
+            <View className="min-w-0 flex-1 gap-0.5">
+              <Text accessibilityRole="header" className="font-display text-headline text-charcoal">
+                {m.fullName}
+              </Text>
+              <Text accessibilityLabel={`Employee ID ${m.employeeCode.split('').join(' ')}`} className="font-semibold text-sm text-ink-secondary">
+                {m.employeeCode}
+              </Text>
             </View>
           </View>
-          <View className="mt-4 flex-row items-center justify-between rounded-lg bg-white/10 px-4 py-3">
-            <Text className="text-white/90">Status</Text>
+          <Divider />
+          <View className="flex-row flex-wrap items-center justify-between gap-2">
+            <Text className="text-body-sm text-ink-secondary">Status</Text>
             <Pill label={m.readiness === 'READY' ? 'Ready for work' : 'Not ready yet'} tone={m.readiness === 'READY' ? 'success' : 'warning'} />
           </View>
-        </LinearGradient>
+        </Card>
       </Stagger>
 
       <Stagger index={1}>
-        <Card className="gap-0 py-2">
+        <Card pad="list">
           <ListRow icon={Phone} title={m.phone} detail="Mobile number" />
           <ListRow icon={Building2} title={m.homeClusterName} detail="Home cluster" />
           {m.joinedOn ? <ListRow icon={CalendarCheck2} title={longDay(m.joinedOn)} detail="Joined Nestovin" /> : null}
@@ -75,7 +69,7 @@ export default function Profile() {
         {m.services.length ? (
           <View className="flex-row flex-wrap gap-2.5">
             {m.services.map((s) => (
-              <View key={s} className="flex-row items-center gap-2.5 rounded-xl border border-line/70 bg-surface py-2 pl-2 pr-4">
+              <View key={s} className="min-h-[48px] flex-row items-center gap-2.5 rounded-md border border-line bg-surface py-1.5 pl-1.5 pr-4">
                 <ServiceIcon serviceName={s} size="sm" />
                 <Text className="font-semibold">{s}</Text>
               </View>
@@ -88,7 +82,7 @@ export default function Profile() {
 
       {m.verifications.length ? (
         <Section title="Checks">
-          <Card className="gap-0 py-2">
+          <Card pad="list">
             <ListRow
               icon={ShieldCheck}
               title={`${r.verified} of ${r.total} verified`}
@@ -100,7 +94,7 @@ export default function Profile() {
 
       {m.availability.length ? (
         <Section title="Working hours">
-          <Card className="gap-0 py-2">
+          <Card pad="list">
             {m.availability.map((a, i) => (
               <ListRow key={i} icon={Clock3} title={`${a.startTime} – ${a.endTime}`} detail={daysLabel(a.daysOfWeek)} />
             ))}
@@ -109,7 +103,7 @@ export default function Profile() {
       ) : null}
 
       <Section title="More">
-        <Card className="gap-0 py-1">
+        <Card pad="list">
           <ListRow icon={TimerReset} title="Extra work" detail="Offers to accept or decline" onPress={() => router.push('/offers')} trailing={<ChevronRight size={20} color={c.textSecondary} />} />
           <ListRow icon={CalendarOff} title="Leave" detail="Requests and decisions" onPress={() => router.push('/leave')} trailing={<ChevronRight size={20} color={c.textSecondary} />} />
           <ListRow icon={GraduationCap} title="Training" detail={m.training.length ? `${r.trainingDone} of ${r.trainingTotal} watched` : 'No videos yet'} onPress={() => router.push('/training')} trailing={<ChevronRight size={20} color={c.textSecondary} />} />
@@ -117,8 +111,8 @@ export default function Profile() {
         </Card>
       </Section>
 
-      <Muted className="text-sm">To change your details, contact HR.</Muted>
-      <View className="pt-2">
+      <Muted className="px-1 text-sm">To change your details, contact HR.</Muted>
+      <View className="pt-4">
         <Button title="Sign out" variant="secondary" icon={LogOut} onPress={signOut} />
       </View>
       <Muted className="text-center text-label">Nestovin Worker {Constants.expoConfig?.version ?? ''}</Muted>

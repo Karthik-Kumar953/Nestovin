@@ -1,7 +1,7 @@
 import { Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Circle, Path } from 'react-native-svg';
+import Svg, { Circle } from 'react-native-svg';
 import type { LucideIcon } from 'lucide-react-native';
 import {
   Building2,
@@ -129,29 +129,27 @@ const SERVICE_ICON: Record<'maid' | 'cook' | 'caretaker', { icon: LucideIcon; bg
   caretaker: { icon: HandHeart, bg: c.teal200, fg: c.tealDeep },
 };
 
+/** The service's line icon on its own, for inline tags ("Cook · Next visit"). */
+export const serviceGlyph = (serviceName: string): LucideIcon => SERVICE_ICON[serviceKind(serviceName)].icon;
+
 export function ServiceIcon({ serviceName, size = 'md' }: { serviceName: string; size?: 'sm' | 'md' | 'lg' }) {
   const s = SERVICE_ICON[serviceKind(serviceName)];
-  const box = { sm: 'h-9 w-9 rounded-md', md: 'h-12 w-12 rounded-lg', lg: 'h-14 w-14 rounded-xl' }[size];
+  const box = { sm: 'h-9 w-9 rounded-sm', md: 'h-11 w-11 rounded-md', lg: 'h-14 w-14 rounded-lg' }[size];
   const Icon = s.icon;
   return (
     <View className={`${box} items-center justify-center`} style={{ backgroundColor: s.bg }} accessible={false} importantForAccessibility="no-hide-descendants">
-      <Icon size={size === 'sm' ? 18 : size === 'md' ? 24 : 28} color={s.fg} strokeWidth={2} />
+      <Icon size={size === 'sm' ? 18 : size === 'md' ? 22 : 28} color={s.fg} strokeWidth={2} />
     </View>
   );
 }
 
-export function Avatar({ initials, size = 64 }: { initials: string; size?: number }) {
+/** Initials on solid teal-action (white text at AA), as in direction C's header. */
+export function Avatar({ initials, size = 48 }: { initials: string; size?: number }) {
   return (
-    <LinearGradient colors={[c.tealAction, c.tealDeep]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: size, height: size, borderRadius: size / 2, alignItems: 'center', justifyContent: 'center' }}>
-      <View accessible={false} style={{ position: 'absolute', top: 0, left: 0, borderRadius: size / 2, overflow: 'hidden' }}>
-        <Svg width={size} height={size} viewBox="0 0 64 64">
-          <Path d="M0 44 C 18 34, 40 58, 64 40 L64 64 L0 64 Z" fill={c.white} fillOpacity={0.08} />
-        </Svg>
-      </View>
-      <Text allowFontScaling={false} className="font-heading text-white" style={{ fontSize: size * 0.36 }}>
+    <View accessible={false} style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: c.tealAction, alignItems: 'center', justifyContent: 'center' }}>
+      <Text allowFontScaling={false} className="font-heading text-white" style={{ fontSize: Math.round(size * 0.34) }}>
         {initials}
       </Text>
-    </LinearGradient>
+    </View>
   );
 }
-

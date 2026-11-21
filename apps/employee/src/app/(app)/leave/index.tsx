@@ -7,7 +7,7 @@ import { errorMessage } from '../../../lib/api';
 import { parseDay } from '../../../lib/format';
 import { haptic } from '../../../lib/haptics';
 import { qk, useCancelLeave, useLeave } from '../../../lib/queries';
-import { BrandImage, Button, EmptyState, ErrorState, FloatingAction, LoadingList, Muted, Pill, Screen, Stagger, Text, c, confirmAction, notify, shadow, type Tone } from '../../../ui';
+import { BrandImage, Button, EmptyState, ErrorState, LoadingList, Muted, Pill, Screen, Stagger, Text, c, confirmAction, notify, shadow, type Tone } from '../../../ui';
 
 const STATUS: Record<LeaveRequest['status'], { label: string; tone: Tone }> = {
   PENDING: { label: 'Waiting for approval', tone: 'warning' },
@@ -43,12 +43,16 @@ export default function Leave() {
 
   return (
     <>
-      <Screen edges={['bottom', 'left', 'right']} onRefresh={() => qc.invalidateQueries({ queryKey: qk.leave })}>
+      <Screen
+        edges={['bottom', 'left', 'right']}
+        onRefresh={() => qc.invalidateQueries({ queryKey: qk.leave })}
+        footer={<Button title="Request leave" icon={CalendarPlus} onPress={() => router.push('/leave/new')} />}
+      >
         <Stagger index={0}>
-          <View className="flex-row items-center gap-4 rounded-xl bg-mint p-4">
-            <BrandImage name="ill-leave" variant="illustration" className="h-16 w-16" iconSize={22} />
+          <View className="flex-row items-center gap-3 rounded-lg border border-mint-strong bg-mint-soft p-4">
+            <BrandImage name="ill-leave" variant="illustration" className="h-14 w-14" iconSize={20} />
             <View className="flex-1 gap-0.5">
-              <Text className="font-heading text-lg text-charcoal">Need time off?</Text>
+              <Text accessibilityRole="header" className="font-heading text-base text-charcoal">Need time off?</Text>
               <Muted className="text-sm">Ask early. HR or Operations approves, and your visits are covered while you are away.</Muted>
             </View>
           </View>
@@ -58,20 +62,20 @@ export default function Leave() {
         ) : q.error && !q.data ? (
           <ErrorState error={q.error} onRetry={() => void q.refetch()} />
         ) : q.data?.length ? (
-          <View className="gap-3">
+          <View className="gap-2">
             {q.data.map((l, i) => {
               const s = STATUS[l.status];
               const n = daysBetween(l.startDate, l.endDate);
               return (
                 <Stagger key={l.id} index={i + 1}>
-                  <View className="gap-3 rounded-xl border border-line/70 bg-surface p-4" style={shadow.card}>
-                    <View className="flex-row items-center gap-4">
-                      <View className="w-16 items-center rounded-lg bg-mint py-2">
-                        <Text className="text-caption font-semibold uppercase text-teal-deep">{wd.format(parseDay(l.startDate))}</Text>
-                        <Text className="font-heading text-2xl text-teal-deep">{Number(l.startDate.slice(8))}</Text>
+                  <View className="gap-3 rounded-lg border border-line bg-surface p-4" style={shadow.card}>
+                    <View className="flex-row items-center gap-3">
+                      <View className="w-14 items-center rounded-md border border-line bg-subtle py-1.5">
+                        <Text className="font-semibold text-caption text-ink-secondary">{wd.format(parseDay(l.startDate))}</Text>
+                        <Text className="font-display text-headline text-charcoal">{Number(l.startDate.slice(8))}</Text>
                       </View>
-                      <View className="flex-1 gap-1">
-                        <Text className="font-semibold">{l.startDate === l.endDate ? dm.format(parseDay(l.startDate)) : `${dm.format(parseDay(l.startDate))} – ${dm.format(parseDay(l.endDate))}`}</Text>
+                      <View className="flex-1 gap-1 border-l border-line pl-3">
+                        <Text className="font-semibold text-charcoal">{l.startDate === l.endDate ? dm.format(parseDay(l.startDate)) : `${dm.format(parseDay(l.startDate))} – ${dm.format(parseDay(l.endDate))}`}</Text>
                         <Muted className="text-sm">
                           {n} {n === 1 ? 'day' : 'days'}
                         </Muted>
@@ -80,7 +84,7 @@ export default function Leave() {
                     </View>
                     {l.reason ? <Muted>{l.reason}</Muted> : null}
                     {l.reviewNote ? (
-                      <View className="flex-row gap-2 rounded-lg bg-subtle p-3">
+                      <View className="flex-row gap-2 rounded-md bg-subtle p-3">
                         <MessageSquareText size={18} color={c.textSecondary} />
                         <Text className="flex-1 text-body-sm text-ink-secondary">{l.reviewNote}</Text>
                       </View>
@@ -94,9 +98,7 @@ export default function Leave() {
         ) : (
           <EmptyState image="ill-leave" title="No leave requests" body="Your requests and their decisions appear here." />
         )}
-        <View className="h-16" />
       </Screen>
-      <FloatingAction label="Request leave" icon={CalendarPlus} onPress={() => router.push('/leave/new')} />
     </>
   );
 }

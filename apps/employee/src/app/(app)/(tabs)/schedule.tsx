@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { ChevronLeft, ChevronRight, Clock3 } from 'lucide-react-native';
 import { useQueryClient } from '@tanstack/react-query';
-import { TimelineRow, byStart } from '../../../components/visit';
+import { VisitRow, byStart } from '../../../components/visit';
 import { addDays, daysLabel, isoDay, longDay, parseDay, weekStart } from '../../../lib/format';
 import { haptic } from '../../../lib/haptics';
 import { qk, useMe, useSchedule } from '../../../lib/queries';
@@ -40,7 +40,7 @@ export default function Schedule() {
     <Screen title="Schedule" onRefresh={() => qc.invalidateQueries({ queryKey: qk.scheduleAll })}>
       <View className="flex-row items-center gap-2">
         <IconButton icon={ChevronLeft} label="Previous week" onPress={() => moveWeek(-1)} />
-        <Text accessibilityRole="header" className="flex-1 text-center font-semibold text-lead">{`${range.format(parseDay(week))} – ${range.format(parseDay(end))}`}</Text>
+        <Text accessibilityRole="header" className="flex-1 text-center font-heading text-base text-charcoal">{`${range.format(parseDay(week))} – ${range.format(parseDay(end))}`}</Text>
         <IconButton icon={ChevronRight} label="Next week" onPress={() => moveWeek(1)} />
       </View>
       <View className="flex-row gap-1" accessibilityRole="tablist">
@@ -57,10 +57,12 @@ export default function Schedule() {
                 accessibilityRole="tab"
                 accessibilityState={{ selected: on }}
                 accessibilityLabel={`${longDay(d)}, ${count} ${count === 1 ? 'visit' : 'visits'}`}
-                className={`min-h-[72px] flex-1 items-center justify-center gap-1 rounded-lg ${on ? 'bg-teal-action' : d === today ? 'border-[1.5px] border-teal-action/50 bg-surface' : 'bg-surface'}`}
+                android_ripple={{ color: `${c.tealDeep}14` }}
+                style={({ pressed }) => (pressed && !on ? { opacity: 0.7 } : undefined)}
+                className={`min-h-[68px] flex-1 items-center justify-center gap-1 rounded-md border ${on ? 'border-teal-action bg-teal-action' : d === today ? 'border-teal-action bg-surface' : 'border-line bg-surface'}`}
               >
                 <Text maxFontSizeMultiplier={GRID_MAX_FONT_SCALE} className={`text-caption ${on ? 'font-semibold text-white/90' : 'text-ink-secondary'}`}>{wd.format(parseDay(d))}</Text>
-                <Text maxFontSizeMultiplier={GRID_MAX_FONT_SCALE} className={`font-heading text-lg ${on ? 'text-white' : 'text-charcoal'}`}>{Number(d.slice(8))}</Text>
+                <Text maxFontSizeMultiplier={GRID_MAX_FONT_SCALE} className={`font-display text-lg ${on ? 'text-white' : 'text-charcoal'}`}>{Number(d.slice(8))}</Text>
                 <View className="h-1.5 flex-row gap-0.5">
                   {Array.from({ length: Math.min(count, 3) }, (_, i) => (
                     <View key={i} className={`h-1.5 w-1.5 rounded-full ${on ? 'bg-white' : 'bg-teal-action'}`} />
@@ -77,24 +79,26 @@ export default function Schedule() {
         ) : q.error && !q.data ? (
           <ErrorState error={q.error} onRetry={() => void q.refetch()} />
         ) : visits.length ? (
-          <View>
+          <View className="gap-2">
             {visits.map((v, i) => (
               <Stagger key={v.occurrenceId} index={i}>
-                <TimelineRow visit={v} last={i === visits.length - 1} />
+                <VisitRow visit={v} />
               </Stagger>
             ))}
           </View>
         ) : (
-          <EmptyState image="ill-empty-visits" title="No visits this day" body={day < today ? 'Nothing was scheduled for you.' : 'If work is assigned, it appears here and you get an update.'} />
+          <View className="rounded-lg border border-line bg-surface">
+            <EmptyState image="ill-empty-visits" title="No visits this day" body={day < today ? 'Nothing was scheduled for you.' : 'If work is assigned, it appears here and you get an update.'} />
+          </View>
         )}
       </Section>
 
       {me.data?.availability.length ? (
         <Section title="Your working hours">
-          <Card className="gap-2">
+          <Card className="gap-1">
             {me.data.availability.map((a, i) => (
-              <View key={i} className="min-h-[44px] flex-row items-center gap-3">
-                <Clock3 size={20} color={c.tealDeep} />
+              <View key={i} className="min-h-[44px] flex-row flex-wrap items-center gap-x-3">
+                <Clock3 size={18} color={c.tealDeep} />
                 <Text className="flex-1 font-medium">{daysLabel(a.daysOfWeek)}</Text>
                 <Text className="text-ink-secondary">
                   {a.startTime} – {a.endTime}

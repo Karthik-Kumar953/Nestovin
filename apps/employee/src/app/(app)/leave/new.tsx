@@ -39,7 +39,7 @@ export default function NewLeave() {
       <Muted>Tap the first day, then the last day. For one day, tap it once.</Muted>
       <RangeCalendar start={start} end={end} min={isoDay()} onChange={(s, e) => { setStart(s); setEnd(e); }} />
       {start ? (
-        <View className="rounded-lg bg-mint p-4" accessibilityLiveRegion="polite">
+        <View className="rounded-md border border-mint-strong bg-mint-soft p-3.5" accessibilityLiveRegion="polite">
           <Text className="font-semibold text-teal-deep">{start === last ? longDay(start) : `${longDay(start)} to ${longDay(last!)}`}</Text>
         </View>
       ) : null}

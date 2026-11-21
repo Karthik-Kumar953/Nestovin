@@ -25,7 +25,7 @@ export default function Applied() {
           <Muted className="text-center">Thank you. Our HR team has your details.</Muted>
         </View>
       </Stagger>
-      <View className="gap-0 rounded-xl border border-line bg-surface p-5">
+      <View className="gap-0 rounded-lg border border-line bg-surface p-5">
         <Text className="mb-3 font-heading text-lg text-charcoal">What happens next</Text>
         {NEXT.map((n, i) => (
           <Stagger key={n.title} index={i + 2}>

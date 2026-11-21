@@ -80,7 +80,7 @@ export default function Correction() {
               accessibilityState={{ checked: on }}
               accessibilityLabel={`${o.title}. ${o.detail}`}
             >
-              <View className={`flex-row items-center gap-4 rounded-xl border-[1.5px] p-4 ${on ? 'border-teal-action bg-mint' : 'border-line bg-surface'}`}>
+              <View className={`flex-row items-center gap-4 rounded-lg border-[1.5px] p-4 ${on ? 'border-teal-action bg-mint' : 'border-line bg-surface'}`}>
                 <View className={`h-11 w-11 items-center justify-center rounded-md ${on ? 'bg-teal-action' : 'bg-mint'}`}>
                   <o.icon size={22} color={on ? c.white : c.tealDeep} />
                 </View>

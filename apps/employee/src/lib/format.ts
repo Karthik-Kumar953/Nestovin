@@ -68,6 +68,29 @@ export function rupees(paise: number): string {
 }
 
 export const flatLabel = (f: { flatNumber: string; towerName: string }) => `Flat ${f.flatNumber} · ${f.towerName}`;
+/** Address line for the next-visit card: "Tower B, Flat 1204". */
+export const addressLabel = (f: { flatNumber: string; towerName: string }) => `${f.towerName}, Flat ${f.flatNumber}`;
+/** Compact address for list rows: "Tower B 1204". */
+export const shortAddress = (f: { flatNumber: string; towerName: string }) => `${f.towerName} ${f.flatNumber}`;
+
+/** "5:15" and "pm" for the time column of a visit row. */
+export function timeParts(iso: string | null | undefined): { hm: string; ap: string } | null {
+  if (!iso) return null;
+  const parts = timeFmt.formatToParts(new Date(iso));
+  const hour = parts.find((p) => p.type === 'hour')?.value ?? '';
+  const minute = parts.find((p) => p.type === 'minute')?.value ?? '';
+  const ap = (parts.find((p) => p.type === 'dayPeriod')?.value ?? '').toLowerCase();
+  return { hm: `${hour}:${minute}`, ap };
+}
+
+/** "25 min", "1 h", "2 h 5 min". */
+export function duration(minutes: number): string {
+  const m = Math.max(0, Math.round(minutes));
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  const r = m % 60;
+  return r ? `${h} h ${r} min` : `${h} h`;
+}
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 /** daysOfWeek bitmask: bit 0 = Monday … bit 6 = Sunday (ISO order). */

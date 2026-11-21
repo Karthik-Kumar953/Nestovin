@@ -6,7 +6,7 @@ import { Heading, Muted, Title } from './primitives';
 import { c } from './theme';
 
 /**
- * Standard screen: mint canvas, 20 px margins, scroll, pull to refresh,
+ * Standard screen: #F5FAF9 canvas, 16 px margins, scroll, pull to refresh,
  * offline strip. Tab roots draw their own large title; pushed screens use the
  * native header and pass `edges={['bottom']}`.
  */
@@ -45,7 +45,7 @@ export function Screen({
   const head = (
     <>
       {title ? (
-        <View className="gap-1 pb-1 pt-2">
+        <View className="gap-1 pb-1 pt-3">
           <Title>{title}</Title>
           {subtitle ? <Muted>{subtitle}</Muted> : null}
         </View>
@@ -53,7 +53,7 @@ export function Screen({
       <OfflineBanner message={offlineMessage} />
     </>
   );
-  const body = <View className={`gap-4 ${padded ? 'px-5' : ''}`}>{head}{children}</View>;
+  const body = <View className={`gap-4 ${padded ? 'px-4' : ''}`}>{head}{children}</View>;
   return (
     <SafeAreaView edges={edges} style={{ flex: 1, backgroundColor: c.background }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -69,7 +69,7 @@ export function Screen({
         ) : (
           <View style={{ flex: 1, paddingTop: 8 }}>{body}</View>
         )}
-        {footer ? <View className="gap-3 border-t border-line/60 bg-canvas px-5 pb-4 pt-3">{footer}</View> : null}
+        {footer ? <View className="gap-2 border-t border-line bg-surface px-4 pb-4 pt-3">{footer}</View> : null}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -78,7 +78,7 @@ export function Screen({
 /** Small section header inside a screen. */
 export function Section({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
   return (
-    <View className="gap-3">
+    <View className="gap-2.5">
       <View className="min-h-[32px] flex-row items-center justify-between">
         <Heading>{title}</Heading>
         {action}

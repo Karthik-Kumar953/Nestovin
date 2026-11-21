@@ -68,7 +68,7 @@ export default function SignIn() {
       <Screen edges={['bottom', 'left', 'right']} footer={<Button title="Sign in" icon={LogIn} busy={busy} onPress={() => void submit()} />}>
         <View className="h-24" />
         <Stagger index={0}>
-          <View className="h-16 w-16 items-center justify-center rounded-xl border border-line bg-white">
+          <View className="h-16 w-16 items-center justify-center rounded-lg border border-line bg-white">
             <Image source={LOGO} style={{ width: 42, height: 37 }} contentFit="contain" accessibilityLabel="Nestovin" />
           </View>
         </Stagger>
@@ -117,7 +117,7 @@ export default function SignIn() {
         </Stagger>
         {error ? <Banner tone="error">{error}</Banner> : null}
         <Stagger index={3}>
-          <View className="rounded-lg bg-mint p-4">
+          <View className="gap-0.5 rounded-md border border-mint-strong bg-mint-soft p-3.5">
             <Text className="font-semibold text-teal-deep">Forgot your password?</Text>
             <Muted>Ask HR to reset it. They will give you a new temporary password.</Muted>
           </View>

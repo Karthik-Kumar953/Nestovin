@@ -8,7 +8,7 @@ import { ChefHat, HandHeart, Send, Sparkles } from 'lucide-react-native';
 import { createApplicantSchema } from '@nestovin/contracts';
 import { ApiError, api, errorMessage } from '../lib/api';
 import { haptic } from '../lib/haptics';
-import { Banner, BrandImage, Button, Chip, Field, Heading, Muted, Screen, Stagger, Text, c } from '../ui';
+import { Banner, BrandImage, Button, Chip, Field, Muted, Screen, Stagger, Text, c } from '../ui';
 
 type Input = z.input<typeof createApplicantSchema>;
 type Output = z.output<typeof createApplicantSchema>;
@@ -56,10 +56,10 @@ export default function Apply() {
       <Stack.Screen options={{ headerShown: true, title: 'Apply', headerBackTitle: 'Back', headerTintColor: c.tealAction, headerShadowVisible: false, headerStyle: { backgroundColor: c.background } }} />
       <Screen edges={['bottom', 'left', 'right']} footer={<Button title="Send my application" icon={Send} busy={isSubmitting} onPress={() => void onSubmit()} />}>
         <Stagger index={0}>
-          <View className="flex-row items-center gap-4 rounded-xl bg-mint p-4">
+          <View className="flex-row items-center gap-3 rounded-lg border border-mint-strong bg-mint-soft p-4">
             <BrandImage name="ill-applicant" variant="illustration" className="h-20 w-20" iconSize={28} />
             <View className="flex-1 gap-1">
-              <Heading className="text-2xl leading-8">Work with Nestovin</Heading>
+              <Text accessibilityRole="header" className="font-display text-headline text-charcoal">Work with Nestovin</Text>
               <Muted>Tell us about yourself. HR will call you about the next steps.</Muted>
             </View>
           </View>
