@@ -1,5 +1,5 @@
 import type { ErrorEnvelope, FieldError } from '@nestovin/contracts';
-import { env } from './env';
+import { demoMode, env } from './env';
 import { supabase } from './supabase';
 
 export class ApiError extends Error {
@@ -26,6 +26,7 @@ type Init = { method?: string; body?: unknown; headers?: Record<string, string>;
  * NETWORK means the request never reached the server, so a retry is safe.
  */
 export async function api<T>(path: string, init: Init = {}): Promise<T> {
+  if (demoMode) return (await import('./demo')).demoApi<T>(path, init);
   let token: string | undefined;
   if (init.auth !== false) {
     const { data } = await supabase.auth.getSession();

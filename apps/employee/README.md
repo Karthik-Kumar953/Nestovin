@@ -13,6 +13,16 @@ It talks only to the Nestovin API (`/v1/employee/*`, `/v1/public/applicants`), p
 
 On Windows, Expo commands that call pnpm need a shim folder with `pnpm` / `pnpm.cmd` running `corepack pnpm` on PATH (see `docs/team/TEAM_PLAN.md`).
 
+## Design review without the API (demo mode, dev only)
+```
+node scripts/demo-web.cjs        # or the "worker-demo" entry in .claude/launch.json
+```
+This runs the app on web at http://localhost:8082 with fixtures from `src/lib/demo.ts`: no API and no sign-in. Fixtures change as you use them (check in, complete, accept an offer, request or cancel leave, mark updates read) and reset on reload.
+- Other states: add `?demo=live`, `done`, `empty`, `notready` or `signedout` to the URL.
+- Check-in codes: `000000` is rejected, `111111` is verified but flagged for review, any other 6 digits is verified.
+- It is gated on `__DEV__ && EXPO_PUBLIC_DEMO=1`, so a release build never serves fixtures. Names, flats and amounts are illustrative.
+- On a phone, set `EXPO_PUBLIC_DEMO=1` before `npx expo start` to see the same data.
+
 ## Sign-in during development
 1. An admin with `employees:approve` enables the worker's login in the admin portal (or `POST /v1/admin/employees/:id/login`). HR sees a one-time temporary password.
 2. Sign in with the Employee ID (`NV-000123`; `nv123` and `123` also work) and that password. The app maps it to `nv-000123@staff.nestovin.invalid` in Supabase Auth.

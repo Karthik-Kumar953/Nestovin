@@ -9,6 +9,9 @@ export const env = {
   apiUrl: (process.env.EXPO_PUBLIC_API_URL ?? '').replace(/\/$/, ''),
 };
 
+/** DEV-ONLY: EXPO_PUBLIC_DEMO=1 serves fixtures (src/lib/demo.ts) for design review. Never on in a release build. */
+export const demoMode = __DEV__ && process.env.EXPO_PUBLIC_DEMO === '1';
+
 export const missingEnv = Object.entries(env)
   .filter(([, v]) => !v)
   .map(([k]) => k);
