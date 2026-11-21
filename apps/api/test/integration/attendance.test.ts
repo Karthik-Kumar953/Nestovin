@@ -120,7 +120,10 @@ describe.skipIf(!available)('attendance and service records (Phase 6)', { timeou
     }
     for (const name of ['Asha', 'Bina']) {
       const d = await hr.createEmployee(root, 't', { fullName: name, phone: phone(), homeClusterId: c1 });
-      await hr.setVerification(root, 't', d.id, itemId, { status: 'VERIFIED' });
+      // Readiness needs every ACTIVE check; parallel suites on the shared dev DB add their own, so verify all.
+      for (const it of (await q(`select id from app.verification_items where status = 'ACTIVE'`)).rows as { id: string }[]) {
+        await hr.setVerification(root, 't', d.id, it.id, { status: 'VERIFIED' });
+      }
       await hr.setQualifications(root, 't', d.id, [maid]);
       const v = (await hr.detail(root, d.id)).version;
       await hr.setReadiness(root, 't', d.id, { readiness: 'READY', version: v });
