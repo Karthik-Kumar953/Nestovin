@@ -4,32 +4,26 @@
     {
       "name": "web",
       "runtimeExecutable": "corepack",
-      "runtimeArgs": [
-        "pnpm",
-        "--filter",
-        "@nestovin/web",
-        "dev"
-      ],
+      "runtimeArgs": ["pnpm", "--filter", "@nestovin/web", "dev"],
       "port": 3000
     },
     {
       "name": "api",
       "runtimeExecutable": "corepack",
-      "runtimeArgs": [
-        "pnpm",
-        "--filter",
-        "@nestovin/api",
-        "dev"
-      ],
+      "runtimeArgs": ["pnpm", "--filter", "@nestovin/api", "dev"],
       "port": 4000
     },
     {
       "name": "resident-demo",
       "runtimeExecutable": "node",
-      "runtimeArgs": [
-        "apps/resident/scripts/demo-web.cjs"
-      ],
+      "runtimeArgs": ["apps/resident/scripts/demo-web.cjs"],
       "port": 8081
+    },
+    {
+      "name": "worker-demo",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["apps/employee/scripts/demo-web.cjs"],
+      "port": 8082
     }
   ]
 }
