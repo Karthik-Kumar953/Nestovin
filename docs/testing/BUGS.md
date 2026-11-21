@@ -11,11 +11,11 @@ Owner: the lead fixes `apps/api`. Web and mobile bugs go through the lead to the
 
 | ID | Sev | Area | Summary | Status |
 |---|---|---|---|---|
-| BUG-QA-003 | **High** | API payments | An unsigned webhook can pre-empt and silently drop the genuine Razorpay event | Open |
+| BUG-QA-003 | **High** | API payments | An unsigned webhook can pre-empt and silently drop the genuine Razorpay event | **Fixed** (e0290b0) |
 | BUG-QA-004 | **High** | Resident app (web) | Sign-in never finishes on the Expo web build | Open |
 | BUG-QA-005 | Medium | Resident app | Tapping a push opens the app, not the related screen | Open |
-| BUG-QA-001 | Low | API support | `POST /holidays` validates the body before the Super Admin check | Open |
-| BUG-QA-002 | Low | API locations | Expansion votes are guarded by `locations:view`, but the handler allows only the Super Admin | Open |
+| BUG-QA-001 | Low | API support | `POST /holidays` validates the body before the Super Admin check | **Fixed** (e0290b0) |
+| BUG-QA-002 | Low | API locations | Expansion votes are guarded by `locations:view`, but the handler allows only the Super Admin | **Fixed** in API (e0290b0); nav item with the Admin portal |
 | BUG-QA-006 | Low | Resident app | Resending the code within 60 s shows the wrong message | Open |
 | BUG-QA-007 | Low | Admin web | Employees list renders a stray "0" when there are no readiness gaps | Suspected (code read) |
 | BUG-QA-008 | Low | Admin web | Demand cycle form keeps plan ids from an older catalogue, so saving fails | Suspected (code read) |
@@ -97,4 +97,4 @@ Owner: the lead fixes `apps/api`. Web and mobile bugs go through the lead to the
 
 ## Fixed
 
-_None yet._
+- **BUG-QA-001, -002, -003:** fixed on `gaps-before-apps` in e0290b0 and merged into the QA branch. Their tests are plain `it` again and pass. BUG-QA-002 still needs the Admin portal to hide the nav item.

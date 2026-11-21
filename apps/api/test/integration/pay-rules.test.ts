@@ -157,9 +157,9 @@ describe.skipIf(!available)('PAY rules (integration)', { timeout: 120_000 }, () 
     expect(audits).toBe(1);
   });
 
-  // BUG-QA-003: an unsigned request with a chosen event id is stored first, so the
-  // genuine signed event with the same id is then treated as a duplicate and dropped.
-  it.fails('PAY-09/10: an unsigned event cannot pre-empt the genuine event with the same id (BUG-QA-003)', async () => {
+  // BUG-QA-003 (fixed in e0290b0): an unsigned request with a chosen event id used to be
+  // stored first, so the genuine signed event with the same id was dropped as a duplicate.
+  it('PAY-09/10: an unsigned event cannot pre-empt the genuine event with the same id (BUG-QA-003)', async () => {
     const { request, checkout } = await residents.createDemandRequest(R[4]!, 'qa', demandInput(cycle30));
     const paid = fake.pay(checkout.providerOrderId);
     const wh = signedWebhook(capturedEvent(fake.payments.get(paid.providerPaymentId)!));

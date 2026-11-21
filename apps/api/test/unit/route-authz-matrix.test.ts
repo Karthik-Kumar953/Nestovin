@@ -85,25 +85,23 @@ const ADMIN_UNGUARDED: Record<string, 'any-admin' | 'super-only' | 'any-of-modul
   'GET /notifications/outbox': 'super-only',
   'POST /holidays': 'super-only',
   'DELETE /holidays/:date': 'super-only',
+  'GET /expansion-votes': 'super-only', // ADM-03A; BUG-QA-002 fixed in e0290b0
   'GET /community-options': 'any-of-modules',
   'GET /service-options': 'any-of-modules',
   'GET /cluster-options': 'any-of-modules',
 };
 
-/** Guarded by authorize(), but the handler additionally restricts to the Super Admin. */
-const SUPER_ONLY_INSIDE_HANDLER = new Set(['GET /expansion-votes']);
+/** Guarded by authorize(), but the handler additionally restricts to the Super Admin. Keep empty: use superAdminOnly(). */
+const SUPER_ONLY_INSIDE_HANDLER = new Set<string>();
 
 /**
  * Known bugs, kept as expected failures (it.fails) until the lead fixes them.
  * See docs/testing/BUGS.md.
  */
 const KNOWN_BUGS: Record<string, Record<string, string>> = {
-  // BUG-QA-001: body validation runs before the Super Admin check, so an
-  // unauthorised admin gets 422 (and learns the schema) instead of 403.
-  noGrants403: { 'POST /holidays': 'BUG-QA-001' },
-  // BUG-QA-002: route requires locations:view, yet the handler refuses everyone
-  // but the Super Admin, so a role granted locations:view gets 403.
-  onlyGrantPasses: { 'GET /expansion-votes': 'BUG-QA-002' },
+  // BUG-QA-001 and BUG-QA-002 were fixed in e0290b0 (superAdminOnly() before validation).
+  noGrants403: {},
+  onlyGrantPasses: {},
 };
 const itMaybeFails = (bucket: keyof typeof KNOWN_BUGS, k: string) => (KNOWN_BUGS[bucket]![k] ? it.fails : it);
 
@@ -247,7 +245,7 @@ describe('Super-Admin-only routes refuse an admin holding every grantable permis
   const superOnly = adminRoutes.filter((r) => ADMIN_UNGUARDED[key(r)] === 'super-only' || SUPER_ONLY_INSIDE_HANDLER.has(key(r)) || r.guard?.module === 'admin_access');
   it.each(superOnly.map((r) => [key(r), r] as const))('%s', async (_k, r) => {
     let req = request(app)[r.method](`/v1/admin${concrete(r.path)}`).set(as(ids.everythingGrantable));
-    // POST /holidays validates the body before the role check: send a valid body so the 403 is what is tested.
+    // A valid body too, so a 403 here cannot be a validation error in disguise.
     if (key(r) === 'POST /holidays') req = req.send({ date: '2026-12-25', name: 'Christmas' });
     const res = await req;
     expect(res.status).toBe(403);
