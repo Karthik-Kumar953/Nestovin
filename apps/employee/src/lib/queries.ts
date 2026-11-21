@@ -2,13 +2,15 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { CheckInInput, CheckInResult, LeaveRequest, Payslip } from '@nestovin/contracts';
 import { api } from './api';
 import { addDays, isoDay } from './format';
-import type { Inbox, Me, OvertimeOffer, Visit } from './types';
+import type { Inbox, Me, OvertimeOffer, Visit, VisitDetail } from './types';
 
 /** Query keys in one place so mutations invalidate the right screens. */
 export const qk = {
   me: ['me'] as const,
   schedule: (from: string, to: string) => ['schedule', from, to] as const,
   scheduleAll: ['schedule'] as const,
+  visit: (id: string) => ['visit', id] as const,
+  visitAll: ['visit'] as const,
   offers: ['offers'] as const,
   leave: ['leave'] as const,
   payslips: ['payslips'] as const,
@@ -29,14 +31,27 @@ export function useSchedule(from: string, to: string, enabled = true) {
 }
 
 /**
- * Visit detail. TODO(api): there is no GET /v1/employee/visits/:id yet, so the
- * visit comes from the schedule window (7 days back, 14 ahead).
+ * Visit detail from GET /v1/employee/visits/:id. While it loads, the matching
+ * schedule item (already cached) is shown so the screen opens instantly.
  */
 export function useVisit(id: string) {
-  const w = scheduleWindow();
-  const q = useSchedule(w.from, w.to);
-  return { ...q, data: q.data?.find((v) => v.occurrenceId === id) ?? null };
+  const qc = useQueryClient();
+  return useQuery({
+    queryKey: qk.visit(id),
+    queryFn: () => api<VisitDetail>(`/v1/employee/visits/${id}`),
+    placeholderData: () => {
+      for (const [, items] of qc.getQueriesData<Visit[]>({ queryKey: qk.scheduleAll })) {
+        const v = items?.find((x) => x.occurrenceId === id);
+        if (v) return { ...v, checkIn: null, completedAt: null, noShow: null, correction: null };
+      }
+      return undefined;
+    },
+  });
 }
+
+/** After any visit action: the schedule and every open visit detail reload. */
+const refreshVisits = (qc: ReturnType<typeof useQueryClient>) =>
+  Promise.all([qc.invalidateQueries({ queryKey: qk.scheduleAll }), qc.invalidateQueries({ queryKey: qk.visitAll })]);
 
 export const useOffers = (enabled = true) =>
   useQuery({ queryKey: qk.offers, queryFn: async () => (await api<{ items: OvertimeOffer[] }>('/v1/employee/overtime-offers')).items, enabled });
@@ -54,7 +69,7 @@ export function useCheckIn(visitId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: CheckInInput) => api<CheckInResult>(`/v1/employee/visits/${visitId}/check-in`, { method: 'POST', body: input }),
-    onSettled: () => qc.invalidateQueries({ queryKey: qk.scheduleAll }),
+    onSettled: () => refreshVisits(qc),
   });
 }
 
@@ -62,7 +77,7 @@ export function useVisitAction<TBody>(visitId: string, action: 'complete' | 'res
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body: TBody) => api<{ status: string }>(`/v1/employee/visits/${visitId}/${action}`, { method: 'POST', body }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: qk.scheduleAll }),
+    onSuccess: () => refreshVisits(qc),
   });
 }
 

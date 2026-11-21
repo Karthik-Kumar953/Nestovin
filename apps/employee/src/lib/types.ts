@@ -1,4 +1,4 @@
-import type { EmployeeMe, EmployeeScheduleItem } from '@nestovin/contracts';
+import type { EmployeeMe, EmployeeScheduleItem, EmployeeVisitDetail } from '@nestovin/contracts';
 
 /*
  * Shapes the API returns that are not (yet) in @nestovin/contracts.
@@ -33,14 +33,8 @@ export interface Inbox {
   unread: number;
 }
 
-/**
- * /me plus fields the Worker app needs that the API does not return yet.
- * TODO(api): homeClusterName on GET /v1/employee/me (asked the lead).
- */
-export type Me = EmployeeMe & { homeClusterName?: string | null };
-
-/**
- * A visit as the app shows it. TODO(api): `tasks` is not in the schedule item;
- * until the API sends it the app shows the service only and never invents tasks.
- */
-export type Visit = EmployeeScheduleItem & { tasks?: string[] | null };
+export type Me = EmployeeMe;
+/** A schedule item: tasks come from the booking's terms snapshot (empty = plan lists none). */
+export type Visit = EmployeeScheduleItem;
+/** GET /v1/employee/visits/:id: a visit plus its attendance state. */
+export type VisitDetail = EmployeeVisitDetail;

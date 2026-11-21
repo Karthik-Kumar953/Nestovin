@@ -5,6 +5,7 @@ import { BadgeCheck, Building2, CheckCheck, ChevronRight, Clock3, ScanLine } fro
 import { servicePhoto } from '../assets/images';
 import { flatLabel, time, timeWindow } from '../lib/format';
 import { visitStatus } from '../lib/queries';
+import type { VisitTask } from '@nestovin/contracts';
 import type { Visit } from '../lib/types';
 import { BrandImage, Button, Muted, Pill, PressScale, PulseDot, ServiceIcon, Text, c, shadow, toneColors } from '../ui';
 
@@ -20,16 +21,41 @@ export function byStart(a: Visit, b: Visit) {
   return (a.startsAt ?? '9').localeCompare(b.startsAt ?? '9') || a.scheduledDate.localeCompare(b.scheduledDate);
 }
 
-/** Task chips only when the API sends them (TODO(api)); never invented. */
-function Tasks({ tasks }: { tasks?: string[] | null }) {
-  if (!tasks?.length) return null;
+const PERIOD: Record<string, string> = { DAILY: 'day', WEEKLY: 'week', MONTHLY: 'month' };
+
+/** "Every visit", "Daily", "2× a week": how often the resident's plan covers a task. */
+export function taskFrequency(t: VisitTask): string {
+  if (t.frequency === 'PER_VISIT') return 'Every visit';
+  const period = PERIOD[t.frequency];
+  if (!period) return '';
+  if (t.timesPerPeriod <= 1) return { day: 'Daily', week: 'Weekly', month: 'Monthly' }[period]!;
+  return `${t.timesPerPeriod}× a ${period}`;
+}
+
+/**
+ * Tasks from the booking's terms snapshot (what the resident agreed to). An
+ * empty list means the plan lists none, so only the service is shown.
+ */
+export function Tasks({ tasks, max }: { tasks: VisitTask[]; max?: number }) {
+  if (!tasks.length) return null;
+  const shown = max ? tasks.slice(0, max) : tasks;
+  const more = tasks.length - shown.length;
   return (
-    <View className="flex-row flex-wrap gap-2">
-      {tasks.map((t) => (
-        <View key={t} className="rounded-full bg-subtle px-3 py-1.5">
-          <Text className="text-sm text-ink-secondary">{t}</Text>
+    <View className="flex-row flex-wrap gap-2" accessibilityLabel={`Tasks: ${tasks.map((t) => `${t.name}, ${taskFrequency(t)}`).join('; ')}`}>
+      {shown.map((t) => {
+        const f = taskFrequency(t);
+        return (
+          <View key={t.name} className="flex-row items-center gap-1.5 rounded-full bg-subtle px-3 py-1.5">
+            <Text className="text-sm text-ink">{t.name}</Text>
+            {f && t.frequency !== 'PER_VISIT' ? <Text className="text-[13px] text-ink-secondary">· {f}</Text> : null}
+          </View>
+        );
+      })}
+      {more > 0 ? (
+        <View className="rounded-full bg-subtle px-3 py-1.5">
+          <Text className="text-sm text-ink-secondary">+{more} more</Text>
         </View>
-      ))}
+      ) : null}
     </View>
   );
 }
@@ -75,7 +101,7 @@ export function NextVisitCard({ visit }: { visit: Visit }) {
             <Clock3 size={22} color={c.tealDeep} strokeWidth={2} />
             <Text className="flex-1 font-heading text-xl text-teal-deep">{timeWindow(visit.startsAt, visit.endsAt)}</Text>
           </View>
-          <Tasks tasks={visit.tasks} />
+          <Tasks tasks={visit.tasks} max={4} />
         </View>
       </PressScale>
       <View className="p-5 pt-4">

@@ -1,11 +1,11 @@
 import { Alert, View } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BadgeCheck, Building2, CalendarOff, ChevronRight, Clock3, GraduationCap, LogOut, Phone, ReceiptIndianRupee, ShieldCheck, TimerReset } from 'lucide-react-native';
+import { BadgeCheck, Building2, CalendarCheck2, CalendarOff, ChevronRight, Clock3, GraduationCap, LogOut, Phone, ReceiptIndianRupee, ShieldCheck, TimerReset } from 'lucide-react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import Constants from 'expo-constants';
 import { readinessOf } from '../../../components/readiness';
-import { daysLabel, initials } from '../../../lib/format';
+import { daysLabel, initials, longDay } from '../../../lib/format';
 import { unregisterPush } from '../../../lib/push';
 import { qk, useMe } from '../../../lib/queries';
 import { supabase } from '../../../lib/supabase';
@@ -68,8 +68,8 @@ export default function Profile() {
       <Stagger index={1}>
         <Card className="gap-0 py-2">
           <ListRow icon={Phone} title={m.phone} detail="Mobile number" />
-          {/* TODO(api): homeClusterName on /me; shown when the API sends it. */}
-          {m.homeClusterName ? <ListRow icon={Building2} title={m.homeClusterName} detail="Home cluster" /> : null}
+          <ListRow icon={Building2} title={m.homeClusterName} detail="Home cluster" />
+          {m.joinedOn ? <ListRow icon={CalendarCheck2} title={longDay(m.joinedOn)} detail="Joined Nestovin" /> : null}
         </Card>
       </Stagger>
 
