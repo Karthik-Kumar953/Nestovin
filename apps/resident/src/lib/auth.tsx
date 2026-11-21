@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, use, useEffect, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
@@ -39,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => use(AuthContext);
 
 /** Indian mobile numbers: accept 10 digits, +91…, or 91… and return E.164. */
 export function toE164(input: string): string | null {

@@ -1,4 +1,4 @@
-import { forwardRef, useState, type ComponentRef, type ReactNode } from 'react';
+import { useState, type ComponentRef, type ReactNode, type Ref } from 'react';
 import { TextInput, View, type TextInputProps } from 'react-native';
 import { Icon } from './Icon';
 import { Text } from './Text';
@@ -10,10 +10,11 @@ export type FieldProps = TextInputProps & {
   error?: string | null;
   prefix?: ReactNode;
   optional?: boolean;
+  ref?: Ref<ComponentRef<typeof TextInput>>;
 };
 
 /** Text input with a persistent label, helper text and a field-level error (announced). 52 tall; multiline grows. */
-export const Field = forwardRef<ComponentRef<typeof TextInput>, FieldProps>(function Field({ label, helper, error, prefix, optional, multiline, onFocus, onBlur, style, ...input }, ref) {
+export function Field({ label, helper, error, prefix, optional, multiline, onFocus, onBlur, style, ref, ...input }: FieldProps) {
   const [focused, setFocused] = useState(false);
   const border = error ? 'border-error-text' : focused ? 'border-teal' : 'border-line';
   return (
@@ -59,4 +60,4 @@ export const Field = forwardRef<ComponentRef<typeof TextInput>, FieldProps>(func
       ) : null}
     </View>
   );
-});
+}

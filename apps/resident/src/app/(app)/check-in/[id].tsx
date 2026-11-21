@@ -92,7 +92,7 @@ function CodeView({ code, onRenew, renewing }: { code: VisitCode; onRenew: () =>
     const t = setInterval(() => setLeft(Math.max(0, new Date(code.expiresAt).getTime() - Date.now())), 1000);
     return () => clearInterval(t);
   }, [code.expiresAt, bar, initial, total]);
-  const barStyle = useAnimatedStyle(() => ({ width: `${bar.value * 100}%` }));
+  const barStyle = useAnimatedStyle(() => ({ transform: [{ scaleX: bar.value }] }));
   const expired = left <= 0;
   const secs = Math.ceil(left / 1000);
   const mmss = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
@@ -117,7 +117,7 @@ function CodeView({ code, onRenew, renewing }: { code: VisitCode; onRenew: () =>
 
       <View className="self-stretch gap-2">
         <View className="h-1.5 rounded-full bg-teal-100 overflow-hidden">
-          <Animated.View style={[barStyle, { height: '100%', borderRadius: 999, backgroundColor: secs < 60 ? colors.warning : colors.tealAction }]} />
+          <Animated.View style={[barStyle, { width: '100%', height: '100%', borderRadius: 999, transformOrigin: 'left', backgroundColor: secs < 60 ? colors.warning : colors.tealAction }]} />
         </View>
         <Text variant="label" tone={expired ? 'error' : secs < 60 ? 'warning' : 'muted'} className="text-center" accessibilityLiveRegion="polite">
           {expired ? 'This code has expired' : `Valid for ${mmss}`}

@@ -5,7 +5,7 @@ import type { BookingView, Checkout } from '@nestovin/contracts';
 import { Banner, Button, Card, ChoiceTile, EmptyState, Entrance, PressScale, Screen, SkeletonList, Text } from '@nestovin/ui-native';
 import { api, idempotencyKey } from '../../../lib/api';
 import { useCheckout } from '../../../lib/checkout';
-import { daysLabel, dayOfMonth, hhmm, localDate, rupees, weekday, ymd } from '../../../lib/format';
+import { dayOfMonth, dayShort, daysLabel, hhmm, localDate, longDate, monthShort, rupees, weekday, ymd } from '../../../lib/format';
 import { useBookingOptions, useCatalogue } from '../../../lib/queries';
 import { parseAddons, resolveSelection } from '../../../lib/selection';
 import { img } from '../../../assets/images';
@@ -96,12 +96,12 @@ export default function PickSlot() {
                     haptic="select"
                     accessibilityRole="radio"
                     accessibilityState={{ checked: on }}
-                    accessibilityLabel={localDate(d).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
+                    accessibilityLabel={longDate(d)}
                     className={`w-[64px] items-center rounded-lg py-3 border-[1.5px] ${on ? 'bg-teal border-teal' : 'bg-white border-line'}`}
                   >
                     <Text variant="caption" tone={on ? 'inverse' : 'muted'} className="uppercase font-semibold">{weekday(d)}</Text>
                     <Text variant="h3" tone={on ? 'inverse' : 'default'}>{dayOfMonth(d)}</Text>
-                    <Text variant="caption" tone={on ? 'inverseMuted' : 'muted'}>{localDate(d).toLocaleDateString('en-IN', { month: 'short' })}</Text>
+                    <Text variant="caption" tone={on ? 'inverseMuted' : 'muted'}>{monthShort(d)}</Text>
                   </PressScale>
                 );
               })}
@@ -115,7 +115,7 @@ export default function PickSlot() {
               <KeyValue key={a.id} label={`Add-on: ${a.name}`} value={`+${rupees(a.addonPricePaise ?? 0)}`} />
             ))}
             <KeyValue label="Slot" value={slot ? `${slot.label} · ${hhmm(slot.startTime)}` : 'Not chosen'} />
-            <KeyValue label="Starts" value={start ? localDate(start).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }) : 'Not chosen'} />
+            <KeyValue label="Starts" value={start ? dayShort(start) : 'Not chosen'} />
             <View className="h-px bg-line" />
             <KeyValue label="Pay now, in full, incl. taxes" value={rupees(total)} strong />
             <Text variant="sm" tone="muted">Your service is confirmed only after payment succeeds and the slot is still available.</Text>

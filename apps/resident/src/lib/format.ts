@@ -1,7 +1,19 @@
 /** Formatting helpers (en-IN). Money is integer paise; dates from the API are ISO strings or YYYY-MM-DD. */
 
+// Formatters are created once (Intl objects are expensive to build per render).
+const INR_WHOLE = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
+const INR_PAISE = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const F_DAY = new Intl.DateTimeFormat('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+const F_SHORT = new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short' });
+const F_LONG = new Intl.DateTimeFormat('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
+const F_WEEKDAY = new Intl.DateTimeFormat('en-IN', { weekday: 'short' });
+const F_MONTH_SHORT = new Intl.DateTimeFormat('en-IN', { month: 'short' });
+const F_DATETIME = new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+const F_TIME = new Intl.DateTimeFormat('en-IN', { hour: 'numeric', minute: '2-digit' });
+const F_MONTH = new Intl.DateTimeFormat('en-IN', { month: 'long', year: 'numeric' });
+
 export function rupees(paise: number): string {
-  return `₹${(paise / 100).toLocaleString('en-IN', { minimumFractionDigits: paise % 100 ? 2 : 0, maximumFractionDigits: 2 })}`;
+  return `₹${(paise % 100 ? INR_PAISE : INR_WHOLE).format(paise / 100)}`;
 }
 
 /** Parses a calendar date (YYYY-MM-DD) as a local date, never shifting a day across time zones. */
@@ -20,20 +32,22 @@ export const dayLabel = (s: string) => {
   const t = today();
   if (s.slice(0, 10) === t) return 'Today';
   if (s.slice(0, 10) === ymd(addDays(new Date(), 1))) return 'Tomorrow';
-  return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+  return F_DAY.format(d);
 };
-export const shortDate = (s: string) => localDate(s).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-export const longDate = (s: string) => localDate(s).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
-export const weekday = (s: string) => localDate(s).toLocaleDateString('en-IN', { weekday: 'short' });
+export const shortDate = (s: string) => F_SHORT.format(localDate(s));
+export const longDate = (s: string) => F_LONG.format(localDate(s));
+export const weekday = (s: string) => F_WEEKDAY.format(localDate(s));
+export const monthShort = (s: string) => F_MONTH_SHORT.format(localDate(s));
+export const dayShort = (s: string) => F_DAY.format(localDate(s));
 export const dayOfMonth = (s: string) => String(localDate(s).getDate());
-export const dateTime = (iso: string) => new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
-export const time = (iso: string) => new Date(iso).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
+export const dateTime = (iso: string) => F_DATETIME.format(new Date(iso));
+export const time = (iso: string) => F_TIME.format(new Date(iso));
 /** "07:30" (24h from the catalogue) → "7:30 am". */
 export const hhmm = (s: string) => {
   const [h = 0, m = 0] = s.split(':').map(Number);
-  return new Date(2000, 0, 1, h, m).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
+  return F_TIME.format(new Date(2000, 0, 1, h, m));
 };
-export const monthLabel = (d: Date) => d.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+export const monthLabel = (d: Date) => F_MONTH.format(d);
 
 export const relative = (iso: string) => {
   const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
@@ -43,7 +57,7 @@ export const relative = (iso: string) => {
   if (h < 24) return `${h} hour${h > 1 ? 's' : ''} ago`;
   const d = Math.round(h / 24);
   if (d < 7) return `${d} day${d > 1 ? 's' : ''} ago`;
-  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  return F_SHORT.format(new Date(iso));
 };
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];

@@ -24,7 +24,6 @@ export function SegmentedControl<T extends string>({
   const idx = Math.max(0, options.findIndex((o) => o.value === value));
   const seg = options.length ? (w - 8) / options.length : 0;
   const thumb = useAnimatedStyle(() => ({
-    width: seg,
     transform: [{ translateX: reduce ? withTiming(idx * seg, { duration: 0 }) : withSpring(idx * seg, { damping: 20, stiffness: 260 }) }],
   }));
   const android = Platform.OS === 'android';
@@ -35,7 +34,7 @@ export function SegmentedControl<T extends string>({
       onLayout={(e) => setW(e.nativeEvent.layout.width)}
       className={android ? 'flex-row rounded-full border border-line bg-white overflow-hidden' : 'flex-row rounded-[14px] bg-surface-subtle p-1'}
     >
-      {!android && w ? <Animated.View style={[thumb, { position: 'absolute', top: 4, bottom: 4, left: 4, borderRadius: 10, backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 1 }]} /> : null}
+      {!android && w ? <Animated.View style={[thumb, { width: seg, position: 'absolute', top: 4, bottom: 4, left: 4, borderRadius: 10, backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 1 }]} /> : null}
       {options.map((o, i) => {
         const on = o.value === value;
         return (
