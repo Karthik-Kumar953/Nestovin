@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import type { BookingOptions, ResidentCatalogue } from '@nestovin/contracts';
@@ -25,13 +25,19 @@ import { lowestPrice, planAvailability, type Plan } from '../../../lib/selection
 import { SERVICE_VISUAL, img, serviceKind, type ServiceKind } from '../../../assets/images';
 import { ErrorState, OfflineNotice } from '../../../components/common';
 
+const asFilter = (s: string | undefined): ServiceKind | 'all' => (s === 'maid' || s === 'cook' || s === 'caretaker' ? s : 'all');
+
 /** RES-06: plans for the resident's flat category, as membership cards, with every "not open" state designed. */
 export default function Book() {
-  const params = useLocalSearchParams<{ service?: string }>();
+  const params = useLocalSearchParams<{ service?: string; at?: string }>();
   const me = useMe();
   const options = useBookingOptions();
   const catalogue = useCatalogue(Boolean(options.data?.eligible));
-  const [filter, setFilter] = useState<ServiceKind | 'all'>((params.service as ServiceKind) ?? 'all');
+  const [filter, setFilter] = useState<ServiceKind | 'all'>(asFilter(params.service));
+  // Tabs stay mounted, so apply the service each time Home links here (`at` changes on every tap).
+  useEffect(() => {
+    if (params.service) setFilter(asFilter(params.service));
+  }, [params.service, params.at]);
   const m = me.data?.membership;
   const refresh = () => Promise.all([options.refetch(), catalogue.refetch()]);
   const header = {

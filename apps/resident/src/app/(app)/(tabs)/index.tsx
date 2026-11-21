@@ -209,7 +209,7 @@ export function ServicesRail({ title }: { title: string }) {
           const v = SERVICE_VISUAL[k];
           return (
             <Entrance key={k} index={i}>
-              <PressScale onPress={() => router.push({ pathname: '/book', params: { service: k } })} haptic="tap" accessibilityRole="button" accessibilityLabel={`${v.label}, ${blurb[k]}. See plans`} className="rounded-xl overflow-hidden">
+              <PressScale onPress={() => router.push({ pathname: '/book', params: { service: k, at: String(Date.now()) } })} haptic="tap" accessibilityRole="button" accessibilityLabel={`${v.label}, ${blurb[k]}. See plans`} className="rounded-xl overflow-hidden">
                 <Photo source={v.photo ? img(v.photo) : null} fallbackIcon={v.icon as IconName} fallbackTone={v.tone} scrim style={{ width: 168, height: 208 }} className="rounded-xl">
                   <View className="flex-1 justify-end p-4 gap-0.5">
                     <Text variant="h3" tone="inverse">{v.label}</Text>
