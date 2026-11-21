@@ -9,7 +9,7 @@ const iso = (d: Date | string | null) => (d === null ? null : new Date(d).toISOS
  */
 export async function bookingViews(
   trx: Tx,
-  f: { status?: string | undefined; communityId?: string | undefined; limit?: number; before?: { at: string; id: string } | undefined },
+  f: { id?: string; status?: string | undefined; communityId?: string | undefined; limit?: number; before?: { at: string; id: string } | undefined },
 ): Promise<AdminBooking[] & BookingView[]> {
   let q = trx
     .selectFrom('app.bookings as b')
@@ -47,6 +47,7 @@ export async function bookingViews(
         .limit(1)
         .as('renewal_id'),
     );
+  if (f.id) q = q.where('b.id', '=', f.id);
   if (f.status) q = q.where('b.status', '=', f.status as BookingView['status']);
   if (f.communityId) q = q.where('b.community_id', '=', f.communityId);
   if (f.before) {

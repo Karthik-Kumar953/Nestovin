@@ -16,6 +16,25 @@ You review and design the Nestovin data layer the way a principal engineer at a 
 
 Owner decisions win over the PRD. If docs and code disagree, report it; do not pick a side silently.
 
+## Companion skills and tools (use them, cite them)
+- **`supabase-postgres-best-practices`** (Supabase's official rules, installed as a user plugin). Load it alongside this skill. Its `references/` files hold the rule detail; cite the rule file by name in each finding it backs:
+  - schema: `schema-constraints`, `schema-data-types`, `schema-foreign-key-indexes`, `schema-primary-keys`
+  - queries and indexes: `query-composite-indexes`, `query-partial-indexes`, `query-missing-indexes`
+  - security: `security-rls-basics`, `security-rls-performance`, `security-privileges`
+  - locking: `lock-short-transactions`, `lock-skip-locked`, `lock-deadlock-prevention`
+  - data access: `data-pagination`, `data-upsert`, `data-n-plus-one`
+  - connections: `conn-pooling`, `conn-prepared-statements`
+- **`supabase`** skill, for Supabase-specific behaviour: Auth hooks, Storage signed URLs, `auth.uid()` vs custom claims, pooler modes.
+- **Supabase MCP** (`supabase`, read-only, dev project only), once the owner has signed in to it. Use it to inspect the live schema, policies, indexes and advisors (security and performance lints), and to run `EXPLAIN` on read queries. Never attempt writes. If it isn't authenticated, fall back to reading `supabase/migrations/`.
+- Where this skill and the Supabase rules disagree, explain the trade-off for Nestovin's setup: API-only access, custom claims via `SET LOCAL`, pooler in transaction mode.
+
+## Senior-level judgement (what separates a principal review from a lint pass)
+- **Rank by blast radius:** money and access-isolation bugs first, then integrity gaps that normal use will hit, then performance at the realistic scale. The expected scale is about 5k–50k flats, 1k–5k workers, a few million visit occurrences per year.
+- **Model the lifecycle, not the row:** for each aggregate (booking, subscription, occurrence, payroll run, ticket), check who can move it to each state, what the database guarantees at each step, and what happens on retry, crash or concurrent edit.
+- **Prefer invariants the database enforces** over conventions. Every "should never happen" needs a constraint, a test, or a written reason why neither is possible.
+- **Check concurrency explicitly:** two admins approving at once, a webhook racing the client callback, two job runners, a resident and a worker both acting on one visit. Name the isolation level or lock that makes each one safe.
+- **Plan for growth without premature work:** say when partitioning, archiving or read replicas would become necessary, and what signal should trigger them. Don't recommend them now without evidence.
+
 ## Stack facts that shape every recommendation
 - **Postgres on Supabase**, reached through the pooler in transaction mode. Session state does not survive between transactions, so session advisory locks are unreliable; the job runner uses a lease row instead.
 - **The API runs as a non-bypass role.** Each request sets claims with `SET LOCAL` inside `withTx(db, claims, fn)`. Claim kinds: admin, resident, employee, system, public.

@@ -62,7 +62,15 @@ export const residentMeSchema = z.object({
   membership: membershipSchema.nullable(),
   /** Latest verification outcome for the active or most recent membership. */
   verification: z
-    .object({ decision: z.enum(['PENDING', 'APPROVED', 'REJECTED']), reason: z.string().nullable(), documentUploaded: z.boolean() })
+    .object({
+      decision: z.enum(['PENDING', 'APPROVED', 'REJECTED']),
+      reason: z.string().nullable(),
+      documentUploaded: z.boolean(),
+      /** The flat this verification is for, so a re-submission after rejection can be prefilled. */
+      flat: z
+        .object({ flatId: uuidSchema, flatNumber: z.string(), towerName: z.string(), communityId: uuidSchema, communityName: z.string(), occupancy: z.enum(['OWNER', 'TENANT', 'FAMILY']) })
+        .nullable(),
+    })
     .nullable(),
   version: versionSchema,
 });
@@ -86,6 +94,14 @@ export const registerResidenceSchema = z.object({
   }),
 });
 export type RegisterResidenceInput = z.infer<typeof registerResidenceSchema>;
+
+/**
+ * POST /v1/resident/residence/document — a fresh upload target for the
+ * caller's PENDING registration whose document never finished uploading
+ * (e.g. the upload failed or the app closed). 409 once a document is uploaded.
+ */
+export const replaceResidenceDocumentSchema = registerResidenceSchema.pick({ document: true });
+export type ReplaceResidenceDocumentInput = z.infer<typeof replaceResidenceDocumentSchema>;
 
 /** Signed upload target: PUT the file to `uploadUrl` (Supabase Storage signed upload). */
 export const signedUploadSchema = z.object({

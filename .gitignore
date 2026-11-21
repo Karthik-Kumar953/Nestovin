@@ -27,4 +27,5 @@ supabase/.temp/
 .idea/
 certs/
 .dev-superadmin.txt
+.dev-testworker.txt
 *.tsbuildinfo

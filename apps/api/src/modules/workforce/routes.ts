@@ -71,6 +71,9 @@ export function employeeRoutes(deps: AppDeps, ...extra: Router[]): Router {
     const q = parseQuery(z.object({ from: isoDate.optional(), to: isoDate.optional() }), req);
     res.json({ items: await svc.schedule(employeeOf(req), q.from ?? today, q.to ?? addDays(q.from ?? today, 14)) });
   });
+  r.get('/visits/:id', async (req, res) => {
+    res.json(await svc.visit(employeeOf(req), id(req.params.id)));
+  });
   r.get('/leave', async (req, res) => {
     res.json({ items: await svc.leave(employeeOf(req)) });
   });
