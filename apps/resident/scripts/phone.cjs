@@ -45,6 +45,12 @@ const child = spawn('npx', expoArgs, {
   cwd: path.resolve(__dirname, '..'),
   stdio: 'inherit',
   shell: true,
-  env: { ...process.env, EXPO_PUBLIC_API_URL: apiUrl, REACT_NATIVE_PACKAGER_HOSTNAME: host },
+  env: {
+    ...process.env,
+    EXPO_PUBLIC_API_URL: apiUrl,
+    REACT_NATIVE_PACKAGER_HOSTNAME: host,
+    // --demo shows the Demo login button (the API must run with `pnpm dev:demo`).
+    ...(args.includes('--demo') ? { EXPO_PUBLIC_DEMO_LOGIN: 'true' } : {}),
+  },
 });
 child.on('exit', (code) => process.exit(code ?? 0));

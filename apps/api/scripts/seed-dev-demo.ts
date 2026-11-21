@@ -146,7 +146,14 @@ try {
         const phone = ownPhone ?? `+9199000${Math.floor(10000 + Math.random() * 89999)}`;
         if (ownPhone) console.warn(`✓ ${h.name} signs in with DEMO_RESIDENT_PHONE`);
         ownPhone = undefined;
-        await q(`insert into auth.users (id, phone, aud, role) values ($1, $2, 'authenticated', 'authenticated')`, [residentId, phone.slice(1)]);
+        // GoTrue cannot read rows whose token columns are NULL ("User not found"), so fill them like it does.
+        await q(
+          `insert into auth.users (id, instance_id, phone, phone_confirmed_at, aud, role, confirmation_token, recovery_token, email_change_token_new,
+             email_change, email_change_token_current, phone_change, phone_change_token, reauthentication_token, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
+           values ($1, '00000000-0000-0000-0000-000000000000', $2, now(), 'authenticated', 'authenticated', '', '', '', '', '', '', '', '',
+             '{"provider":"phone","providers":["phone"]}'::jsonb, '{}'::jsonb, now(), now())`,
+          [residentId, phone.slice(1)],
+        );
         await q(`insert into app.resident_profiles (id, phone, full_name) values ($1, $2, $3)`, [residentId, phone, h.name]);
         m = (await q(`insert into app.residence_memberships (resident_id, flat_id, kind, occupancy, status) values ($1, $2, 'PRIMARY', 'OWNER', 'VERIFIED') returning id, cluster_id`, [residentId, h.flat.id])).rows[0];
       }

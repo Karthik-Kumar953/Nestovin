@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Nestovin shared backend: Express modular monolith",
   "scripts": {
+    "dev:demo": "node scripts/demo.cjs",
     "dev": "tsx watch --env-file-if-exists=.env src/server.ts",
     "build": "tsup src/server.ts --format esm --target node24 --clean --sourcemap",
     "start": "node --enable-source-maps dist/server.js",

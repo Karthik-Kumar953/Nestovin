@@ -57,6 +57,7 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
+    "phone:demo": "node scripts/phone.cjs",
     "start": "expo start",
     "phone": "node scripts/phone.cjs",
     "android": "expo start --android",
