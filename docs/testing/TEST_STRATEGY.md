@@ -133,7 +133,7 @@ Legend: ✅ covered and passing · 🟡 partial · 🔲 not covered yet · ⛔ b
 | Module | API unit (authZ) | API integration | Playwright spec | Status |
 |---|---|---|---|---|
 | ADM-01 Overview | matrix (any admin) | — | `auth.spec` (landing) | 🟡 widgets per grant not asserted |
-| ADM-02 Admins and roles | matrix (Super Admin only), `auth-guards`, `permissions` | `db-guards` | `access.spec` | ✅ unit+int / 🔲 E2E needs creds |
+| ADM-02 Admins and roles | matrix (Super Admin only), `auth-guards`, `permissions` | `db-guards` | `access.spec` | ✅ |
 | ADM-03 / 03A Locations, expansion votes | matrix | `locations-scope`, `route-scope-matrix` | `locations.spec` | ⚠️ BUG-QA-002 |
 | ADM-04 Migration (Excel and grid) | matrix | `community-setup`, `migration-grid` | `setup-wizard.spec` | ✅ |
 | ADM-05 Residents and verification | matrix | `residents-support`, `route-scope-matrix` | `residents.spec` | ✅ API |
@@ -150,7 +150,7 @@ Legend: ✅ covered and passing · 🟡 partial · 🔲 not covered yet · ⛔ b
 | Audit log | unit `audit-access` | `locations-scope` (audit row per change), `pay-rules` (refund audit) | `audit.spec` | ✅ |
 
 ## 6. Known gaps and next steps
-1. **Admin E2E has not run while signed in.** It needs the test Super Admin from the lead (`E2E_ADMIN_EMAIL`, `E2E_ADMIN_PASSWORD`, `E2E_ADMIN_TOTP_SECRET`). Until then 96 specs skip.
+1. **Admin E2E runs signed in** (80 pass, 24 skip by design; see TEST_RESULTS.md). The skips need resident or worker data; see item 7.
 2. **Resident web E2E is blocked.** `apps/resident` needs `react-native-web` and `react-dom`, and BUG-QA-004 must be fixed.
 3. **Maestro has not run.** It needs Maestro on the machine, an Android emulator, a dev build, and the Worker app merged.
 4. **FLOW-19 (offline dedupe) has no API surface to test.** Confirm the design with the lead.
