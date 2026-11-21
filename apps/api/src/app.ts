@@ -50,7 +50,11 @@ export function createApp(deps: AppDeps, payments = new PaymentService(deps.db, 
   );
   app.use(
     cors({
-      origin: deps.env.CORS_ORIGINS,
+      // In development, also allow the Expo web previews of the Resident (8081) and Worker (8082) apps.
+      origin:
+        deps.env.NODE_ENV === 'development'
+          ? [...deps.env.CORS_ORIGINS, 'http://localhost:8081', 'http://localhost:8082']
+          : deps.env.CORS_ORIGINS,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
       allowedHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key', 'X-Request-Id', 'X-File-Name'],
       exposedHeaders: ['X-Request-Id', 'Content-Disposition'],
