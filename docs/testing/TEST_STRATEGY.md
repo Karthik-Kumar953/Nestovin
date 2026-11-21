@@ -150,6 +150,21 @@ Legend: ✅ covered and passing · 🟡 partial · 🔲 not covered yet · ⛔ b
 | Exports (all modules) | unit `exports` (export action, CSV safety) | `exports` | `exports.spec` | ✅ |
 | Audit log | unit `audit-access` | `locations-scope` (audit row per change), `pay-rules` (refund audit) | `audit.spec` | ✅ |
 
+## 5a. Architecture review findings (claude/arch-review-b0d127)
+
+These tests write no money or payroll data:
+- **Unit tests** run the real services on a scripted in-memory Kysely driver (`test/helpers/scripted-db.ts`) that records every statement and lets a test inject a failure.
+- **The grants check** reads only the Postgres catalogue.
+
+| Finding | What the test proves | Test | Status |
+|---|---|---|---|
+| H-2 | A failing payment effect must go to review and keep the evidence, not roll back | unit `review-findings` → "H-2" | ⚠️ BUG-QA-014 (it.fails) |
+| H-3 | A webhook whose processing failed must be retried (or answered non-2xx) | unit `review-findings` → "H-3" | ⚠️ BUG-QA-012 |
+| H-7 | Reconciliation must rotate through open orders (ORDER BY plus a last-checked marker) | unit `review-findings` → "H-7" | ⚠️ BUG-QA-013 |
+| M-17 | Check-in must lock the ACTIVE assignment as well as the occurrence | unit `review-findings` → "M-17" (lock shape) | ⚠️ BUG-QA-015; a real two-connection race needs booking fixtures, deferred |
+| M-2 | Money evidence and approved payroll lines are immutable for `app_api` | integration `money-immutability` (read-only) | ⚠️ BUG-QA-016 |
+| M-2 race | A payroll entry cannot land in a run being submitted (the run row is locked) | unit `review-findings` → "M-2 race" | ⚠️ BUG-QA-017 |
+
 ## 6. Known gaps and next steps
 1. **Admin E2E runs signed in** (80 pass, 24 skip by design; see TEST_RESULTS.md). The skips need resident or worker data; see item 7.
 2. **Resident web E2E is blocked.** `apps/resident` needs `react-native-web` and `react-dom`, and BUG-QA-004 must be fixed.

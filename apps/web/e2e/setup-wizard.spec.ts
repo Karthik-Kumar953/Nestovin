@@ -61,7 +61,7 @@ test.describe('Community setup wizard and grid migration', () => {
     await gotoStep(page, community, 'import');
     const grid = page.getByRole('table', { name: 'Flats to import' });
     // Flat number without tower / category must fail the check.
-    await grid.getByLabel(/^Row\ 1\ Flat\ number( \*)?$/).fill('999');
+    await grid.getByLabel(/^Row 1 Flat number( \*)?$/).fill('999');
     await page.getByRole('button', { name: 'Check rows' }).click();
     await expect(page.getByText(/^Row 1: /)).toBeVisible();
     await expect(page.getByRole('button', { name: /^Submit for approval/ })).toBeDisabled();
