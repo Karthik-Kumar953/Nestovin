@@ -12,9 +12,13 @@ export default tseslint.config(
       '**/build/**',
       '**/coverage/**',
       '**/.next/**',
+      '**/out/**',
       '**/next-env.d.ts',
       'docs/**',
       'supabase/**',
+      // Third-party agent skills and tooling, not product code.
+      '.claude/**',
+      '.agents/**',
     ],
   },
   js.configs.recommended,
