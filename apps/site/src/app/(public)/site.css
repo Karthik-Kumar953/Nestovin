@@ -1,0 +1,79 @@
+/*
+ * Public website styles: Tailwind CSS v4 on the Nestovin design tokens.
+ * Imported only by the (public) layout; the admin portal has its own Tailwind entry.
+ * The theme (src/styles/theme.css) is shared with the admin portal and maps
+ * @nestovin/design-tokens (docs/Design/DESIGN.md): change a colour there, not here.
+ */
+@import 'tailwindcss';
+@import '@nestovin/design-tokens/tokens.css';
+@import '../../styles/theme.css';
+
+@source '../../**/*.{ts,tsx}';
+/* The admin portal has its own Tailwind entry (src/admin/admin.tailwind.css). */
+@source not '../../admin';
+@source not '../admin';
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-canvas font-sans text-ink;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display text-charcoal;
+    text-wrap: balance;
+  }
+  p,
+  li,
+  figcaption {
+    text-wrap: pretty;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--nv-primary) 22%, white);
+  }
+  /* Focus ring: app/globals.css (3px, --nv-focus-ring). */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+}
+
+@layer components {
+  /* First-load arrival for page headers. */
+  .hero-in {
+    animation: nv-hero-in 1s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  }
+  .hero-in + .hero-in {
+    animation-delay: 120ms;
+  }
+  @keyframes nv-hero-in {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero-in {
+      animation: none;
+    }
+  }
+}
+
+@layer base {
+  html {
+    scrollbar-color: var(--nv-text-muted) var(--nv-background);
+  }
+  input,
+  textarea {
+    caret-color: var(--nv-teal-action);
+  }
+  a {
+    text-underline-offset: 4px;
+  }
+}
