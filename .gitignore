@@ -37,3 +37,14 @@ test-results/
 playwright-report/
 blob-report/
 playwright/.cache/
+
+# Agent tooling: third-party skills stay local, only Nestovin's own skills are shared
+.agents/
+skills-lock.json
+.claude/*
+!.claude/launch.json
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/database-architect/
+.impeccable/
+**/.impeccable/

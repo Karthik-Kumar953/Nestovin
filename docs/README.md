@@ -26,7 +26,7 @@ Which document to trust for what. When documents disagree, the higher row wins u
 
 | Document | Superseded by |
 |---|---|
-| `Architecture/01_individual_module_workflows.md` (v0.1) | Final workflows v1.0 (fixed 30/70 split and role-based permissions are wrong) |
-| `Architecture/01_individual_module_workflows_diagrams.md` (v0.1) | Final workflows v1.0 |
-| `Architecture/03_complete_system_workflows.md` (v0.1) | Final workflows v1.0 + `adr/` + generated OpenAPI + `architecture/sequences.md` (to be written per phase). Contains a hard-coded 30/70 split and "retain 30% on expiry", which is not an approved rule. |
-| `Design/Nestovin_Design_System_v1.0.md` | NV-DS-01 v1.1 + `DESIGN.md` (v1.0 hard-codes the 30/70 split in UI copy) |
+| `archive/01_individual_module_workflows.md` (v0.1) | Final workflows v1.0 (fixed 30/70 split and role-based permissions are wrong) |
+| `archive/01_individual_module_workflows_diagrams.md` (v0.1) | Final workflows v1.0 |
+| `archive/03_complete_system_workflows.md` (v0.1) | Final workflows v1.0 + `adr/` + generated OpenAPI + `architecture/sequences.md` (to be written per phase). Contains a hard-coded 30/70 split and "retain 30% on expiry", which is not an approved rule. |
+| `archive/Nestovin_Design_System_v1.0.md` | NV-DS-01 v1.1 + `DESIGN.md` (v1.0 hard-codes the 30/70 split in UI copy) |
