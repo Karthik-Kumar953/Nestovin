@@ -11,7 +11,7 @@ gsap.registerPlugin(useGSAP);
  * The hero illustration. It performs Nestovin's operating model (PRD §2.1):
  * residents in a community ask for Nestovin (windows light up), Nestovin builds a
  * team for that community (uniformed team at the gate), and each flat gets its own
- * person and time (flat 1204 called out). Illustrative only.
+ * person and time (your flat called out). Illustrative only.
  */
 
 const FLOORS = 12;
@@ -118,7 +118,7 @@ export function Tower() {
       <svg viewBox="0 0 560 590" className="h-auto w-full" role="img" aria-labelledby="tower-title tower-desc">
         <title id="tower-title">Illustration of a residential community using Nestovin</title>
         <desc id="tower-desc">
-          A residential tower whose windows light up as residents ask for Nestovin. A uniformed Nestovin team of a maid, a cook and a caretaker arrives at the community gate, and flat 1204 is shown with its cook checked in at 7:00.
+          A residential tower whose windows light up as residents ask for Nestovin. A uniformed Nestovin team of a maid, a cook and a caretaker arrives at the community gate, and your flat is shown with its cook checked in at 7:00.
         </desc>
 
         {/* sky disc */}
@@ -183,12 +183,12 @@ export function Tower() {
           <g style={{ opacity: 0 }}><Person x={166} role="caretaker" /></g>
         </g>
 
-        {/* flat 1204 callout */}
+        {/* "your flat" callout */}
         <g data-callout style={{ opacity: 0 }}>
           <path d={`M${t.x + WIN_W / 2} ${t.y - 2} L${t.x + WIN_W / 2 - 8} ${t.y - 18} L${t.x + WIN_W / 2 + 8} ${t.y - 18} Z`} fill="var(--nv-charcoal)" />
           <rect x={t.x - 152} y={t.y - 86} width="232" height="70" rx="12" fill="var(--nv-charcoal)" />
           <text x={t.x - 134} y={t.y - 60} fill="#FFFFFF" fontFamily="var(--font-manrope)" fontWeight="700" fontSize="15">
-            Flat 1204
+            Your flat
           </text>
           <text x={t.x - 134} y={t.y - 38} fill="var(--nv-border)" fontFamily="var(--font-inter)" fontSize="13">
             Cook · 07:00 · Checked in

@@ -2,6 +2,7 @@ import { Ban, CircleCheck, Hourglass, Users } from 'lucide-react';
 import { modes, steps } from '@/site/content';
 import { DayStory } from '@/site/DayStory';
 import { Container, EnquiryBand, LinkButton, PageHero, SectionHead } from '@/site/ui';
+import { pageHero } from '@/site/hero-images';
 
 export const metadata = {
   title: 'How it works',
@@ -14,8 +15,13 @@ const never = ['Pay staff in cash', 'Find a replacement yourself', "Track anyone
 export default function HowItWorksPage() {
   return (
     <>
-      <PageHero title="From your community joining to the first knock on your door" lede="Nestovin works community by community. Here is every step, in the order it happens.">
-        <LinkButton href="/contact" arrow>
+      <PageHero
+        title="From your community joining to the first knock on your door"
+        lede="Nestovin works community by community. Here is every step, in the order it happens."
+        {...pageHero('how-it-works')}
+        imageAlt="An Indian family having breakfast together at home while a Nestovin housekeeper works in the background"
+      >
+        <LinkButton href="/contact" variant="onBrand" arrow>
           Send an enquiry
         </LinkButton>
       </PageHero>
@@ -52,7 +58,7 @@ export default function HowItWorksPage() {
 
       <section className="bg-canvas py-16 md:py-24" aria-labelledby="day-title">
         <Container>
-          <SectionHead id="day-title" title="What a day looks like once you are set up" lede="A sample day at flat 1204, from the cook's arrival to the caretaker's evening hours." className="mb-14" />
+          <SectionHead id="day-title" title="What a day looks like once you are set up" lede="A sample day at your flat, from the cook's arrival to the caretaker's evening hours." className="mb-14" />
           <DayStory />
         </Container>
       </section>

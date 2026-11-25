@@ -4,6 +4,7 @@ import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { BadgeCheck, GraduationCap, IdCard, KeyRound, LifeBuoy, Lock, Wallet } from 'lucide-react';
+import Image from 'next/image';
 import { useRef, useState } from 'react';
 import { trust } from './content';
 
@@ -81,10 +82,17 @@ export function TrustJourney() {
               <span className="relative z-10 grid size-14 place-items-center rounded-full border-2 border-line bg-surface text-teal transition-[background-color,border-color,color,transform] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-[.is-on]/item:scale-105 group-[.is-on]/item:border-teal group-[.is-on]/item:bg-teal group-[.is-on]/item:text-white">
                 <Icon size={24} strokeWidth={1.9} aria-hidden />
               </span>
-              <div className="rounded-xl border border-line bg-surface p-6 transition-[border-color,box-shadow] duration-500 group-[.is-on]/item:border-brand/40 group-[.is-on]/item:shadow-[0_18px_40px_-28px_rgb(0_121_107/0.55)] md:p-7">
-                <p className="text-[14px] font-semibold text-teal">{t.step}</p>
-                <h3 className="mt-1 text-[21px] leading-8 font-semibold md:text-[23px]">{t.title}</h3>
-                <p className="mt-2 text-[16px] leading-7 text-ink-2">{t.body}</p>
+              <div className="overflow-hidden rounded-xl border border-line bg-surface transition-[border-color,box-shadow] duration-500 group-[.is-on]/item:border-brand/40 group-[.is-on]/item:shadow-[0_18px_40px_-28px_rgb(0_121_107/0.55)]">
+                {'image' in t ? (
+                  <div className="relative aspect-[16/8]">
+                    <Image src={t.image} alt={t.imageAlt} fill sizes="(min-width: 1024px) 40vw, 100vw" className="object-cover" />
+                  </div>
+                ) : null}
+                <div className="p-6 md:p-7">
+                  <p className="text-[14px] font-semibold text-teal">{t.step}</p>
+                  <h3 className="mt-1 text-[21px] leading-8 font-semibold md:text-[23px]">{t.title}</h3>
+                  <p className="mt-2 text-[16px] leading-7 text-ink-2">{t.body}</p>
+                </div>
               </div>
             </li>
           );

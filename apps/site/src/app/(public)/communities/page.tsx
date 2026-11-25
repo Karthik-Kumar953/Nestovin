@@ -1,6 +1,7 @@
 import { Building2, ShieldCheck, Users, Vote } from 'lucide-react';
 import { communities } from '@/site/content';
 import { Container, EnquiryBand, LinkButton, PageHero, SectionHead } from '@/site/ui';
+import { pageHero } from '@/site/hero-images';
 
 export const metadata = {
   title: 'For communities, RWAs and facility managers',
@@ -13,8 +14,8 @@ const icons = [Building2, ShieldCheck, Vote, Users];
 export default function CommunitiesPage() {
   return (
     <>
-      <PageHero title={communities.title} lede={communities.body} image="/site/community-dawn.jpg" imageAlt="A modern gated residential community at golden hour">
-        <LinkButton href="/contact?type=community" arrow>
+      <PageHero title={communities.title} lede={communities.body} {...pageHero('communities')} imageAlt="A modern gated residential community at golden hour">
+        <LinkButton href="/contact?type=community" variant="onBrand" arrow>
           Talk to us about your community
         </LinkButton>
       </PageHero>

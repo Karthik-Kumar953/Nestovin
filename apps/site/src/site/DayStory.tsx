@@ -16,7 +16,7 @@ const chip: Record<string, string> = {
 };
 
 /**
- * "A day at flat 1204". Desktop: the photo stays pinned beside the timeline and
+ * "A day at your flat". Desktop: the photo stays pinned beside the timeline and
  * crossfades as each time reaches the middle of the screen; the day's line fills.
  * Mobile and reduced motion: each moment carries its own photo, nothing pins.
  */
@@ -73,7 +73,7 @@ export function DayStory() {
           <div className="absolute bottom-4 left-4 flex items-center gap-3 rounded-md bg-surface px-4 py-2.5 shadow-[0_10px_30px_-14px_rgb(17_24_39/0.45)]">
             <span className="font-display text-[24px] font-bold text-charcoal tabular-nums">{current.time}</span>
             <span className={`rounded-full px-2.5 py-1 text-[12px] font-semibold ${chip[current.state]}`}>{current.state}</span>
-            <span className="text-[13px] text-ink-2">Flat 1204</span>
+            <span className="text-[13px] text-ink-2">Your flat</span>
           </div>
         </div>
       </div>

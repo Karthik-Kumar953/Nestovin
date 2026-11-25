@@ -1,6 +1,7 @@
 import { Plus } from 'lucide-react';
 import { faq } from '@/site/content';
 import { Container, EnquiryBand, PageHero } from '@/site/ui';
+import { pageHero } from '@/site/hero-images';
 
 export const metadata = {
   title: 'Frequently asked questions',
@@ -19,7 +20,12 @@ export default function FaqPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <PageHero title="Questions, answered" lede="If your question is not here, send us an enquiry and a person will reply." />
+      <PageHero
+        title="Questions, answered"
+        lede="If your question is not here, send us an enquiry and a person will reply."
+        {...pageHero('faq')}
+        imageAlt="A Nestovin support team member answering a call at a bright desk"
+      />
       <section className="bg-surface py-16 md:py-24">
         <Container className="grid gap-14 lg:grid-cols-[240px_1fr]">
           <nav aria-label="FAQ sections" className="hidden lg:block">
@@ -34,14 +40,14 @@ export default function FaqPage() {
             </ul>
           </nav>
           <div className="space-y-14">
-            {faq.map((g) => (
+            {faq.map((g, gi) => (
               <section key={g.group} aria-labelledby={slug(g.group)} className="scroll-mt-[104px]">
                 <h2 id={slug(g.group)} className="text-[26px] leading-9 font-semibold">
                   {g.group}
                 </h2>
                 <div className="mt-5 divide-y divide-line overflow-hidden rounded-xl border border-line">
-                  {g.items.map((it) => (
-                    <details key={it.q} className="group">
+                  {g.items.map((it, i) => (
+                    <details key={it.q} className="group" open={gi === 0 && i === 0}>
                       <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 font-display text-[17px] font-semibold text-charcoal transition-colors hover:bg-canvas md:px-6 [&::-webkit-details-marker]:hidden">
                         {it.q}
                         <Plus size={20} aria-hidden className="shrink-0 text-teal transition-transform duration-300 group-open:rotate-45" />

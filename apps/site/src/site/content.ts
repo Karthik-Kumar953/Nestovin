@@ -32,6 +32,9 @@ export const heroFilm = {
   mp4: '',
   webm: '',
   poster: '/site/community-dawn.jpg',
+  /** Owner's hero photograph: shown when there is no film. Empty = the drawn community. */
+  photo: '/site/hero.jpg',
+  photoAlt: 'Three Nestovin staff, a housekeeper, a cook and a caretaker, smiling outside a residential tower',
 };
 
 export const nav = [
@@ -74,7 +77,7 @@ export const services: Service[] = [
     image: '/site/maid.jpg',
     imageAlt: 'A Nestovin housekeeper wiping a glass dining table in a bright living room',
     summary:
-      'The same trained housekeeper keeps your home in order at the same time every day. Daily work is done on every visit; deeper cleaning follows the plan your community offers.',
+      'A trained Nestovin housekeeper keeps your home in order on a fixed daily schedule. Daily work is done on every visit; deeper cleaning follows the plan your community offers.',
     uniform: 'Teal tunic with a mint apron and a Nestovin photo ID.',
     rhythm: [
       { name: 'Morning visit', body: 'One visit a day in the morning window.' },
@@ -128,12 +131,12 @@ export const services: Service[] = [
   },
 ];
 
-/** "A day at flat 1204". Sample, illustrative. */
+/** "A day at your flat". Sample, illustrative. */
 export const day = [
   {
     time: '07:00',
     title: 'Your cook arrives',
-    body: 'Assigned to your flat by Nestovin: the same person, at the same time, for your whole plan.',
+    body: "Assigned to your flat by Nestovin from your community's trained team.",
     image: '/site/cook.jpg',
     alt: 'A Nestovin cook preparing breakfast in a home kitchen',
     state: 'Arriving',
@@ -143,7 +146,7 @@ export const day = [
     title: 'The visit starts with your code',
     body: 'You share a one-time code from the app at the door. The visit is recorded, with the time and place of check-in.',
     image: '/site/door-checkin.jpg',
-    alt: 'A resident at the door of flat 1204 showing a check-in code to a Nestovin cook',
+    alt: 'A resident at their front door showing a check-in code to a Nestovin cook',
     state: 'Checked in',
   },
   {
@@ -235,12 +238,24 @@ export const modes = [
 
 export const trust = [
   { step: 'Before joining', title: 'Identity, documents and police verification', body: "Each person's identity and documents are checked and police verification is completed before they join. Our HR team reviews every check." },
-  { step: 'Before the first visit', title: 'Trained for the work and the home', body: 'Training covers the service, hygiene, conduct in a family home and the check-in app.' },
+  {
+    step: 'Before the first visit',
+    title: 'Trained for the work and the home',
+    body: 'Training covers the service, hygiene, conduct in a family home and the check-in app.',
+    image: '/site/training.jpg',
+    imageAlt: 'A Nestovin trainer showing three new housekeepers how to fold linen',
+  },
   { step: 'Every day', title: 'In uniform, with a photo ID', body: 'Every staff member wears the Nestovin uniform for their role and carries a Nestovin photo ID.' },
   { step: 'Every month', title: 'Employed and paid by Nestovin', body: "Staff are on Nestovin's monthly payroll, not paid in cash by the visit." },
   { step: 'Every visit', title: 'Checked in at your door', body: 'A one-time code or QR from your app starts the visit; time and location are recorded at that moment.' },
   { step: 'Always', title: 'Your details stay private', body: 'Staff see only what the visit needs: your first name, tower and flat.' },
-  { step: 'Whenever you need', title: 'Concerns go to a person', body: 'Every request has an owner and a deadline, and moves up to a senior manager if it is late.' },
+  {
+    step: 'Whenever you need',
+    title: 'Concerns go to a person',
+    body: 'Every request has an owner and a deadline, and moves up to a senior manager if it is late.',
+    image: '/site/support-desk.jpg',
+    imageAlt: 'A Nestovin support team member on a headset, taking notes at his desk',
+  },
 ] as const;
 
 export const communities = {
@@ -283,7 +298,7 @@ export const about = {
     'Nestovin was started to run home help the way a good service is run. We employ our staff, verify and train them, build a team for each community, and stand behind every visit.',
   ],
   beliefs: [
-    { title: 'Dignity for the people who work in our homes', body: 'Salaried, trained and respected staff do better work and stay longer.' },
+    { title: 'Dignity for the people who work in our homes', body: "Nestovin's own trained, respected staff do better work and stay longer." },
     { title: 'Trust shown, not promised', body: 'Every visit is checked in and every concern has a named owner.' },
     { title: 'Communities first', body: 'We grow one community at a time, with the residents who live there.' },
   ],
@@ -293,9 +308,9 @@ export const faq = [
   {
     group: 'For residents',
     items: [
-      { q: 'Is Nestovin available in my community?', a: 'We work in selected gated communities and add new ones as residents ask for us. Send an enquiry with your community name and we will tell you where things stand.' },
+      { q: 'Is Nestovin available in my community?', a: 'We work in selected gated communities and add new ones as residents ask for us. Use "Request Nestovin To Your Community" on the home page, or send an enquiry with your community name, and we will tell you where things stand.' },
       { q: 'Why are there no prices on the website?', a: 'Plans and prices are set for each community and home size, and shown in the Nestovin app once your community is live and your flat is verified.' },
-      { q: 'Can I choose who comes to my home?', a: "Nestovin assigns a trained person from your community's team. You get the same person for your plan, and a replacement from the same team when needed." },
+      { q: 'Can I choose who comes to my home?', a: "Nestovin assigns a trained person from your community's team, and arranges a replacement from the same team when needed." },
       { q: 'How do I know the visit happened?', a: 'Each visit starts with a one-time code you share at the door, and the start and finish are recorded in your app.' },
       { q: 'Do I pay the worker directly?', a: 'No. You pay Nestovin in the app, and Nestovin pays its staff a monthly salary.' },
       { q: 'What is an interest round?', a: 'In some communities, residents first register what they need during a short interest round, with part of the amount paid up front. Nestovin then staffs the community and publishes time slots, and you pay the balance to start. Your request is not a booking until that is done.' },

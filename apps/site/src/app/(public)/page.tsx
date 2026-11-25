@@ -1,7 +1,7 @@
-import { ArrowRight, Check, X } from 'lucide-react';
+import { ArrowRight, Check, Plus, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { careers, communities, difference, paths, services, site } from '@/site/content';
+import { careers, communities, difference, faq, paths, services, site } from '@/site/content';
 import { DayStory } from '@/site/DayStory';
 import { CommunityStory } from '@/site/CommunityStory';
 import { FilmHero } from '@/site/FilmHero';
@@ -55,12 +55,12 @@ export default function HomePage() {
 
       <ServiceRail />
 
-      {/* A day at flat 1204 */}
+      {/* A day at your flat */}
       <section className="bg-canvas py-20 md:py-28" aria-labelledby="day-title">
         <Container>
           <SectionHead
             id="day-title"
-            title="A day at flat 1204"
+            title="A day at your flat"
             lede="What Nestovin looks like from your side of the door. A sample day."
             className="mb-14 md:mb-20"
           />
@@ -125,7 +125,7 @@ export default function HomePage() {
 
       {/* How a community joins */}
       <section className="relative isolate overflow-hidden bg-canvas py-20 md:py-28" aria-labelledby="join-title">
-        <EmblemWatermark className="absolute -right-24 -bottom-20 -z-10 w-[460px] text-brand/[0.05]" />
+        <EmblemWatermark className="absolute -right-24 -bottom-16 -z-10 w-[560px]" />
         <Container>
           <div className="grid gap-12 lg:grid-cols-[1fr_1.1fr] lg:items-center lg:gap-16">
             <div>
@@ -176,6 +176,29 @@ export default function HomePage() {
           <LinkButton href="/careers" variant="secondary" arrow className="self-start md:self-auto">
             Work with Nestovin
           </LinkButton>
+        </Container>
+      </section>
+
+      {/* A few questions, answered here; the full list lives on /faq */}
+      <section className="bg-canvas py-20 md:py-28" aria-labelledby="home-faq-title">
+        <Container className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
+          <div data-reveal>
+            <SectionHead id="home-faq-title" title="Questions, answered" lede="The things residents ask us most. If yours is not here, send us an enquiry and a person will reply." />
+            <LinkButton href="/faq" variant="quiet" arrow className="mt-6">
+              All questions
+            </LinkButton>
+          </div>
+          <div className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface" data-reveal>
+            {faq[0]!.items.slice(0, 5).map((it, i) => (
+              <details key={it.q} className="group" open={i === 0}>
+                <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 font-display text-[17px] font-semibold text-charcoal transition-colors hover:bg-canvas md:px-6 [&::-webkit-details-marker]:hidden">
+                  {it.q}
+                  <Plus size={20} aria-hidden className="shrink-0 text-teal transition-transform duration-300 group-open:rotate-45" />
+                </summary>
+                <p className="px-5 pb-5 text-[16px] leading-7 text-ink-2 md:px-6">{it.a}</p>
+              </details>
+            ))}
+          </div>
         </Container>
       </section>
 

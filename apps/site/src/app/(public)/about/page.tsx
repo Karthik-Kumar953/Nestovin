@@ -1,5 +1,6 @@
 import { about, site } from '@/site/content';
 import { Container, EnquiryBand, PageHero, Photo, SectionHead } from '@/site/ui';
+import { pageHero } from '@/site/hero-images';
 
 export const metadata = {
   title: 'About Nestovin',
@@ -10,7 +11,7 @@ export const metadata = {
 export default function AboutPage() {
   return (
     <>
-      <PageHero title={about.title} lede={about.story[0]!} />
+      <PageHero title={about.title} lede={about.story[0]!} {...pageHero('about')} imageAlt="A modern gated residential community at golden hour" />
       <section className="bg-surface py-16 md:py-24">
         <Container className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
           <Photo src="/site/community-dawn.jpg" alt="A modern gated residential community at golden hour" className="aspect-[4/3]" />

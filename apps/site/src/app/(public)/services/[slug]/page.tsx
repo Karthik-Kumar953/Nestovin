@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { services } from '@/site/content';
 import { Container, EnquiryBand, LinkButton, PageHero, ServiceBadge } from '@/site/ui';
+import { pageHero } from '@/site/hero-images';
 
 export function generateStaticParams() {
   return services.map((s) => ({ slug: s.slug }));
@@ -22,8 +23,8 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
 
   return (
     <>
-      <PageHero title={s.name} lede={s.summary} image={s.image} imageAlt={s.imageAlt}>
-        <LinkButton href="/contact" arrow>
+      <PageHero title={s.name} lede={s.summary} {...pageHero(s.slug)} imageAlt={s.imageAlt}>
+        <LinkButton href="/contact" variant="onBrand" arrow>
           Send an enquiry
         </LinkButton>
       </PageHero>

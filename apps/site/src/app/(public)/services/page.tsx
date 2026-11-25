@@ -3,10 +3,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { services } from '@/site/content';
 import { Container, EnquiryBand, PageHero, ServiceBadge } from '@/site/ui';
+import { pageHero } from '@/site/hero-images';
 
 export const metadata = {
   title: 'Services: maid, cook and caretaker',
-  description: 'Maid, cook and caretaker services from Nestovin, done by salaried, verified and trained staff assigned to your flat.',
+  description: "Maid, cook and caretaker services from Nestovin, done by Nestovin's own trained, verified staff assigned to your flat.",
   alternates: { canonical: '/services' },
 };
 
@@ -14,6 +15,8 @@ export default function ServicesPage() {
   return (
     <>
       <PageHero
+        {...pageHero('services')}
+        imageAlt="Three Nestovin staff in their role uniforms"
         title="Maid, cook and caretaker"
         lede="Three services, each done by a Nestovin employee who is verified, trained and assigned to your flat. What is included depends on the plan your community offers; the app shows you the full list before you choose."
       />

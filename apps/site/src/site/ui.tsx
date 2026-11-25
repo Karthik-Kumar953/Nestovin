@@ -17,6 +17,7 @@ const btnVariants = {
   quiet: 'px-1 text-teal hover:text-teal-deep',
   onBrand: 'bg-white text-teal-deep hover:bg-canvas',
   ghostLight: 'border border-white/80 bg-charcoal/30 text-white hover:bg-white/15',
+  outlineLight: 'border border-white/70 text-white hover:border-white hover:bg-white/10',
 } as const;
 export type ButtonVariant = keyof typeof btnVariants;
 
@@ -105,13 +106,20 @@ export function BrandWave({ className = '', flip = false }: { className?: string
 }
 
 /** Faint house-emblem pattern (Brand Kit "brand pattern"). Decorative. */
-export function EmblemWatermark({ className = '' }: { className?: string }) {
+/**
+ * The real Nestovin mark as a large, faint watermark. On light grounds it keeps the brand
+ * teal and green; on dark grounds (`onDark`) it becomes a soft white silhouette.
+ * Size and position come from `className` (width, inset, z-index).
+ */
+export function EmblemWatermark({ className = '', onDark = false }: { className?: string; onDark?: boolean }) {
   return (
-    <svg className={`pointer-events-none ${className}`} viewBox="0 0 200 200" aria-hidden fill="none">
-      <path d="M30 190V82L100 22l70 60v108" stroke="currentColor" strokeWidth="14" strokeLinejoin="round" />
-      <path d="M62 190v-70l72 70" stroke="currentColor" strokeWidth="14" strokeLinejoin="round" />
-      <rect x="112" y="78" width="26" height="26" rx="3" fill="currentColor" />
-    </svg>
+    <img
+      src="/nestovin-logo.png"
+      alt=""
+      aria-hidden
+      draggable={false}
+      className={`pointer-events-none h-auto select-none ${onDark ? 'opacity-[0.09] brightness-0 invert' : 'opacity-[0.11]'} ${className}`}
+    />
   );
 }
 
@@ -136,31 +144,60 @@ export function Photo({
 }
 
 /** Inner-page header: mint ground, emblem watermark, brand wave under it. */
+/**
+ * Inner-page hero, in the same style as the home hero: the page's photograph covers the whole
+ * hero, a brand-green overlay rises from the bottom, and the words sit on top of it at the
+ * bottom left. Pages without a photo keep the light version with the logo watermark.
+ * `focus` is the photo's object-position, so phones crop to the person, not the wall.
+ */
 export function PageHero({
   title,
   lede,
   image,
   imageAlt,
+  focus = '50% 35%',
   children,
 }: {
   title: ReactNode;
   lede: ReactNode;
   image?: string;
   imageAlt?: string;
+  focus?: string;
   children?: ReactNode;
 }) {
+  if (!image) {
+    return (
+      <section className="relative isolate overflow-hidden bg-canvas">
+        <EmblemWatermark className="absolute -top-6 -right-20 -z-10 w-[400px] md:-right-16 md:w-[600px]" />
+        <Container className="pt-14 pb-24 md:pt-20 md:pb-32">
+          <div className="hero-in max-w-[640px]">
+            <h1 className="text-[34px] leading-[42px] font-bold tracking-[-0.02em] md:text-[54px] md:leading-[62px]">{title}</h1>
+            <p className="mt-5 text-lg leading-8 text-ink-2">{lede}</p>
+            {children && <div className="mt-8 flex flex-wrap gap-3">{children}</div>}
+          </div>
+        </Container>
+        <BrandWave className="absolute inset-x-0 bottom-0 -z-10 h-16 w-full md:h-24" />
+      </section>
+    );
+  }
   return (
-    <section className="relative isolate overflow-hidden bg-canvas">
-      <EmblemWatermark className="absolute -top-10 -right-16 -z-10 w-[360px] text-brand/[0.06] md:w-[520px]" />
-      <Container className={`grid gap-10 pt-14 pb-24 md:pt-20 md:pb-32 ${image ? 'lg:grid-cols-[1.05fr_1fr] lg:items-center' : ''}`}>
-        <div className="hero-in max-w-[640px]">
-          <h1 className="text-[34px] leading-[42px] font-bold tracking-[-0.02em] md:text-[54px] md:leading-[62px]">{title}</h1>
-          <p className="mt-5 text-lg leading-8 text-ink-2">{lede}</p>
-          {children && <div className="mt-8 flex flex-wrap gap-3">{children}</div>}
+    <section className="relative isolate flex min-h-[min(calc(100svh-72px),760px)] items-end overflow-hidden bg-teal-deep md:min-h-[min(calc(100svh-72px),720px)]">
+      <Image src={image} alt={imageAlt ?? ''} fill priority sizes="100vw" className="hero-zoom -z-20 object-cover" style={{ objectPosition: focus }} />
+      <div
+        className="absolute inset-0 -z-10 bg-[linear-gradient(to_top,rgb(0_105_92/0.92)_0%,rgb(0_105_92/0.72)_28%,rgb(0_105_92/0.25)_50%,rgb(0_105_92/0)_66%)] md:bg-[linear-gradient(to_top,rgb(0_105_92/0.82)_0%,rgb(0_105_92/0.5)_22%,rgb(0_105_92/0.12)_42%,rgb(0_105_92/0)_55%)]"
+        aria-hidden
+      />
+      <div className="absolute inset-0 -z-10 hidden bg-[radial-gradient(ellipse_58%_80%_at_0%_100%,rgb(0_105_92/0.6)_0%,rgb(0_105_92/0.26)_45%,transparent_72%)] md:block" aria-hidden />
+      <div className="absolute inset-x-0 top-0 -z-10 h-24 bg-[linear-gradient(to_bottom,rgb(0_105_92/0.2),transparent)]" aria-hidden />
+      <Container className="pt-48 pb-12 md:pb-16">
+        <div className="hero-in max-w-[680px] [text-shadow:0_1px_18px_rgb(0_50_44/0.5)]">
+          <h1 className="text-[36px] leading-[42px] font-bold tracking-[-0.025em] text-white min-[400px]:text-[40px] min-[400px]:leading-[46px] md:text-[50px] md:leading-[56px]">
+            {title}
+          </h1>
+          <p className="mt-5 max-w-[600px] text-[17px] leading-7 text-white md:text-lg md:leading-8">{lede}</p>
+          {children && <div className="mt-8 flex flex-col gap-3 [text-shadow:none] sm:flex-row sm:flex-wrap">{children}</div>}
         </div>
-        {image && <Photo src={image} alt={imageAlt ?? ''} priority className="hero-in aspect-[16/11]" />}
       </Container>
-      <BrandWave className="absolute inset-x-0 bottom-0 -z-10 h-16 w-full md:h-24" />
     </section>
   );
 }
@@ -185,7 +222,7 @@ export function EnquiryBand({
           data-reveal
         >
           <div className="absolute inset-0 -z-10 bg-[linear-gradient(115deg,var(--nv-teal-deep)_0%,var(--nv-teal-action)_55%,var(--nv-green-action)_100%)]" aria-hidden />
-          <EmblemWatermark className="absolute -right-10 -bottom-16 -z-10 w-[280px] text-white/[0.08]" />
+          <EmblemWatermark onDark className="absolute -right-10 -bottom-16 -z-10 w-[340px]" />
           <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
             <div className="max-w-[580px]">
               <h2 className="text-[28px] leading-9 font-semibold text-white md:text-[38px] md:leading-[46px]">{title}</h2>

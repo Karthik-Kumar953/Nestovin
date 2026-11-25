@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     locale: 'en_IN',
     title: 'Nestovin: home help, organised for your whole community',
     description: site.description,
-    images: [{ url: '/site/community-dawn.jpg', width: 2752, height: 1536, alt: 'A gated residential community at golden hour' }],
+    images: [{ url: '/site/og-image.jpg', width: 1200, height: 630, alt: 'Nestovin trained home help: housekeeper and cook at work in a bright kitchen' }],
   },
   twitter: { card: 'summary_large_image' },
 };

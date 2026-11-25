@@ -22,7 +22,7 @@ export default function ContactPage() {
       <Container className="grid gap-6 lg:grid-cols-[0.92fr_1.3fr] lg:items-start lg:gap-8">
         <aside className="hero-in relative isolate overflow-hidden rounded-2xl p-7 text-white md:p-10 lg:sticky lg:top-[96px]">
           <div className="absolute inset-0 -z-10 bg-[linear-gradient(150deg,var(--nv-teal-deep)_0%,var(--nv-teal-action)_75%,var(--nv-green-action)_140%)]" aria-hidden />
-          <EmblemWatermark className="absolute -right-16 -bottom-20 -z-10 w-[320px] text-white/[0.07]" />
+          <EmblemWatermark onDark className="absolute -right-16 -bottom-16 -z-10 w-[380px]" />
           <h1 className="text-[34px] leading-[40px] font-bold tracking-[-0.02em] text-white md:text-[46px] md:leading-[52px]">Let&rsquo;s talk about your home</h1>
           <p className="mt-4 max-w-[440px] text-[17px] leading-7 text-white/90">
             Help at home, Nestovin for your community, or a job with us. Start here and tell us a little about it.

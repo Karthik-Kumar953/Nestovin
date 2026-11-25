@@ -72,7 +72,7 @@ export function CheckInDemo() {
         {/* staff phone */}
         <div className="rounded-[22px] bg-surface p-4 shadow-[0_24px_48px_-24px_rgb(17_24_39/0.6)] sm:p-5" aria-hidden>
           <p className="text-[12px] font-semibold text-ink-2">Staff app</p>
-          <p className="mt-3 font-display text-[15px] font-semibold text-charcoal">Flat 1204 · Cook</p>
+          <p className="mt-3 font-display text-[15px] font-semibold text-charcoal">Your flat · Cook</p>
           <p className="mt-3 flex gap-1.5 sm:gap-2">
             {CODE.map((d, i) => (
               <span key={i} className="grid h-12 flex-1 place-items-center rounded-md border-2 border-line font-display text-[24px] font-bold text-charcoal tabular-nums sm:h-14 sm:text-[28px]">
@@ -89,7 +89,7 @@ export function CheckInDemo() {
           </span>
           <div>
             <p className="font-display text-[17px] font-semibold">Checked in · 07:00</p>
-            <p className="text-[14px] text-white/75">Visit started at flat 1204</p>
+            <p className="text-[14px] text-white/75">Visit started at your flat</p>
           </div>
         </div>
       </figure>

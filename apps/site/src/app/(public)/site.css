@@ -14,6 +14,12 @@
 @source not '../admin';
 
 @layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  summary {
+    cursor: pointer;
+  }
+
   html {
     -webkit-font-smoothing: antialiased;
     scroll-behavior: smooth;
@@ -49,6 +55,52 @@
   .hero-in {
     animation: nv-hero-in 1s cubic-bezier(0.16, 1, 0.3, 1) backwards;
   }
+  /* Inner-page hero photo settles once on load. */
+  .hero-zoom {
+    animation: nv-hero-zoom 2.2s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  }
+  @keyframes nv-hero-zoom {
+    from {
+      transform: scale(1.06);
+    }
+  }
+  /* Phone menu: the panel drops in, its items trail after it. */
+  .nav-panel:not([hidden]) {
+    animation: nv-nav-panel 0.35s cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
+  .nav-panel:not([hidden]) .nav-item {
+    animation: nv-nav-item 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes nv-nav-panel {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+  }
+  @keyframes nv-nav-item {
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+  }
+  /* Community request: rises in as a sheet on phones, fades up as a card on wider screens. */
+  .request-dialog[open] {
+    animation: nv-sheet-in 0.45s cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
+  .request-dialog[open]::backdrop {
+    animation: nv-fade-in 0.3s ease-out both;
+  }
+  @keyframes nv-sheet-in {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+  }
+  @keyframes nv-fade-in {
+    from {
+      opacity: 0;
+    }
+  }
   .hero-in + .hero-in {
     animation-delay: 120ms;
   }
@@ -59,7 +111,12 @@
     }
   }
   @media (prefers-reduced-motion: reduce) {
-    .hero-in {
+    .hero-in,
+    .hero-zoom,
+    .nav-panel:not([hidden]),
+    .nav-panel:not([hidden]) .nav-item,
+    .request-dialog[open],
+    .request-dialog[open]::backdrop {
       animation: none;
     }
   }

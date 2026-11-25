@@ -3,8 +3,20 @@
 **Owner:** the client team generates every asset; the code team places them.
 **Tool:** Google Flow (Nano Banana for stills, Veo for film). The prompts also work in Midjourney, Imagen or Runway with small changes.
 **Updated:** 22 Nov 2026. This file replaces the earlier image list.
+**Page heroes:** each page's full-cover hero photo has its own prompt in `Website_Page_Hero_Prompts.md`.
 
 The home page opens on **your film (Film A) as the hero**, behind the headline. Directly under it, the scroll-driven drawn community (built in code) explains how Nestovin works. Until the film is ready, the hero shows `community-dawn.jpg`.
+
+**Where files go.** Every prompt below ends with a **Save as** line giving the exact folder and file name. Save the file there with that name and nothing else. There are four folders, all inside the project folder `D:\Karthik\Karthik\Projects\Nestovin`:
+
+| Folder | What goes there |
+|---|---|
+| `apps\site\public\site\` | Website stills, their `-mobile` 4:5 crops, `og-image.jpg`, and the finished hero film |
+| `docs\Design\characters\` | Character sheets (reference only, not shown on the site) |
+| `docs\Design\film\` | Raw film shots before editing |
+| `docs\Design\images\` | App images (see `App_Image_Master_Prompts.md`) |
+
+Create a folder if it does not exist yet. Files with the same name replace the current ones (the six stills already on the site). The new names (`-mobile` crops, `training.jpg`, `id-detail.jpg`, `support-desk.jpg`, `family-morning.jpg`, `og-image.jpg` and the film) need a small code change to appear; tell the code team once they are saved.
 
 ---
 
@@ -53,15 +65,24 @@ Generate each one at 1:1, pick the best, and save it as an Ingredient named exac
 ### 3a. `char-cook-lakshmi`
 > Character reference sheet, photorealistic studio portrait, plain light mint-grey seamless background, soft large softbox key light from the left, 85mm lens f/4. Lakshmi, an Indian woman around 32, warm medium-brown skin with natural texture, neat low bun, small gold stud earrings, calm confident expression. She wears a crisp white chef coat with deep teal (#00897B) piping and teal buttons, a deep teal apron, a white chef cap, black trousers, and a photo ID card on a teal lanyard turned slightly away. Three views side by side: front, three-quarter, profile. Full body visible. Neutral, natural, not smiling widely.
 
+**Save as:** `D:\Karthik\Karthik\Projects\Nestovin\docs\Design\characters\char-cook-lakshmi.png`
+
 ### 3b. `char-maid-priya`
 > Character reference sheet, photorealistic studio portrait, plain light mint-grey seamless background, soft large softbox key light from the left, 85mm lens f/4. Priya, an Indian woman around 27, medium skin with natural texture, hair in a neat braid, small black bindi, friendly composed expression. She wears a deep teal (#00897B) short-sleeve tunic with a light mint collar trim, a mint apron with two front pockets, teal trousers, a small plain white embroidered house shape on the left chest, and a photo ID card on a teal lanyard turned slightly away. Three views side by side: front, three-quarter, profile. Full body visible.
+
+**Save as:** `D:\Karthik\Karthik\Projects\Nestovin\docs\Design\characters\char-maid-priya.png`
 
 ### 3c. `char-caretaker-ravi`
 > Character reference sheet, photorealistic studio portrait, plain light mint-grey seamless background, soft large softbox key light from the left, 85mm lens f/4. Ravi, an Indian man around 42, medium-dark skin with natural texture, short greying hair, neatly trimmed moustache, gentle patient expression. He wears a light grey polo shirt with a deep teal (#00897B) collar and sleeve trim, a teal cap, dark grey cargo trousers, a small plain white embroidered house shape on the left chest, and a photo ID card on a teal lanyard turned slightly away. Three views side by side: front, three-quarter, profile. Full body visible.
 
+**Save as:** `D:\Karthik\Karthik\Projects\Nestovin\docs\Design\characters\char-caretaker-ravi.png`
+
 ### 3d. Residents (optional, for the film and the door shot)
 - `char-resident-ananya`: Indian woman around 35, a working professional in a soft cotton kurta, hair loose to the shoulders, reading glasses pushed up.
 - `char-elder-kamala`: Indian woman around 72, silver hair in a bun, cotton saree in muted green, kind eyes.
+
+
+**Save as:** `D:\Karthik\Karthik\Projects\Nestovin\docs\Design\characters\char-resident-ananya.png` and `D:\Karthik\Karthik\Projects\Nestovin\docs\Design\characters\char-elder-kamala.png`
 
 Use the same studio wording as above.
 
@@ -90,35 +111,61 @@ Use the same studio wording as above.
 ### 1. `cook.jpg`
 > Documentary photograph, Canon R5, 50mm lens at f/2, 7 am. A bright Indian apartment kitchen with a white quartz counter, light oak cabinets, a steel pressure cooker and a small brass tulsi pot on the windowsill. Lakshmi, the Nestovin cook in her white chef coat with teal piping, teal apron and white chef cap, stirs a steel pot of yellow dal with a long ladle while steam curls into soft morning window light coming from the right. She looks down at the pot, focused and calm. Fresh coriander and chopped tomatoes on a wooden board in the foreground, slightly out of focus. The left third of the frame is a calm, softly lit white wall for text. Natural skin texture, fine film grain, Kodak Portra 400 colour, clean whites, warm highlights.
 
+**Save as:** `D:\Karthik\Karthik\Projects\Nestovin\apps\site\public\site\cook.jpg`  
+**4:5 mobile crop:** `D:\Karthik\Karthik\Projects\Nestovin\apps\site\public\site\cook-mobile.jpg`
+
 ### 2. `maid.jpg`
 > Documentary photograph, Sony A7 IV, 35mm lens at f/2.2, 9 am. The living and dining room of a lived-in Indian 3 BHK flat: sheer white curtains, light oak floor, a glass-top dining table with six chairs, a money plant in a ceramic pot. Priya, the Nestovin housekeeper in her teal tunic with mint collar and mint apron, wipes the glass table in slow circles with a folded microfibre cloth, a spray bottle beside her hand. She is mid-motion, looking at her work. Soft diffused daylight through the curtains from the left. The right third of the frame is open, calm wall and curtain for text. Natural skin texture, slight motion in the cloth, fine film grain, clean whites and soft mint tones.
+
+**Save as:** `D:\Karthik\Karthik\Projects\Nestovin\apps\site\public\site\maid.jpg`  
+**4:5 mobile crop:** `D:\Karthik\Karthik\Projects\Nestovin\apps\site\public\site\maid-mobile.jpg`
 
 ### 3. `caretaker.jpg`
 > Documentary photograph, Fujifilm X-T5, 33mm lens at f/1.8, 6 pm golden hour. A warm Indian living room with a cane chair, cotton cushions and a framed family photo out of focus on the wall. Ravi, the Nestovin caretaker in his grey polo with teal collar and teal cap, bends slightly to hand a steel tumbler of tea on a saucer to Kamala, an elderly woman in a muted green cotton saree seated in the cane chair. Their hands are close around the cup; she is mid-sentence and he is listening. Low golden sunlight from the window behind and to the left, gentle rim light on both. The left third of the frame is calm and softly lit for text. Tender, respectful, unposed, fine film grain.
 
+**Save as:** `D:\Karthik\Karthik\Projects\Nestovin\apps\site\public\site\caretaker.jpg`  
+**4:5 mobile crop:** `D:\Karthik\Karthik\Projects\Nestovin\apps\site\public\site\caretaker-mobile.jpg`
+
 ### 4. `door-checkin.jpg`
 > Documentary photograph, Canon R6, 35mm lens at f/2.8, 7 am, from inside the flat looking out through the open front door. The building corridor has clean off-white walls, a potted plant and soft cool daylight. Ananya, the resident in a cotton kurta, holds her phone screen toward Lakshmi, the Nestovin cook standing in the corridor in her white chef coat, teal apron and chef cap with an ID card on a teal lanyard. Lakshmi holds her own phone, about to tap it. The phone screens are bright but show no readable text. Both are slightly smiling in a natural, everyday way. The door frame forms a natural border on the right, and the left third is the calm hallway wall for text. Fine film grain, natural skin.
+
+**Save as:** `D:\Karthik\Karthik\Projects\Nestovin\apps\site\public\site\door-checkin.jpg`  
+**4:5 mobile crop:** `D:\Karthik\Karthik\Projects\Nestovin\apps\site\public\site\door-checkin-mobile.jpg`
 
 ### 5. `team.jpg`
 > Documentary group photograph, Sony A7 IV, 50mm lens at f/2.8, 8 am. A landscaped courtyard of an Indian gated community with white mid-rise towers softly out of focus behind and neem trees casting dappled shade. Priya (maid, teal tunic and mint apron), Lakshmi (cook, white chef coat, teal apron, chef cap) and Ravi (caretaker, grey polo, teal cap) walk together toward the camera along a paved path, mid-conversation, each with an ID card on a teal lanyard. Natural relaxed body language, not lined up. Morning light from behind with soft rim light. The top third of the frame is sky and building for text. Fine film grain, clean whites, fresh greens.
 
+**Save as:** `D:\Karthik\Karthik\Projects\Nestovin\apps\site\public\site\team.jpg`
+
 ### 6. `community-dawn.jpg`
 > Architectural photograph, 24mm tilt-shift lens at f/8, 6:15 am. A modern Indian gated community at dawn: four white mid-rise residential towers with glass balconies, a few windows warmly lit, a landscaped central garden with a walking path, a security gate in the foreground right, a few early walkers far away. Soft pink-gold sky fading to pale mint. The top 40% of the frame is calm sky for text. No people close enough to be identified, no signage. Crisp, calm, aspirational but realistic, fine grain.
+
+**Save as:** `D:\Karthik\Karthik\Projects\Nestovin\apps\site\public\site\community-dawn.jpg`
 
 ### 7. `training.jpg`
 > Documentary photograph, 35mm lens at f/2.5, mid-morning. A clean, bright training room with a demo kitchen counter. A Nestovin trainer, an Indian woman around 45 in a teal polo with her back three-quarters to the camera, shows three new staff in teal uniforms how to fold a cotton bedsheet neatly. Priya is in the centre, concentrating, hands on the fabric. Soft daylight from large windows on the right. The left third is a calm wall for text. Encouraging, real, unposed, fine film grain.
 
+**Save as:** `D:\Karthik\Karthik\Projects\Nestovin\apps\site\public\site\training.jpg`
+
 ### 8. `id-detail.jpg`
 > Close-up detail photograph, 100mm macro lens at f/2.8. The chest of Ravi, the Nestovin caretaker: grey polo with teal collar, a small plain white embroidered house shape on the chest, and a photo ID card on a teal lanyard angled so its surface catches soft light and shows no readable text. His hand adjusts the lanyard. Shallow depth of field, soft window light from the left, the background a soft mint-white blur. Tactile fabric texture, fine film grain.
+
+**Save as:** `D:\Karthik\Karthik\Projects\Nestovin\apps\site\public\site\id-detail.jpg`
 
 ### 9. `support-desk.jpg`
 > Documentary photograph, 50mm lens at f/2, daytime. A small, bright, modern Nestovin support office: white desk, a monitor seen from behind (screen not visible), a potted plant, teal accent chair. An Indian man around 30 in a teal polo with a slim headset speaks on a call, listening carefully and taking a note by hand in a notebook. Soft daylight from a window on the left. The right 40% of the frame is a calm white wall for text. Warm, reassuring, competent, fine film grain.
 
+**Save as:** `D:\Karthik\Karthik\Projects\Nestovin\apps\site\public\site\support-desk.jpg`
+
 ### 10. `family-morning.jpg`
 > Documentary photograph, 35mm lens at f/2, 8 am. The dining area of an Indian flat: Ananya, a working professional, laughs with her elderly mother Kamala at the breakfast table over idli and chutney in steel plates, while a school bag and laptop bag wait by the chair. In the soft background, out of focus, a Nestovin maid in teal works quietly in the kitchen doorway. Morning window light from the right. The left third is calm for text. Relaxed, genuine, everyday warmth, fine film grain.
 
+**Save as:** `D:\Karthik\Karthik\Projects\Nestovin\apps\site\public\site\family-morning.jpg`
+
 ### 11. `og-image.jpg` (1200×630)
 > Wide documentary photograph for a link preview, 35mm at f/2.8. A bright Indian apartment kitchen: Priya in her teal tunic and mint apron and Lakshmi in her white chef coat and teal apron, side by side at the counter, one rinsing vegetables and one chopping, both relaxed and focused. Morning light from the left. The entire left 45% of the frame is a calm, softly lit plain white wall (the logo and headline go there in edit). No text in the image. Fine film grain.
+
+**Save as:** `D:\Karthik\Karthik\Projects\Nestovin\apps\site\public\site\og-image.jpg`
 
 ---
 
@@ -142,7 +189,11 @@ Add this line to both A1 and A2: *"Keep the left 45% of the frame calm and unclu
 | A1 (8 s) | `community-dawn.jpg` | Very slow forward dolly along the garden path toward the towers as dawn light grows warmer. A few windows light up one by one. Two birds cross the sky. Dew glints on the grass. Calm and still. |
 | A2 (8 s) | `cook.jpg` | Locked-off camera with an almost imperceptible push-in. Lakshmi slowly stirs the dal, steam rises and drifts through the window light, she reaches for the coriander and sprinkles it in. Ending pose matches the starting pose so the clip can loop. |
 
+**Save the raw shots as:** `D:\Karthik\Karthik\Projects\Nestovin\docs\Design\film\A1-community.mp4` and `D:\Karthik\Karthik\Projects\Nestovin\docs\Design\film\A2-cook.mp4`
+
 **Edit (code team does this):** cross-dissolve A1 → A2 → back to A1 over 1 second. Export H.264 MP4 (about 3 MB) plus WebM, and a poster frame JPG.
+
+Finished Film A (after the edit): **Save as:** `D:\Karthik\Karthik\Projects\Nestovin\apps\site\public\site\hero-film.mp4` and `D:\Karthik\Karthik\Projects\Nestovin\apps\site\public\site\hero-film.webm`, poster frame `D:\Karthik\Karthik\Projects\Nestovin\apps\site\public\site\hero-poster.jpg`. If you send only the raw shots, the code team makes these.
 
 ### Film B: "A morning at flat 1204" (30 s brand film, 4 shots)
 
@@ -155,11 +206,15 @@ Add this line to both A1 and A2: *"Keep the left 45% of the frame calm and unclu
 | B3 Care (8 s) | `maid.jpg` | Slow lateral track from right to left across the flat: Priya wiping the glass dining table in soft curtain light, continuing past to the kitchen doorway where Lakshmi, out of focus, plates breakfast. Gentle, unhurried rhythm. |
 | B4 Evening (8 s) | `caretaker.jpg` | Golden hour, slow push-in. Ravi hands Kamala a steel tumbler of tea, she takes it with both hands and smiles, he sits on a low stool beside her as she begins telling a story. The light softens. Final second holds still on the calm, warm room. |
 
+**Save the shots as:** `D:\Karthik\Karthik\Projects\Nestovin\docs\Design\film\B1-wake.mp4`, `D:\Karthik\Karthik\Projects\Nestovin\docs\Design\film\B2-arrive.mp4`, `D:\Karthik\Karthik\Projects\Nestovin\docs\Design\film\B3-care.mp4` and `D:\Karthik\Karthik\Projects\Nestovin\docs\Design\film\B4-evening.mp4`
+
 **End card (added in edit, not generated):** the Nestovin logo on mint `#F5FAF9`, with the line "Your home. Our priority." and the website address.
 
 **Music and sound (if you add it):** soft acoustic guitar or sitar with light tabla, around 80 bpm. Add ambient sound per scene: morning birds, a pressure-cooker whistle in the distance, a doorbell, a teacup on a saucer.
 
 **9:16 version for Reels:** regenerate each shot at 9:16 with the same prompt plus "vertical framing, subject centred, room above the head for captions".
+
+Save the 9:16 shots next to the 16:9 ones with `-9x16` added, for example `D:\Karthik\Karthik\Projects\Nestovin\docs\Design\film\B1-wake-9x16.mp4`.
 
 ---
 

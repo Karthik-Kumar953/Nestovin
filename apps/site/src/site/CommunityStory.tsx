@@ -4,6 +4,7 @@ import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useEffect, useRef, useState } from 'react';
+import { CommunityCards } from './CommunityCards';
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
 
@@ -33,7 +34,7 @@ export const beats = [
   },
   {
     title: 'Checked in at your door',
-    body: 'Every visit is checked in with your code at the door. Same person, same time, and if they are on leave, cover comes from the same team.',
+    body: "Every visit is checked in with your code at the door, and if your usual person is on leave, cover comes from your community's trained team.",
   },
 ];
 
@@ -102,7 +103,8 @@ export function CommunityStory() {
       const q = gsap.utils.selector(root);
       const mm = gsap.matchMedia();
 
-      mm.add('(prefers-reduced-motion: no-preference)', () => {
+      // Phones get stacked step cards that rise in as they scroll into view (CommunityCards); the pinned story runs from 768px.
+      mm.add('(prefers-reduced-motion: no-preference) and (min-width: 768px)', () => {
         setAnimated(true);
         setBeat(0);
         const outlines = q('[data-outline]');
@@ -142,10 +144,15 @@ export function CommunityStory() {
           },
         });
 
-        // 1: the community draws itself
-        tl.addLabel('b0').to(outlines, { strokeDashoffset: 0, duration: 0.8, stagger: 0.05 })
-          .to(q('[data-fill]'), { autoAlpha: 1, duration: 0.3 }, '-=0.3')
-          .to({}, { duration: 0.2 })
+        // 1: the community draws itself once as the section comes into view (not on the
+        // scrub), so the first pinned frame is never an empty card.
+        const draw = gsap
+          .timeline({ paused: true })
+          .to(outlines, { strokeDashoffset: 0, duration: 1.4, stagger: 0.06, ease: 'power2.inOut' })
+          .to(q('[data-fill]'), { autoAlpha: 1, duration: 0.5, ease: 'power1.out' }, '-=0.5');
+        ScrollTrigger.create({ trigger: root.current, start: 'top 75%', once: true, onEnter: () => draw.play() });
+        tl.addLabel('b0')
+          .to({}, { duration: 0.6 })
           // 2: homes ask
           .addLabel('b1')
           .to(q('[data-asked]'), { attr: { fill: 'var(--nv-primary)' }, duration: 0.6, stagger: { each: 0.012, from: 'random' } })
@@ -159,7 +166,7 @@ export function CommunityStory() {
           .addLabel('b3')
           .to(q('[data-person]'), { x: 0, autoAlpha: 1, duration: 0.85, stagger: 0.1, ease: 'power1.out' })
           .to({}, { duration: 0.25 })
-          // 5: zoom to flat 1204, check in, then every home checks in
+          // 5: zoom to your flat, check in, then every home checks in
           .addLabel('b4')
           .to(q('[data-scene]'), { scale: isSmall ? 1.7 : 1.9, svgOrigin: `${tcx} ${tcy}`, duration: 0.6, ease: 'power2.inOut' })
           .to(q('[data-target]'), { attr: { fill: 'var(--nv-secondary)' }, duration: 0.15 })
@@ -181,10 +188,13 @@ export function CommunityStory() {
   const B = towers[1]!;
 
   return (
-    <section ref={root} id="how" className="relative bg-canvas" aria-labelledby="how-title">
-      <div data-stage className={`flex ${animated ? 'h-svh' : 'min-h-svh'} items-center overflow-hidden pt-[88px] pb-6 md:pt-[72px] md:pb-4`}>
-        <div className="mx-auto grid w-full max-w-[1200px] items-center gap-8 px-5 md:grid-cols-[0.85fr_1.15fr] md:gap-12 md:px-8">
-          <div className="order-2 md:order-1">
+    <section ref={root} id="how" className="relative bg-canvas" aria-label="How Nestovin works">
+      <div className="pt-14 pb-16 md:hidden">
+        <CommunityCards />
+      </div>
+      <div data-stage className={`hidden md:flex ${animated ? 'h-svh' : 'min-h-svh'} items-center overflow-hidden pt-[88px] pb-6 md:pt-[72px] md:pb-4`}>
+        <div className="mx-auto grid w-full max-w-[1200px] items-center gap-6 px-5 md:px-8 lg:grid-cols-[0.85fr_1.15fr] lg:gap-12">
+          <div className="order-2 mx-auto w-full max-w-[640px] lg:order-1 lg:mx-0 lg:max-w-none">
             <h2 id="how-title" className="sr-only">
               How Nestovin works
             </h2>
@@ -201,7 +211,7 @@ export function CommunityStory() {
                   </li>
                 ))}
               </ol>
-              <div className="relative min-h-[210px] md:min-h-[260px]" aria-hidden>
+              <div className="relative min-h-[230px] lg:min-h-[300px]" aria-hidden>
                 {beats.map((b, i) => (
                   <div
                     key={b.title}
@@ -212,7 +222,7 @@ export function CommunityStory() {
                     <p className="font-display text-[15px] font-bold text-ink-2 tabular-nums">
                       0{i + 1} <span className="font-semibold">/ 0{beats.length}</span>
                     </p>
-                    <h3 className="mt-2 text-[30px] leading-[38px] font-bold tracking-[-0.02em] md:text-[44px] md:leading-[52px]">{b.title}</h3>
+                    <h3 className="mt-2 text-[32px] leading-[40px] font-bold tracking-[-0.02em] lg:text-[40px] lg:leading-[48px] xl:text-[44px] xl:leading-[52px]">{b.title}</h3>
                     <p className="mt-4 max-w-[460px] text-[17px] leading-7 text-ink-2 md:text-[18px] md:leading-8">{b.body}</p>
                   </div>
                 ))}
@@ -231,7 +241,7 @@ export function CommunityStory() {
             )}
 
             {animated && (
-              <ol className="mt-8 flex gap-2" aria-hidden>
+              <ol className="mt-6 flex gap-2 lg:mt-8" aria-hidden>
                 {beats.map((b, i) => (
                   <li key={b.title} className="h-1.5 flex-1 overflow-hidden rounded-full bg-line">
                     <span
@@ -244,11 +254,11 @@ export function CommunityStory() {
             )}
           </div>
 
-          <figure className="order-1 md:order-2">
-            <svg viewBox="0 0 720 560" className="mx-auto h-auto max-h-[46svh] w-full md:max-h-[74svh]" role="img" aria-labelledby="cs-t cs-d">
+          <figure className="order-1 lg:order-2">
+            <svg viewBox="0 0 720 560" className="mx-auto h-auto max-h-[46svh] w-full lg:max-h-[74svh]" role="img" aria-labelledby="cs-t cs-d">
               <title id="cs-t">Illustration of a gated community using Nestovin</title>
               <desc id="cs-d">
-                Three residential towers. Windows light up for homes that asked for Nestovin, the community is mapped, a maid, a cook and a caretaker walk in through the gate, and flat 1204 is checked in at 7:00.
+                Three residential towers. Windows light up for homes that asked for Nestovin, the community is mapped, a maid, a cook and a caretaker walk in through the gate, and your flat is checked in at 7:00.
               </desc>
               <defs>
                 <clipPath id="cs-clip">
@@ -362,12 +372,12 @@ export function CommunityStory() {
                   </g>
                 </g>
 
-                {/* flat 1204 callout, in screen space (not zoomed) */}
+                {/* "your flat" callout, in screen space (not zoomed) */}
                 <g data-callout style={{ opacity: 0 }}>
                   <path d={`M${tcx} ${tcy + 14} l-9 16h18Z`} fill="var(--nv-charcoal)" />
                   <rect x={tcx - 190} y={tcy + 30} width="236" height="76" rx="14" fill="var(--nv-charcoal)" />
                   <text x={tcx - 170} y={tcy + 60} fill="#FFFFFF" fontFamily="var(--font-manrope)" fontWeight="700" fontSize="17">
-                    Flat 1204
+                    Your flat
                   </text>
                   <text x={tcx - 170} y={tcy + 84} fill="var(--nv-border)" fontFamily="var(--font-inter)" fontSize="14">
                     Cook · 07:00 · Checked in

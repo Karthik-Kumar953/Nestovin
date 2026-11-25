@@ -2,7 +2,8 @@ import { GraduationCap, MapPin, ShieldCheck, Wallet } from 'lucide-react';
 import Image from 'next/image';
 import { careers, services } from '@/site/content';
 import { JoinPath } from '@/site/JoinPath';
-import { Container, EnquiryBand, LinkButton, SectionHead, ServiceBadge } from '@/site/ui';
+import { Container, EnquiryBand, LinkButton, PageHero, SectionHead, ServiceBadge } from '@/site/ui';
+import { pageHero } from '@/site/hero-images';
 
 export const metadata = {
   title: 'Careers: maid, cook and caretaker jobs',
@@ -15,29 +16,14 @@ const pointIcons = [Wallet, GraduationCap, MapPin, ShieldCheck];
 export default function CareersPage() {
   return (
     <>
-      {/* Hero: the team, full bleed */}
-      <section className="relative isolate overflow-hidden bg-charcoal" aria-labelledby="careers-title">
-        <Image src="/site/team.jpg" alt="Three Nestovin staff in their role uniforms in a community courtyard" fill priority sizes="100vw" className="-z-10 object-cover" />
-        {/* Phones: the copy covers the whole frame, so the scrim does too. Wider: fade to the right. */}
-        <div className="absolute inset-0 -z-10 bg-[linear-gradient(to_top,rgb(17_24_39/0.92)_0%,rgb(17_24_39/0.78)_60%,rgb(17_24_39/0.55)_100%)] md:hidden" aria-hidden />
-        <div className="absolute inset-0 -z-10 hidden bg-[linear-gradient(90deg,rgb(17_24_39/0.88)_0%,rgb(17_24_39/0.6)_45%,rgb(17_24_39/0.1)_80%)] md:block" aria-hidden />
-        <Container className="flex min-h-[min(78svh,720px)] flex-col justify-center py-20">
-          <div className="hero-in max-w-[620px]">
-            <h1 id="careers-title" className="text-[40px] leading-[46px] font-bold tracking-[-0.03em] text-white md:text-[64px] md:leading-[68px]">
-              {careers.title}
-            </h1>
-            <p className="mt-6 text-[18px] leading-8 text-white/90">{careers.body}</p>
-            <div className="mt-9 flex flex-wrap gap-3">
-              <LinkButton href="/contact?type=careers" arrow>
-                Send your details
-              </LinkButton>
-              <LinkButton href="#path-title" variant="ghostLight">
-                See how joining works
-              </LinkButton>
-            </div>
-          </div>
-        </Container>
-      </section>
+      <PageHero title={careers.title} lede={careers.body} {...pageHero('careers')} imageAlt="New Nestovin staff learning together in a bright training room">
+        <LinkButton href="/contact?type=careers" variant="onBrand" arrow>
+          Send your details
+        </LinkButton>
+        <LinkButton href="#path-title" variant="outlineLight">
+          See how joining works
+        </LinkButton>
+      </PageHero>
 
       {/* What you get */}
       <section className="bg-surface py-16 md:py-24">

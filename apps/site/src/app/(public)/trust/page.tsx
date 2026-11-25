@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { CheckInDemo } from '@/site/CheckInDemo';
 import { TrustJourney } from '@/site/TrustJourney';
 import { Container, EnquiryBand, PageHero } from '@/site/ui';
+import { pageHero } from '@/site/hero-images';
 
 export const metadata = {
   title: 'Trust and safety',
@@ -16,8 +17,8 @@ export default function TrustPage() {
       <PageHero
         title="Someone you can let into your home"
         lede="Trust is not a badge on a website. It is a set of checks that happen before someone joins, before the first visit, and at your door every day."
-        image="/site/door-checkin.jpg"
-        imageAlt="A resident at the door of flat 1204 showing a check-in code to a Nestovin cook"
+        {...pageHero('trust')}
+        imageAlt="A resident at their front door showing a check-in code to a Nestovin cook"
       />
       <section className="bg-surface py-16 md:py-28">
         <Container>
@@ -56,7 +57,7 @@ export default function TrustPage() {
       <section className="bg-surface py-16 md:py-24">
         <Container className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
           <div className="relative aspect-[16/11] overflow-hidden rounded-xl" data-reveal>
-            <Image src="/site/team.jpg" alt="Three Nestovin staff in uniform in a community courtyard" fill sizes="(min-width: 1024px) 50vw, 100vw" className="object-cover" />
+            <Image src="/site/id-detail.jpg" alt="Nestovin caretaker uniform with teal collar, white embroidered house emblem and photo ID card" fill sizes="(min-width: 1024px) 50vw, 100vw" className="object-cover" />
           </div>
           <div data-reveal>
             <h2 className="text-[28px] leading-9 font-semibold md:text-[38px] md:leading-[46px]">Fair to the people who work in your home</h2>

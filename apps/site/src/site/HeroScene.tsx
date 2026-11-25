@@ -12,7 +12,7 @@ const tw = win(TARGET.tower, TARGET.floor, TARGET.col);
 /**
  * The hero picture while the film is not in yet: the drawn community, lit up. It draws
  * itself once on load (no scroll): towers, the homes on Nestovin, the team at the gate,
- * and flat 1204 checking in. Server-rendered in its final state, so it reads without JS.
+ * and your flat checking in. Server-rendered in its final state, so it reads without JS.
  */
 export function HeroScene() {
   const root = useRef<SVGSVGElement>(null);
@@ -48,7 +48,7 @@ export function HeroScene() {
       viewBox="16 40 728 480"
       className="h-auto w-full"
       role="img"
-      aria-label="Illustration: a gated community with three towers. Homes using Nestovin are lit, the Nestovin team stands at the gate, and flat 1204 is checked in for the cook at 7:00."
+      aria-label="Illustration: a gated community with three towers. Homes using Nestovin are lit, the Nestovin team stands at the gate, and your flat is checked in for the cook at 7:00."
     >
       <g data-fill>
         <path d="M0 500C120 440 250 470 360 452s270-40 400 10V560H0Z" fill="var(--nv-primary)" opacity="0.08" />
@@ -104,12 +104,12 @@ export function HeroScene() {
         <Person x={420} role="caretaker" />
       </g>
 
-      {/* flat 1204, checked in */}
+      {/* your flat, checked in */}
       <g data-callout>
         <path d={`M${tw.x + tw.w + 4} ${tw.y + tw.h / 2}L${B.x + B.w + 22} ${tw.y + 26}`} stroke="var(--nv-charcoal)" strokeWidth="1.6" />
         <rect x={B.x + B.w + 20} y={tw.y - 6} width="238" height="72" rx="14" fill="var(--nv-charcoal)" />
         <text x={B.x + B.w + 40} y={tw.y + 22} fill="#FFFFFF" fontFamily="var(--font-manrope)" fontWeight="700" fontSize="17">
-          Flat 1204
+          Your flat
         </text>
         <text x={B.x + B.w + 40} y={tw.y + 46} fill="var(--nv-border)" fontFamily="var(--font-inter)" fontSize="14">
           Cook · 07:00 · Checked in

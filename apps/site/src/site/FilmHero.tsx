@@ -3,17 +3,22 @@
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import { ArrowDown, Check, Pause, Play } from 'lucide-react';
+import Image from 'next/image';
 import { useRef, useState, type RefObject } from 'react';
 import { heroFilm } from './content';
+import { AppBadges } from './AppBadges';
+import { CommunityRequestButton } from './CommunityRequest';
 import { HeroScene } from './HeroScene';
 import { LinkButton } from './ui';
 
 gsap.registerPlugin(useGSAP);
 
-const lines = ['Home help, organised', 'for your whole', 'community.'];
+const lines = ['Get House Help,', 'for your Community.'];
 const lede =
   'Trained maids, cooks and caretakers for gated communities. Employed by Nestovin, assigned to your flat, and checked in at your door on every visit.';
-const proof = ['Salaried Nestovin staff', 'Same person, same time', 'Checked in at your door'];
+/** The home hero's short line: the same promise in two lines. */
+const shortLede = 'Trained maids, cooks and caretakers for your everyday needs.';
+const proof = ["Nestovin's own trained staff", 'Checked in at your door'];
 
 /**
  * Home hero. With the owner's film (Film A) dropped in, the promise sits over the film.
@@ -21,7 +26,8 @@ const proof = ['Salaried Nestovin staff', 'Same person, same time', 'Checked in 
  * stock skyline. Entrance motion only; nothing here is tied to scroll.
  */
 export function FilmHero() {
-  return heroFilm.mp4 ? <FilmVersion /> : <DrawnVersion />;
+  if (heroFilm.mp4) return <FilmVersion />;
+  return heroFilm.photo ? <PhotoVersion /> : <DrawnVersion />;
 }
 
 function useEntrance(root: RefObject<HTMLElement | null>, onReduce?: () => void) {
@@ -43,27 +49,27 @@ function useEntrance(root: RefObject<HTMLElement | null>, onReduce?: () => void)
   );
 }
 
-function Headline({ onDark }: { onDark: boolean }) {
+function Headline({ onDark, compact = false }: { onDark: boolean; compact?: boolean }) {
   return (
     <h1
       id="hero-title"
-      className={`max-w-[760px] text-[40px] leading-[1.06] font-bold tracking-[-0.03em] sm:text-[52px] lg:text-[50px] xl:text-[56px] ${onDark ? 'text-white' : 'text-charcoal'}`}
+      className={`max-w-[760px] text-[36px] leading-[1.06] min-[400px]:text-[40px] font-bold tracking-[-0.03em] sm:text-[52px] lg:text-[50px] xl:text-[56px] ${compact ? '!text-[34px] min-[400px]:!text-[38px] md:!text-[44px] lg:!text-[42px] xl:!text-[48px]' : ''} ${onDark ? 'text-white' : 'text-charcoal'}`}
     >
       {lines.map((l) => (
-        <span key={l} data-line className="block overflow-hidden pb-[0.06em]">
-          <span className="block">{l === 'community.' ? <span className={onDark ? 'text-brand-green' : 'text-teal'}>{l}</span> : l}</span>
+        <span key={l} data-line className="-mb-[0.06em] block overflow-hidden pb-[0.12em]">
+          <span className="block">{l === 'community.' && !compact ? <span className={onDark ? 'text-brand-green' : 'text-teal'}>{l}</span> : l}</span>
         </span>
       ))}
     </h1>
   );
 }
 
-function Proof({ onDark }: { onDark: boolean }) {
+function Proof({ onDark, light = false }: { onDark: boolean; light?: boolean }) {
   return (
-    <ul data-fade className={`mt-9 flex flex-wrap gap-x-6 gap-y-3 text-[15px] font-medium ${onDark ? 'text-white' : 'text-charcoal'}`}>
+    <ul data-fade className={`flex flex-wrap gap-x-6 gap-y-3 text-[15px] font-medium mt-9 ${onDark ? 'text-white' : 'text-charcoal'}`}>
       {proof.map((t) => (
         <li key={t} className="flex items-center gap-2">
-          <span className="grid size-5 place-items-center rounded-full bg-green-action text-white">
+          <span className={`grid size-5 place-items-center rounded-full ${light ? 'bg-white text-teal-deep' : 'bg-green-action text-white'}`}>
             <Check size={13} strokeWidth={3} aria-hidden />
           </span>
           {t}
@@ -96,6 +102,60 @@ function DrawnVersion() {
         </div>
         <div data-fade className="-mx-2 sm:mx-0">
           <HeroScene />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * The owner's hero photograph covers the whole first screen, edge to edge. A brand-green
+ * overlay rises from the bottom (where the aprons and badges are), so the words sit on top of
+ * the photo at the bottom while the three faces stay clear above them. Wide screens lay the
+ * words out as one band: the headline on the left, the paragraph, buttons and trust points on
+ * the right. Phones stack them.
+ */
+function PhotoVersion() {
+  const root = useRef<HTMLElement>(null);
+  useEntrance(root);
+  return (
+    <section
+      ref={root}
+      className="relative isolate flex min-h-[calc(100svh-72px)] flex-col justify-end overflow-hidden bg-teal-deep"
+      aria-labelledby="hero-title"
+    >
+      <div className="absolute inset-0 -z-10" aria-hidden>
+        {/* Phones and tablets: the photo is wider than the screen and pinned to the top, so all
+            three faces show; it melts into the overlay below. Laptops: it covers everything. */}
+        <div data-media className="absolute top-0 left-[-69%] aspect-[1670/942] w-[200%] sm:left-[-35%] sm:w-[150%] lg:inset-0 lg:aspect-auto lg:w-auto">
+          <Image src={heroFilm.photo} alt="" fill priority sizes="(min-width: 1024px) 100vw, 200vw" className="object-cover lg:object-[50%_30%]" />
+        </div>
+        {/* Overlay: deep brand green from the bottom, a light tint on top so the nav edge reads. */}
+        <div className="absolute inset-x-0 top-0 h-[calc(112.8vw+2px)] bg-[linear-gradient(to_bottom,rgb(0_105_92/0)_52%,rgb(0_105_92/0.5)_74%,rgb(0_105_92/0.88)_90%,var(--nv-teal-deep)_99%)] sm:h-[calc(84.6vw+2px)] lg:hidden" />
+        <div className="absolute inset-0 hidden bg-[linear-gradient(to_top,rgb(0_105_92/0.82)_0%,rgb(0_105_92/0.5)_20%,rgb(0_105_92/0.12)_40%,rgb(0_105_92/0)_52%)] lg:block" />
+        <div className="absolute inset-0 hidden bg-[radial-gradient(ellipse_58%_80%_at_0%_100%,rgb(0_105_92/0.62)_0%,rgb(0_105_92/0.28)_45%,transparent_72%)] lg:block" />
+        <div className="absolute inset-x-0 top-0 h-24 bg-[linear-gradient(to_bottom,rgb(0_105_92/0.22),transparent)]" />
+      </div>
+      <span className="sr-only">{heroFilm.photoAlt}</span>
+
+      <div className="mx-auto w-full max-w-[1200px] px-5 pt-[calc(112.8vw-110px)] pb-10 sm:pt-[calc(84.6vw-170px)] md:px-8 md:pb-14 lg:pt-0 lg:pb-16">
+        {/* Two blocks in one row on laptops: the promise on the left, the actions on the right,
+            both sitting on the same bottom line. Phones stack them. */}
+        <div className="lg:flex lg:items-end lg:justify-between lg:gap-10">
+          <div className="max-w-[620px] [text-shadow:0_1px_18px_rgb(0_50_44/0.5)]">
+            <Headline onDark compact />
+            <p data-fade className="mt-4 max-w-[560px] text-[17px] leading-7 text-white md:text-[18px] md:leading-8">
+              {shortLede}
+            </p>
+          </div>
+          <div className="mt-7 flex flex-col gap-4 lg:mt-0 lg:shrink-0 lg:items-end">
+            <div data-fade>
+              <CommunityRequestButton />
+            </div>
+            <div data-fade>
+              <AppBadges className="lg:justify-end" />
+            </div>
+          </div>
         </div>
       </div>
     </section>
